@@ -22,6 +22,7 @@ if (Test-Path "build") { Remove-Item "build" -Recurse -Force }
   --name "FoundryDesktop" `
   --onefile `
   --windowed `
+  --add-data "docu;docu" `
   --collect-submodules fastapi `
   --collect-submodules starlette `
   --collect-submodules uvicorn `

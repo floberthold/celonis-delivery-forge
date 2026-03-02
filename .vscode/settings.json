@@ -14,6 +14,7 @@
             "approve": true,
             "matchCommandLine": true
         },
-        ".\\.venv\\Scripts\\python": true
+        ".\\.venv\\Scripts\\python": true,
+        "c:/coding/celonis-delivery-forge/.venv/Scripts/python.exe": true
     }
 }

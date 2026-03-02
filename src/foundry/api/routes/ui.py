@@ -1,4 +1,5 @@
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote_plus, urlparse
@@ -7,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import ChoiceLoader, FileSystemLoader
 from markupsafe import Markup, escape
 from sqlmodel import Session, select
 
@@ -52,7 +54,33 @@ from foundry.services.review_service import ReviewService
 from foundry.services.template_service import TemplateService
 
 router = APIRouter(tags=["ui"])
-templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[2] / "ui" / "templates"))
+UI_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "ui" / "templates"
+
+
+def _docu_dir() -> Path | None:
+    project_docu = Path(__file__).resolve().parents[4] / "docu"
+    if project_docu.exists():
+        return project_docu
+
+    bundled_root = getattr(sys, "_MEIPASS", None)
+    if bundled_root:
+        bundled_docu = Path(bundled_root) / "docu"
+        if bundled_docu.exists():
+            return bundled_docu
+
+    cwd_docu = Path.cwd() / "docu"
+    if cwd_docu.exists():
+        return cwd_docu
+    return None
+
+
+template_paths = [str(UI_TEMPLATE_DIR)]
+docu_dir = _docu_dir()
+if docu_dir:
+    template_paths.append(str(docu_dir))
+
+templates = Jinja2Templates(directory=str(UI_TEMPLATE_DIR))
+templates.env.loader = ChoiceLoader([FileSystemLoader(path) for path in template_paths])
 
 
 def _normalize_http_url(value: str | None) -> str:
@@ -1256,6 +1284,16 @@ def timeline_ui_delete(log_id: str = Form(...), session: Session = Depends(get_s
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/timeline-ui", err=f"Delete timeline event failed: {exc}")
+
+
+@router.get("/docu/user.html")
+def user_docs_ui(request: Request):
+    return templates.TemplateResponse("user.html", {"request": request})
+
+
+@router.get("/docu/developer.html")
+def developer_docs_ui(request: Request):
+    return templates.TemplateResponse("developer.html", {"request": request})
 
 
 @router.get("/tenant-ui")

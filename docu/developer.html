@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Developer Documentation | Foundry{% endblock %}
+
+{% block content %}
+<h2>Developer Documentation</h2>
+<p>Technical guide for extending Celonis Delivery Forge.</p>
+
+<div class="grid">
+    <section class="panel">
+        <h3>Architecture</h3>
+        <ul>
+            <li>FastAPI app entry: <code>foundry.api.main:app</code></li>
+            <li>UI routes and templates via Jinja2</li>
+            <li>SQLModel domain models with timeline and review services</li>
+        </ul>
+    </section>
+
+    <section class="panel">
+        <h3>Key route modules</h3>
+        <ul>
+            <li><code>/dashboard</code> and topic pages in <code>ui.py</code></li>
+            <li>API resources under <code>src/foundry/api/routes/</code></li>
+            <li>Static assets under <code>src/foundry/ui/static/</code></li>
+        </ul>
+    </section>
+
+    <section class="panel">
+        <h3>Local development</h3>
+        <ol>
+            <li>Install package in editable mode.</li>
+            <li>Run <code>uvicorn foundry.api.main:app --reload</code>.</li>
+            <li>Use <a href="/docs">Swagger UI</a> for API testing.</li>
+            <li>Use <a href="/dashboard">Dashboard</a> for integrated UI validation.</li>
+        </ol>
+    </section>
+
+    <section class="panel">
+        <h3>Packaging</h3>
+        <ul>
+            <li>Docker image runs app from <code>/app</code>.</li>
+            <li>Windows standalone is built with PyInstaller script.</li>
+            <li>Root <code>docu/</code> content is bundled and served in-app.</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

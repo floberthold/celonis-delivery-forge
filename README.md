@@ -51,6 +51,10 @@ Built for consultants. Built for scale. Built to last.
 - Swagger: <http://127.0.0.1:8000/docs>
 - Health: <http://127.0.0.1:8000/health>
 - UI Dashboard: <http://127.0.0.1:8000/dashboard>
+- User Docs: <http://127.0.0.1:8000/docu/user.html>
+- Developer Docs: <http://127.0.0.1:8000/docu/developer.html>
+
+Documentation source files for these pages are stored in the root `docu/` folder.
 
 5. Configure Celonis token for companion actions:
 

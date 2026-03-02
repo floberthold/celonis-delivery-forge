@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}User Documentation | Foundry{% endblock %}
+
+{% block content %}
+<h2>User Documentation</h2>
+<p>Guide for project users and reviewers working in Celonis Delivery Forge.</p>
+
+<div class="grid">
+    <section class="panel">
+        <h3>1. Access the workspace</h3>
+        <ol>
+            <li>Open <a href="/dashboard">Dashboard</a>.</li>
+            <li>Log in with your local account if prompted.</li>
+            <li>Pick the topic page you need from the top navigation.</li>
+        </ol>
+    </section>
+
+    <section class="panel">
+        <h3>2. Core workflow</h3>
+        <ol>
+            <li>Create or select a client and project.</li>
+            <li>Register assets and assign memberships.</li>
+            <li>Submit reviews and track decisions.</li>
+            <li>Use timeline views for governance history.</li>
+        </ol>
+    </section>
+
+    <section class="panel">
+        <h3>3. Review governance rules</h3>
+        <ul>
+            <li>Author and reviewer must be different people.</li>
+            <li>Only assigned project members can submit/review.</li>
+            <li>Approvals and change requests are recorded in timeline entries.</li>
+        </ul>
+    </section>
+
+    <section class="panel">
+        <h3>4. Common pages</h3>
+        <ul>
+            <li><a href="/projects-ui">Projects</a> for project lifecycle and memberships</li>
+            <li><a href="/assets-ui">Assets</a> for data model and ownership</li>
+            <li><a href="/reviews-ui">Reviews</a> for request and decision flow</li>
+            <li><a href="/timeline-ui">Timeline</a> for auditing events</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}
