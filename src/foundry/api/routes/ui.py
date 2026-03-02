@@ -1,15 +1,86 @@
 from pathlib import Path
+from urllib.parse import quote_plus
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from foundry.db import get_session
-from foundry.models import ActivityLog, Asset, Client, Person, Project, ProjectMembership, ReviewRequest
+from foundry.models import (
+    ActivityLog,
+    Asset,
+    AssetType,
+    Client,
+    DecisionType,
+    GlobalRole,
+    MembershipRole,
+    Person,
+    Project,
+    ProjectMembership,
+    ProjectStatus,
+    ReviewRequest,
+    SensitivityLevel,
+)
+from foundry.schemas import ReviewDecisionCreate, ReviewRequestCreate
+from foundry.security import hash_password
+from foundry.services.review_service import ReviewService
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[2] / "ui" / "templates"))
+
+
+def _redirect_dashboard(*, ok: str | None = None, err: str | None = None) -> RedirectResponse:
+    if ok:
+        return RedirectResponse(url=f"/dashboard?ok={quote_plus(ok)}", status_code=303)
+    if err:
+        return RedirectResponse(url=f"/dashboard?err={quote_plus(err)}", status_code=303)
+    return RedirectResponse(url="/dashboard", status_code=303)
+
+
+def _parse_uuid(value: str, field_name: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise ValueError(f"Invalid UUID for {field_name}") from exc
+
+
+def _dashboard_context(request: Request, session: Session) -> dict:
+    clients = list(session.exec(select(Client).order_by(Client.created_at.desc())).all())
+    projects = list(session.exec(select(Project).order_by(Project.created_at.desc())).all())
+    assets = list(session.exec(select(Asset).order_by(Asset.created_at.desc())).all())
+    reviews = list(session.exec(select(ReviewRequest).order_by(ReviewRequest.created_at.desc())).all())
+    timeline = list(session.exec(select(ActivityLog).order_by(ActivityLog.timestamp.desc())).all())
+    people = list(session.exec(select(Person).order_by(Person.created_at.desc())).all())
+    memberships = list(session.exec(select(ProjectMembership)).all())
+
+    return {
+        "request": request,
+        "ok_message": request.query_params.get("ok"),
+        "error_message": request.query_params.get("err"),
+        "clients_count": len(clients),
+        "projects_count": len(projects),
+        "assets_count": len(assets),
+        "reviews_count": len(reviews),
+        "timeline_count": len(timeline),
+        "clients": clients[:10],
+        "projects": projects[:10],
+        "assets": assets[:10],
+        "reviews": reviews[:10],
+        "timeline": timeline[:10],
+        "form_clients": clients,
+        "form_projects": projects,
+        "form_assets": assets,
+        "form_reviews": reviews,
+        "form_people": people,
+        "form_memberships": memberships,
+        "sensitivity_options": [row.value for row in SensitivityLevel],
+        "project_status_options": [row.value for row in ProjectStatus],
+        "asset_type_options": [row.value for row in AssetType],
+        "membership_role_options": [row.value for row in MembershipRole],
+        "global_role_options": [row.value for row in GlobalRole],
+    }
 
 
 @router.get("/")
@@ -19,28 +90,168 @@ def root_redirect() -> RedirectResponse:
 
 @router.get("/dashboard")
 def dashboard(request: Request, session: Session = Depends(get_session)):
-    clients = list(session.exec(select(Client).order_by(Client.created_at.desc())).all())
-    projects = list(session.exec(select(Project).order_by(Project.created_at.desc())).all())
-    assets = list(session.exec(select(Asset).order_by(Asset.created_at.desc())).all())
-    reviews = list(session.exec(select(ReviewRequest).order_by(ReviewRequest.created_at.desc())).all())
-    timeline = list(session.exec(select(ActivityLog).order_by(ActivityLog.timestamp.desc())).all())
+    return templates.TemplateResponse("dashboard.html", _dashboard_context(request, session))
 
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "clients_count": len(clients),
-            "projects_count": len(projects),
-            "assets_count": len(assets),
-            "reviews_count": len(reviews),
-            "timeline_count": len(timeline),
-            "clients": clients[:10],
-            "projects": projects[:10],
-            "assets": assets[:10],
-            "reviews": reviews[:10],
-            "timeline": timeline[:10],
-        },
-    )
+
+@router.post("/dashboard/create-client", include_in_schema=False)
+def dashboard_create_client(
+    name: str = Form(...),
+    tenant_url: str = Form(...),
+    sensitivity_level: str = Form("medium"),
+    session: Session = Depends(get_session),
+):
+    try:
+        client = Client(
+            name=name.strip(),
+            tenant_url=tenant_url.strip(),
+            sensitivity_level=SensitivityLevel(sensitivity_level),
+        )
+        session.add(client)
+        session.commit()
+        return _redirect_dashboard(ok=f"Client '{client.name}' created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Create client failed: {exc}")
+
+
+@router.post("/dashboard/create-person", include_in_schema=False)
+def dashboard_create_person(
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role_global: str = Form("member"),
+    session: Session = Depends(get_session),
+):
+    try:
+        person = Person(
+            name=name.strip(),
+            email=email.strip().lower(),
+            hashed_password=hash_password(password),
+            role_global=GlobalRole(role_global),
+        )
+        session.add(person)
+        session.commit()
+        return _redirect_dashboard(ok=f"Person '{person.name}' created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Create person failed: {exc}")
+
+
+@router.post("/dashboard/create-project", include_in_schema=False)
+def dashboard_create_project(
+    name: str = Form(...),
+    client_id: str = Form(...),
+    status: str = Form("planned"),
+    session: Session = Depends(get_session),
+):
+    try:
+        project = Project(
+            name=name.strip(),
+            client_id=_parse_uuid(client_id, "client_id"),
+            status=ProjectStatus(status),
+        )
+        session.add(project)
+        session.commit()
+        return _redirect_dashboard(ok=f"Project '{project.name}' created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Create project failed: {exc}")
+
+
+@router.post("/dashboard/create-membership", include_in_schema=False)
+def dashboard_create_membership(
+    project_id: str = Form(...),
+    person_id: str = Form(...),
+    role: str = Form("contributor"),
+    session: Session = Depends(get_session),
+):
+    try:
+        membership = ProjectMembership(
+            project_id=_parse_uuid(project_id, "project_id"),
+            person_id=_parse_uuid(person_id, "person_id"),
+            role=MembershipRole(role),
+        )
+        session.add(membership)
+        session.commit()
+        return _redirect_dashboard(ok="Project membership created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Create membership failed: {exc}")
+
+
+@router.post("/dashboard/create-asset", include_in_schema=False)
+def dashboard_create_asset(
+    name: str = Form(...),
+    asset_type: str = Form(...),
+    project_id: str = Form(...),
+    client_id: str = Form(...),
+    celonis_url: str = Form(""),
+    asset_identifier: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    try:
+        asset = Asset(
+            name=name.strip(),
+            type=AssetType(asset_type),
+            project_id=_parse_uuid(project_id, "project_id"),
+            client_id=_parse_uuid(client_id, "client_id"),
+            celonis_url=celonis_url.strip() or None,
+            asset_identifier=asset_identifier.strip() or None,
+        )
+        session.add(asset)
+        session.commit()
+        return _redirect_dashboard(ok=f"Asset '{asset.name}' created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Create asset failed: {exc}")
+
+
+@router.post("/dashboard/create-review", include_in_schema=False)
+def dashboard_create_review(
+    asset_id: str = Form(...),
+    project_id: str = Form(...),
+    author_id: str = Form(...),
+    reviewer_id: str = Form(...),
+    change_summary: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    try:
+        payload = ReviewRequestCreate(
+            asset_id=_parse_uuid(asset_id, "asset_id"),
+            project_id=_parse_uuid(project_id, "project_id"),
+            author_id=_parse_uuid(author_id, "author_id"),
+            reviewer_id=_parse_uuid(reviewer_id, "reviewer_id"),
+            change_summary=change_summary.strip(),
+        )
+        ReviewService.submit_for_review(session, payload)
+        return _redirect_dashboard(ok="Review submitted")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Submit review failed: {exc}")
+
+
+@router.post("/dashboard/review-decision", include_in_schema=False)
+def dashboard_review_decision(
+    review_id: str = Form(...),
+    reviewer_id: str = Form(...),
+    decision: str = Form(...),
+    note: str = Form(""),
+    snippet_worthy: str | None = Form(None),
+    session: Session = Depends(get_session),
+):
+    try:
+        payload = ReviewDecisionCreate(
+            review_id=_parse_uuid(review_id, "review_id"),
+            reviewer_id=_parse_uuid(reviewer_id, "reviewer_id"),
+            decision=DecisionType(decision),
+            note=note.strip() or None,
+            snippet_worthy=snippet_worthy is not None,
+        )
+        ReviewService.decide_review(session, payload)
+        return _redirect_dashboard(ok="Review decision applied")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Review decision failed: {exc}")
 
 
 @router.get("/projects-ui")

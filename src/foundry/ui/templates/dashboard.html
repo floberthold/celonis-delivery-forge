@@ -5,6 +5,13 @@
 {% block content %}
 <h2>Dashboard</h2>
 
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
 <section class="cards">
     <div class="card">
         <h3>Clients</h3>
@@ -26,6 +33,173 @@
         <h3>Timeline Events</h3>
         <p class="metric">{{ timeline_count }}</p>
     </div>
+</section>
+
+<section class="forms-grid">
+    <form class="panel form-card" method="post" action="/dashboard/create-client">
+        <h3>Create Client</h3>
+        <label>Name<input name="name" required></label>
+        <label>Tenant URL<input name="tenant_url" required></label>
+        <label>Sensitivity
+            <select name="sensitivity_level">
+                {% for row in sensitivity_options %}
+                <option value="{{ row }}">{{ row }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Create Client</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/create-person">
+        <h3>Create Person</h3>
+        <label>Name<input name="name" required></label>
+        <label>Email<input type="email" name="email" required></label>
+        <label>Password<input type="password" name="password" required></label>
+        <label>Global Role
+            <select name="role_global">
+                {% for row in global_role_options %}
+                <option value="{{ row }}">{{ row }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Create Person</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/create-project">
+        <h3>Create Project</h3>
+        <label>Name<input name="name" required></label>
+        <label>Client
+            <select name="client_id" required>
+                {% for row in form_clients %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Status
+            <select name="status">
+                {% for row in project_status_options %}
+                <option value="{{ row }}">{{ row }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Create Project</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/create-membership">
+        <h3>Add Project Membership</h3>
+        <label>Project
+            <select name="project_id" required>
+                {% for row in form_projects %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Person
+            <select name="person_id" required>
+                {% for row in form_people %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Role
+            <select name="role">
+                {% for row in membership_role_options %}
+                <option value="{{ row }}">{{ row }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Add Membership</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/create-asset">
+        <h3>Create Asset</h3>
+        <label>Name<input name="name" required></label>
+        <label>Type
+            <select name="asset_type" required>
+                {% for row in asset_type_options %}
+                <option value="{{ row }}">{{ row }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Project
+            <select name="project_id" required>
+                {% for row in form_projects %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Client
+            <select name="client_id" required>
+                {% for row in form_clients %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Celonis URL<input name="celonis_url"></label>
+        <label>Asset Identifier<input name="asset_identifier"></label>
+        <button type="submit">Create Asset</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/create-review">
+        <h3>Submit Review</h3>
+        <label>Asset
+            <select name="asset_id" required>
+                {% for row in form_assets %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Project
+            <select name="project_id" required>
+                {% for row in form_projects %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Author
+            <select name="author_id" required>
+                {% for row in form_people %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Reviewer
+            <select name="reviewer_id" required>
+                {% for row in form_people %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Change Summary<textarea name="change_summary" rows="3" required></textarea></label>
+        <button type="submit">Submit Review</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/review-decision">
+        <h3>Apply Review Decision</h3>
+        <label>Review
+            <select name="review_id" required>
+                {% for row in form_reviews %}
+                <option value="{{ row.id }}">{{ row.id }} · {{ row.status.value }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Reviewer
+            <select name="reviewer_id" required>
+                {% for row in form_people %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Decision
+            <select name="decision" required>
+                <option value="approve">approve</option>
+                <option value="request_changes">request_changes</option>
+            </select>
+        </label>
+        <label>Note<textarea name="note" rows="2"></textarea></label>
+        <label class="inline-checkbox"><input type="checkbox" name="snippet_worthy"> Snippet-worthy</label>
+        <button type="submit">Apply Decision</button>
+    </form>
 </section>
 
 <section class="grid">
