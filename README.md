@@ -1,2 +1,108 @@
-# celonis-delivery-forge
-# Celonis Delivery Foundry  Celonis implementations should not be crafted in isolation.  The Delivery Foundry establishes a dual-control governance framework for multi-tenant Celonis projects.  Every asset is forged. Every change is reviewed. Nothing reaches production without two hammers.  Built for consultants. Built for scale. Built to last.
+# Celonis Delivery Forge
+
+Celonis implementations should not be crafted in isolation. The Delivery Foundry establishes a dual-control governance framework for multi-tenant Celonis projects.
+
+Every asset is forged. Every change is reviewed. Nothing reaches production without two hammers.
+
+Built for consultants. Built for scale. Built to last.
+
+## MVP Scope
+
+- Project and client registry
+- Asset ownership and membership tracking
+- 4-eyes review flow (`submit -> approve/request changes`)
+- Timeline view for project and asset activity
+- Local accounts with JWT login
+- Optional read-only Celonis import adapter (stub)
+
+## Tech Stack
+
+- Python 3.11+
+- FastAPI + SQLModel
+- PostgreSQL
+- Docker Compose for local services
+
+## Quick Start (Local Python)
+
+1. Copy environment variables:
+
+	```powershell
+	Copy-Item .env.example .env
+	```
+
+2. Install dependencies:
+
+	```powershell
+	python -m pip install --upgrade pip
+	python -m pip install -e .
+	```
+
+3. Run API:
+
+	```powershell
+	uvicorn foundry.api.main:app --reload
+	```
+
+4. Open:
+
+- Swagger: <http://127.0.0.1:8000/docs>
+- Health: <http://127.0.0.1:8000/health>
+
+## Quick Start (Desktop Mode)
+
+```powershell
+python -m foundry.desktop.app
+```
+
+This starts the local API and opens the browser automatically.
+
+## Standalone Windows App (No Terminal for runtime)
+
+1. Build standalone `.exe` once:
+
+```powershell
+.\scripts\build_standalone.ps1
+```
+
+2. Start without terminal:
+
+- Double-click `scripts/run_standalone.vbs` (hidden window, prefers `.venv\Scripts\pythonw.exe`)
+- or double-click `scripts/run_standalone.bat` (tries EXE first, then `pythonw` fallback)
+- or run `scripts/run_standalone_debug.bat` to keep output in the console for troubleshooting
+
+This uses `dist/FoundryDesktop.exe` and does not require Docker or containers.
+Desktop startup logs are written to `%LOCALAPPDATA%/CelonisDeliveryForge/desktop.log`.
+
+## Quick Start (Docker)
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+## Core API Endpoints
+
+- `POST /people/` create local person
+- `POST /auth/token` login and receive JWT
+- `POST /clients/` create client
+- `POST /projects/` create project
+- `POST /projects/{project_id}/memberships` assign colleagues
+- `PATCH /projects/{project_id}/status` change project status with governance checks
+- `POST /assets/` register asset
+- `GET /assets/matrix` who is/was on which asset
+- `POST /reviews/submit` submit change for review
+- `POST /reviews/decision` approve or request changes
+- `GET /timeline/` timeline by entity
+
+## Governance Rules (MVP)
+
+- Author and reviewer must be different users.
+- A review requires at least two active project memberships.
+- Only assigned project members can submit/review.
+- Project cannot move to active with fewer than 2 active memberships.
+- Project cannot close while assets are still in review.
+- Snippet-worthy is only allowed on approved reviews.
+
+## Architecture Decision Record
+
+- See `docs/adr/0001-mvp-architecture.md`
