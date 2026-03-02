@@ -14,6 +14,8 @@ Built for consultants. Built for scale. Built to last.
 - Timeline view for project and asset activity
 - Local accounts with JWT login
 - Optional read-only Celonis import adapter (stub)
+- Companion Celonis actions (connect, extract, import) from dashboard
+- Extension-ready backend contracts and skeleton
 
 ## Tech Stack
 
@@ -48,6 +50,12 @@ Built for consultants. Built for scale. Built to last.
 - Swagger: <http://127.0.0.1:8000/docs>
 - Health: <http://127.0.0.1:8000/health>
 - UI Dashboard: <http://127.0.0.1:8000/dashboard>
+
+5. Configure Celonis token for companion actions:
+
+```powershell
+$env:FORGE_CELONIS_API_TOKEN="<your-token>"
+```
 
 ## Quick Start (Desktop Mode)
 
@@ -94,6 +102,26 @@ docker compose up --build
 - `POST /reviews/submit` submit change for review
 - `POST /reviews/decision` approve or request changes
 - `GET /timeline/` timeline by entity
+- `POST /celonis/connections/upsert` upsert tenant-scoped Celonis connection
+- `GET /celonis/connections` list configured Celonis connections
+- `POST /celonis/extract` trigger API extract call for a client connection
+- `POST /celonis/import` trigger API import call for a client connection
+
+## Companion Workflow
+
+- Open `/dashboard` and use the Celonis cards:
+	- **Celonis Connection**: bind a `client` to a `tenant base URL`.
+	- **Celonis Extract**: call a GET endpoint path on that tenant.
+	- **Celonis Import**: call a POST endpoint path with JSON payload.
+- Open `/tenant-ui` for multi-frame navigation and popup/new-tab fallback when embedding is blocked.
+
+## Extension Preparation
+
+- Skeleton lives in `extension/`:
+	- `manifest.json`
+	- `src/background.js`
+	- `src/content.js`
+- The skeleton is wired for future in-page buttons/overlays and is designed to call the existing `/celonis/*` backend contracts.
 
 ## Governance Rules (MVP)
 
@@ -107,3 +135,7 @@ docker compose up --build
 ## Architecture Decision Record
 
 - See `docs/adr/0001-mvp-architecture.md`
+
+# Developers
+
+Florian Berthold - 2026 - florian.d.berthold@gmail.com

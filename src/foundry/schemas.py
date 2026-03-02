@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from foundry.models import (
     ArtifactType,
@@ -99,3 +99,41 @@ class ReviewRequestOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CelonisConnectionUpsert(BaseModel):
+    client_id: UUID
+    tenant_base_url: str
+    is_active: bool = True
+
+
+class CelonisConnectionOut(BaseModel):
+    id: UUID
+    client_id: UUID
+    tenant_base_url: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CelonisExtractRequest(BaseModel):
+    client_id: UUID
+    source_path: str = "/process-mining/api/teams"
+
+
+class CelonisImportRequest(BaseModel):
+    client_id: UUID
+    target_path: str = "/process-mining/api/teams"
+    payload: dict = Field(default_factory=dict)
+
+
+class CelonisActionResult(BaseModel):
+    client_id: UUID
+    action: str
+    url: str
+    status_code: int
+    ok: bool
+    response_preview: str

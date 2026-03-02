@@ -200,6 +200,46 @@
         <label class="inline-checkbox"><input type="checkbox" name="snippet_worthy"> Snippet-worthy</label>
         <button type="submit">Apply Decision</button>
     </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/celonis-connection">
+        <h3>Celonis Connection</h3>
+        <label>Client
+            <select name="client_id" required>
+                {% for row in form_clients %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Tenant Base URL<input name="tenant_base_url" placeholder="https://team.eu-1.celonis.cloud" required></label>
+        <button type="submit">Save Connection</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/celonis-extract">
+        <h3>Celonis Extract</h3>
+        <label>Client
+            <select name="client_id" required>
+                {% for row in form_clients %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Source Path<input name="source_path" value="/process-mining/api/teams" required></label>
+        <button type="submit">Run Extract</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/celonis-import">
+        <h3>Celonis Import</h3>
+        <label>Client
+            <select name="client_id" required>
+                {% for row in form_clients %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Target Path<input name="target_path" value="/process-mining/api/teams" required></label>
+        <label>Payload JSON<textarea name="payload_json" rows="4">{"name":"foundry-import"}</textarea></label>
+        <button type="submit">Run Import</button>
+    </form>
 </section>
 
 <section class="grid">
@@ -254,6 +294,17 @@
             <li>{{ row.action }} - {{ row.timestamp }}</li>
             {% else %}
             <li>No activity yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h3>Celonis Connections</h3>
+        <ul>
+            {% for row in celonis_connections %}
+            <li>{{ row.client_id }} → {{ row.tenant_base_url }} (active={{ row.is_active }})</li>
+            {% else %}
+            <li>No connections configured yet.</li>
             {% endfor %}
         </ul>
     </div>

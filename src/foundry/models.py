@@ -76,6 +76,7 @@ class EntityType(str, Enum):
     membership = "membership"
     asset = "asset"
     review = "review"
+    celonis_connection = "celonis_connection"
 
 
 class Client(SQLModel, table=True):
@@ -181,3 +182,12 @@ class ActivityLog(SQLModel, table=True):
     actor_id: UUID = Field(index=True, foreign_key="person.id")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     metadata_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
+
+class CelonisConnection(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    client_id: UUID = Field(index=True, foreign_key="client.id", unique=True)
+    tenant_base_url: str
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

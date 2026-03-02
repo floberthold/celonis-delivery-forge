@@ -1,3 +1,5 @@
+import json
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote_plus
 from uuid import UUID
@@ -8,10 +10,12 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from foundry.db import get_session
+from foundry.integrations.celonis_import import CelonisGateway
 from foundry.models import (
     ActivityLog,
     Asset,
     AssetType,
+    CelonisConnection,
     Client,
     DecisionType,
     GlobalRole,
@@ -24,6 +28,7 @@ from foundry.models import (
     SensitivityLevel,
 )
 from foundry.schemas import ReviewDecisionCreate, ReviewRequestCreate
+from foundry.settings import get_settings
 from foundry.security import hash_password
 from foundry.services.review_service import ReviewService
 
@@ -54,6 +59,10 @@ def _dashboard_context(request: Request, session: Session) -> dict:
     timeline = list(session.exec(select(ActivityLog).order_by(ActivityLog.timestamp.desc())).all())
     people = list(session.exec(select(Person).order_by(Person.created_at.desc())).all())
     memberships = list(session.exec(select(ProjectMembership)).all())
+    celonis_connections = list(
+        session.exec(select(CelonisConnection).order_by(CelonisConnection.updated_at.desc())).all()
+    )
+    connection_by_client = {row.client_id: row for row in celonis_connections}
 
     return {
         "request": request,
@@ -75,6 +84,8 @@ def _dashboard_context(request: Request, session: Session) -> dict:
         "form_reviews": reviews,
         "form_people": people,
         "form_memberships": memberships,
+        "celonis_connections": celonis_connections,
+        "connection_by_client": connection_by_client,
         "sensitivity_options": [row.value for row in SensitivityLevel],
         "project_status_options": [row.value for row in ProjectStatus],
         "asset_type_options": [row.value for row in AssetType],
@@ -254,6 +265,90 @@ def dashboard_review_decision(
         return _redirect_dashboard(err=f"Review decision failed: {exc}")
 
 
+@router.post("/dashboard/celonis-connection", include_in_schema=False)
+def dashboard_celonis_connection(
+    client_id: str = Form(...),
+    tenant_base_url: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        existing = session.exec(
+            select(CelonisConnection).where(CelonisConnection.client_id == parsed_client_id)
+        ).first()
+        if existing:
+            existing.tenant_base_url = tenant_base_url.strip()
+            existing.is_active = True
+            existing.updated_at = datetime.utcnow()
+            session.add(existing)
+            session.commit()
+            return _redirect_dashboard(ok="Celonis connection updated")
+
+        row = CelonisConnection(client_id=parsed_client_id, tenant_base_url=tenant_base_url.strip())
+        session.add(row)
+        session.commit()
+        return _redirect_dashboard(ok="Celonis connection created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_dashboard(err=f"Celonis connection failed: {exc}")
+
+
+@router.post("/dashboard/celonis-extract", include_in_schema=False)
+def dashboard_celonis_extract(
+    client_id: str = Form(...),
+    source_path: str = Form("/process-mining/api/teams"),
+    session: Session = Depends(get_session),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        connection = session.exec(
+            select(CelonisConnection).where(CelonisConnection.client_id == parsed_client_id)
+        ).first()
+        if connection is None or not connection.is_active:
+            return _redirect_dashboard(err="No active Celonis connection for selected client")
+
+        result = CelonisGateway(get_settings()).extract(
+            tenant_base_url=connection.tenant_base_url,
+            source_path=source_path,
+        )
+        if result.ok:
+            return _redirect_dashboard(ok=f"Extract ok ({result.status_code}) from {result.url}")
+        return _redirect_dashboard(err=f"Extract failed ({result.status_code}) from {result.url}")
+    except Exception as exc:
+        return _redirect_dashboard(err=f"Celonis extract failed: {exc}")
+
+
+@router.post("/dashboard/celonis-import", include_in_schema=False)
+def dashboard_celonis_import(
+    client_id: str = Form(...),
+    target_path: str = Form("/process-mining/api/teams"),
+    payload_json: str = Form('{"name":"foundry-import"}'),
+    session: Session = Depends(get_session),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        connection = session.exec(
+            select(CelonisConnection).where(CelonisConnection.client_id == parsed_client_id)
+        ).first()
+        if connection is None or not connection.is_active:
+            return _redirect_dashboard(err="No active Celonis connection for selected client")
+
+        payload = json.loads(payload_json) if payload_json.strip() else {}
+        if not isinstance(payload, dict):
+            return _redirect_dashboard(err="Payload must be a JSON object")
+
+        result = CelonisGateway(get_settings()).import_data(
+            tenant_base_url=connection.tenant_base_url,
+            target_path=target_path,
+            payload=payload,
+        )
+        if result.ok:
+            return _redirect_dashboard(ok=f"Import ok ({result.status_code}) to {result.url}")
+        return _redirect_dashboard(err=f"Import failed ({result.status_code}) to {result.url}")
+    except Exception as exc:
+        return _redirect_dashboard(err=f"Celonis import failed: {exc}")
+
+
 @router.get("/projects-ui")
 def projects_ui(request: Request, session: Session = Depends(get_session)):
     projects = list(session.exec(select(Project).order_by(Project.created_at.desc())).all())
@@ -368,5 +463,17 @@ def timeline_ui(request: Request, session: Session = Depends(get_session)):
         {
             "request": request,
             "rows": rows,
+        },
+    )
+
+
+@router.get("/tenant-ui")
+def tenant_ui(request: Request):
+    tenant_url = request.query_params.get("url") or "https://id.celonis.cloud/user/ui/login"
+    return templates.TemplateResponse(
+        "tenant.html",
+        {
+            "request": request,
+            "tenant_url": tenant_url,
         },
     )

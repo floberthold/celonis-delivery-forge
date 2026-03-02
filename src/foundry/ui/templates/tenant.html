@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant | Foundry{% endblock %}
+
+{% block content %}
+<h2>Tenant Workspace</h2>
+
+<section class="panel tenant-controls">
+        <p class="muted-note">Use multiple workspace frames in parallel. If Celonis blocks iframe embedding, use each frame's <strong>Popup</strong> or <strong>New Tab</strong> action.</p>
+</section>
+
+<section class="workspace-grid">
+        <article class="workspace-card" data-frame="1">
+                <div class="workspace-toolbar">
+                        <label for="tenant-url-1">Frame 1 URL</label>
+                        <input id="tenant-url-1" type="url" value="{{ tenant_url }}" required>
+                        <button type="button" class="load-frame">Load</button>
+                        <button type="button" class="open-popup">Popup</button>
+                        <a class="link-button open-tab" href="{{ tenant_url }}" target="_blank" rel="noopener noreferrer">New tab</a>
+                </div>
+                <iframe id="tenant-frame-1" src="{{ tenant_url }}" title="Tenant Frame 1" class="tenant-frame"></iframe>
+        </article>
+
+        <article class="workspace-card" data-frame="2">
+                <div class="workspace-toolbar">
+                        <label for="tenant-url-2">Frame 2 URL</label>
+                        <input id="tenant-url-2" type="url" value="https://id.celonis.cloud/user/ui/login" required>
+                        <button type="button" class="load-frame">Load</button>
+                        <button type="button" class="open-popup">Popup</button>
+                        <a class="link-button open-tab" href="https://id.celonis.cloud/user/ui/login" target="_blank" rel="noopener noreferrer">New tab</a>
+                </div>
+                <iframe id="tenant-frame-2" src="https://id.celonis.cloud/user/ui/login" title="Tenant Frame 2" class="tenant-frame"></iframe>
+        </article>
+
+        <article class="workspace-card" data-frame="3">
+                <div class="workspace-toolbar">
+                        <label for="tenant-url-3">Frame 3 URL</label>
+                        <input id="tenant-url-3" type="url" value="https://id.celonis.cloud/user/ui/login" required>
+                        <button type="button" class="load-frame">Load</button>
+                        <button type="button" class="open-popup">Popup</button>
+                        <a class="link-button open-tab" href="https://id.celonis.cloud/user/ui/login" target="_blank" rel="noopener noreferrer">New tab</a>
+                </div>
+                <iframe id="tenant-frame-3" src="https://id.celonis.cloud/user/ui/login" title="Tenant Frame 3" class="tenant-frame"></iframe>
+        </article>
+</section>
+
+<script>
+    (function () {
+        const cards = document.querySelectorAll(".workspace-card");
+
+        function normalizeUrl(value) {
+            if (!value) return "";
+            const trimmed = value.trim();
+            if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+            return "https://" + trimmed;
+        }
+
+        cards.forEach((card) => {
+            const frameId = card.getAttribute("data-frame");
+            const input = card.querySelector("input");
+            const iframe = card.querySelector("iframe");
+            const loadBtn = card.querySelector(".load-frame");
+            const popupBtn = card.querySelector(".open-popup");
+            const newTab = card.querySelector(".open-tab");
+
+            const storageKey = "tenantWorkspaceUrl" + frameId;
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                input.value = saved;
+                iframe.src = saved;
+                newTab.href = saved;
+            }
+
+            loadBtn.addEventListener("click", () => {
+                const url = normalizeUrl(input.value);
+                if (!url) return;
+                input.value = url;
+                iframe.src = url;
+                newTab.href = url;
+                localStorage.setItem(storageKey, url);
+            });
+
+            popupBtn.addEventListener("click", () => {
+                const url = normalizeUrl(input.value);
+                if (!url) return;
+                const features = "popup=yes,width=1400,height=900,menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes";
+                const popup = window.open(url, "celonisTenantWindow" + frameId, features);
+                if (!popup) {
+                    window.location.href = url;
+                }
+            });
+        });
+    })();
+</script>
+{% endblock %}
