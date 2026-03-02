@@ -47,6 +47,7 @@ Built for consultants. Built for scale. Built to last.
 
 - Swagger: <http://127.0.0.1:8000/docs>
 - Health: <http://127.0.0.1:8000/health>
+- UI Dashboard: <http://127.0.0.1:8000/dashboard>
 
 ## Quick Start (Desktop Mode)
 

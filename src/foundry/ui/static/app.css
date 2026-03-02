@@ -1,0 +1,120 @@
+:root {
+    color-scheme: light;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #f5f7fb;
+    color: #1b2230;
+}
+
+.container {
+    width: min(1100px, 92%);
+    margin: 0 auto;
+}
+
+.site-header {
+    background: #ffffff;
+    border-bottom: 1px solid #dfe4ee;
+}
+
+.site-header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.brand {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.nav {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.nav a {
+    text-decoration: none;
+    color: #2e4a82;
+    font-weight: 600;
+}
+
+.main-content {
+    padding: 1.25rem 0 2rem;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+.cards {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    margin-bottom: 1rem;
+}
+
+.card,
+.panel,
+table {
+    background: #ffffff;
+    border: 1px solid #dfe4ee;
+    border-radius: 10px;
+}
+
+.card,
+.panel {
+    padding: 1rem;
+}
+
+.metric {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0.35rem 0 0;
+}
+
+.grid {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.panel h3 {
+    margin-top: 0;
+}
+
+.panel ul {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid #ebeff6;
+    vertical-align: top;
+}
+
+thead th {
+    background: #f1f4fa;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}

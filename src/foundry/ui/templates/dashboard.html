@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Foundry{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+
+<section class="cards">
+    <div class="card">
+        <h3>Clients</h3>
+        <p class="metric">{{ clients_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Projects</h3>
+        <p class="metric">{{ projects_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Assets</h3>
+        <p class="metric">{{ assets_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Reviews</h3>
+        <p class="metric">{{ reviews_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Timeline Events</h3>
+        <p class="metric">{{ timeline_count }}</p>
+    </div>
+</section>
+
+<section class="grid">
+    <div class="panel">
+        <h3>Recent Clients</h3>
+        <ul>
+            {% for row in clients %}
+            <li>{{ row.name }} ({{ row.sensitivity_level.value }})</li>
+            {% else %}
+            <li>No clients yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h3>Recent Projects</h3>
+        <ul>
+            {% for row in projects %}
+            <li>{{ row.name }} ({{ row.status.value }})</li>
+            {% else %}
+            <li>No projects yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h3>Recent Assets</h3>
+        <ul>
+            {% for row in assets %}
+            <li>{{ row.name }} ({{ row.type.value }})</li>
+            {% else %}
+            <li>No assets yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h3>Recent Reviews</h3>
+        <ul>
+            {% for row in reviews %}
+            <li>{{ row.id }} ({{ row.status.value }})</li>
+            {% else %}
+            <li>No reviews yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h3>Recent Timeline Events</h3>
+        <ul>
+            {% for row in timeline %}
+            <li>{{ row.action }} - {{ row.timestamp }}</li>
+            {% else %}
+            <li>No activity yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Foundry UI{% endblock %}</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1 class="brand">Celonis Delivery Forge</h1>
+            <nav class="nav">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/projects-ui">Projects</a>
+                <a href="/assets-ui">Assets</a>
+                <a href="/reviews-ui">Reviews</a>
+                <a href="/timeline-ui">Timeline</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container main-content">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

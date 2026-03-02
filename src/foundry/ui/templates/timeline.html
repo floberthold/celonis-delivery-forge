@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Timeline | Foundry{% endblock %}
+
+{% block content %}
+<h2>Timeline</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Entity Type</th>
+            <th>Entity ID</th>
+            <th>Actor ID</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.timestamp }}</td>
+            <td>{{ row.action }}</td>
+            <td>{{ row.entity_type.value }}</td>
+            <td>{{ row.entity_id }}</td>
+            <td>{{ row.actor_id }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">No activity found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Reviews | Foundry{% endblock %}
+
+{% block content %}
+<h2>Reviews</h2>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Asset</th>
+            <th>Author</th>
+            <th>Reviewer</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Submitted</th>
+            <th>Decision</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.id }}</td>
+            <td>{{ row.asset_name }}</td>
+            <td>{{ row.author_name }}</td>
+            <td>{{ row.reviewer_name }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.created_at }}</td>
+            <td>{{ row.submitted_at or "-" }}</td>
+            <td>{{ row.decision_at or "-" }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="8">No reviews found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

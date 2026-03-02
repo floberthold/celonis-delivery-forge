@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Projects | Foundry{% endblock %}
+
+{% block content %}
+<h2>Projects</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Client</th>
+            <th>Status</th>
+            <th>Membership</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.client_name }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.membership_summary }}</td>
+            <td>{{ row.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">No projects found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

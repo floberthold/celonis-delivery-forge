@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Assets | Foundry{% endblock %}
+
+{% block content %}
+<h2>Assets</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Project</th>
+            <th>Client</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.type }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.project_name }}</td>
+            <td>{{ row.client_name }}</td>
+            <td>{{ row.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6">No assets found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
