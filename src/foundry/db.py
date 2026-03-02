@@ -9,6 +9,10 @@ engine = create_engine(settings.database_url, echo=False, connect_args=connect_a
 
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
+    from foundry.services.template_seed import seed_default_templates
+
+    with Session(engine) as session:
+        seed_default_templates(session)
 
 
 def get_session():

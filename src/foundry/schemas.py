@@ -13,6 +13,8 @@ from foundry.models import (
     ProjectStatus,
     ReviewStatus,
     SensitivityLevel,
+    TemplateScope,
+    TemplateStorageType,
 )
 
 
@@ -41,6 +43,67 @@ class ProjectStatusUpdate(BaseModel):
 class ProjectAssign(BaseModel):
     person_id: UUID
     role: MembershipRole = MembershipRole.contributor
+
+
+class TemplateLibraryCreate(BaseModel):
+    name: str
+    scope: TemplateScope = TemplateScope.global_scope
+    client_id: Optional[UUID] = None
+
+
+class TemplateCreate(BaseModel):
+    library_id: UUID
+    title: str
+    category: str
+    description: Optional[str] = None
+    storage_type: TemplateStorageType
+    storage_url: str
+    prefill_schema_json: dict = Field(default_factory=dict)
+    requires_review: bool = True
+    is_active: bool = True
+    created_by: UUID
+
+
+class TemplateInstantiateCreate(BaseModel):
+    project_id: UUID
+    client_id: UUID
+    author_id: UUID
+    reviewer_id: UUID
+
+
+class TemplateOut(BaseModel):
+    id: UUID
+    library_id: UUID
+    title: str
+    category: str
+    description: Optional[str]
+    storage_type: TemplateStorageType
+    storage_url: str
+    prefill_schema_json: dict
+    requires_review: bool
+    is_active: bool
+    created_by: Optional[UUID]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TemplateInstantiationOut(BaseModel):
+    id: UUID
+    template_id: UUID
+    project_id: UUID
+    client_id: UUID
+    author_id: UUID
+    reviewer_id: UUID
+    generated_url: str
+    prefill_data_json: dict
+    asset_id: Optional[UUID]
+    review_request_id: Optional[UUID]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 class AssetCreate(BaseModel):

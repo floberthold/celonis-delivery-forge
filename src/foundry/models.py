@@ -77,6 +77,19 @@ class EntityType(str, Enum):
     asset = "asset"
     review = "review"
     celonis_connection = "celonis_connection"
+    template = "template"
+    template_instantiation = "template_instantiation"
+
+
+class TemplateStorageType(str, Enum):
+    sharepoint = "sharepoint"
+    onedrive = "onedrive"
+    uploaded_pptx = "uploaded_pptx"
+
+
+class TemplateScope(str, Enum):
+    global_scope = "global_scope"
+    client_scope = "client_scope"
 
 
 class Client(SQLModel, table=True):
@@ -191,3 +204,40 @@ class CelonisConnection(SQLModel, table=True):
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TemplateLibrary(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    name: str
+    scope: TemplateScope = Field(default=TemplateScope.global_scope)
+    client_id: Optional[UUID] = Field(default=None, index=True, foreign_key="client.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Template(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    library_id: UUID = Field(index=True, foreign_key="templatelibrary.id")
+    title: str
+    category: str
+    description: Optional[str] = None
+    storage_type: TemplateStorageType
+    storage_url: str
+    prefill_schema_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    requires_review: bool = Field(default=True)
+    is_active: bool = Field(default=True)
+    created_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TemplateInstantiation(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    template_id: UUID = Field(index=True, foreign_key="template.id")
+    project_id: UUID = Field(index=True, foreign_key="project.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    author_id: UUID = Field(index=True, foreign_key="person.id")
+    reviewer_id: UUID = Field(index=True, foreign_key="person.id")
+    generated_url: str
+    prefill_data_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    asset_id: Optional[UUID] = Field(default=None, index=True, foreign_key="asset.id")
+    review_request_id: Optional[UUID] = Field(default=None, index=True, foreign_key="reviewrequest.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)

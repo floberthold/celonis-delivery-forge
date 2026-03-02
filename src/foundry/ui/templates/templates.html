@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Templates | Foundry{% endblock %}
+
+{% block content %}
+<h2>Templates</h2>
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="forms-grid">
+    <form class="panel form-card" method="post" action="/templates-ui/create-library">
+        <h3>Create Library</h3>
+        <label>
+            Name
+            <input type="text" name="name" placeholder="Delivery templates" required>
+        </label>
+        <label>
+            Scope
+            <select name="scope" required>
+                {% for scope in template_scope_options %}
+                <option value="{{ scope }}">{{ scope }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Client (optional for global)
+            <select name="client_id">
+                <option value="">Global</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Create Library</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/templates-ui/create-template">
+        <h3>Create Template</h3>
+        <label>
+            Library
+            <select name="library_id" required>
+                {% for library in libraries %}
+                <option value="{{ library.id }}">{{ library.name }} ({{ library.scope.value }})</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Title
+            <input type="text" name="title" placeholder="Project Planning Deck" required>
+        </label>
+        <label>
+            Category
+            <input type="text" name="category" placeholder="project_planning" required>
+        </label>
+        <label>
+            Storage Type
+            <select name="storage_type" required>
+                {% for storage in template_storage_options %}
+                <option value="{{ storage }}">{{ storage }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Template URL
+            <input type="text" name="storage_url" placeholder="https://..." required>
+        </label>
+        <label>
+            Description
+            <input type="text" name="description" placeholder="Optional details">
+        </label>
+        <label>
+            Created By
+            <select name="created_by" required>
+                {% for person in people %}
+                <option value="{{ person.id }}">{{ person.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="inline-checkbox">
+            <input type="checkbox" name="requires_review" checked>
+            Requires review
+        </label>
+        <button type="submit">Create Template</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/templates-ui/instantiate">
+        <h3>Instantiate Template</h3>
+        <label>
+            Template
+            <select name="template_id" required>
+                {% for row in rows %}
+                <option value="{{ row.id }}">{{ row.title }} ({{ row.category }})</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Project
+            <select name="project_id" required>
+                {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Client
+            <select name="client_id" required>
+                {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Author
+            <select name="author_id" required>
+                {% for person in people %}
+                <option value="{{ person.id }}">{{ person.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Reviewer
+            <select name="reviewer_id" required>
+                {% for person in people %}
+                <option value="{{ person.id }}">{{ person.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Instantiate</button>
+    </form>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Library</th>
+            <th>Category</th>
+            <th>Storage</th>
+            <th>Review</th>
+            <th>Active</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.title }}</td>
+            <td>{{ row.library_name }}</td>
+            <td>{{ row.category }}</td>
+            <td><a href="{{ row.storage_url }}" target="_blank" rel="noopener">Open</a></td>
+            <td>{{ row.requires_review }}</td>
+            <td>{{ row.is_active }}</td>
+            <td>{{ row.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7">No templates found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Recent Instantiations</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Created</th>
+            <th>Template ID</th>
+            <th>Project ID</th>
+            <th>Generated URL</th>
+            <th>Review ID</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in instantiations %}
+        <tr>
+            <td>{{ row.created_at }}</td>
+            <td>{{ row.template_id }}</td>
+            <td>{{ row.project_id }}</td>
+            <td><a href="{{ row.generated_url }}" target="_blank" rel="noopener">Open</a></td>
+            <td>{{ row.review_request_id or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">No instantiations yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

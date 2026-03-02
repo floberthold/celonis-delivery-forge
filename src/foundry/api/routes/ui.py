@@ -33,12 +33,22 @@ from foundry.models import (
     ReviewRequest,
     ReviewStatus,
     SensitivityLevel,
+    Template,
+    TemplateInstantiation,
+    TemplateLibrary,
+    TemplateScope,
+    TemplateStorageType,
 )
-from foundry.schemas import ReviewDecisionCreate, ReviewRequestCreate
+from foundry.schemas import (
+    ReviewDecisionCreate,
+    ReviewRequestCreate,
+    TemplateInstantiateCreate,
+)
 from foundry.settings import get_settings
 from foundry.security import hash_password
 from foundry.services.project_service import ProjectService
 from foundry.services.review_service import ReviewService
+from foundry.services.template_service import TemplateService
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[2] / "ui" / "templates"))
@@ -990,6 +1000,142 @@ def clients_ui_delete(client_id: str = Form(...), session: Session = Depends(get
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/clients-ui", err=f"Delete client failed: {exc}")
+
+
+@router.get("/templates-ui")
+def templates_ui(request: Request, session: Session = Depends(get_session)):
+    libraries = sorted(
+        session.exec(select(TemplateLibrary)).all(), key=lambda row: row.created_at, reverse=True
+    )
+    templates_rows = sorted(
+        session.exec(select(Template)).all(), key=lambda row: row.created_at, reverse=True
+    )
+    instantiations = sorted(
+        session.exec(select(TemplateInstantiation)).all(),
+        key=lambda row: row.created_at,
+        reverse=True,
+    )
+    clients = sorted(session.exec(select(Client)).all(), key=lambda row: row.created_at, reverse=True)
+    projects = sorted(session.exec(select(Project)).all(), key=lambda row: row.created_at, reverse=True)
+    people = sorted(session.exec(select(Person)).all(), key=lambda row: row.created_at, reverse=True)
+
+    library_name_by_id = {library.id: library.name for library in libraries}
+    rows = [
+        {
+            "id": row.id,
+            "title": row.title,
+            "library_id": row.library_id,
+            "library_name": library_name_by_id.get(row.library_id, "Unknown"),
+            "category": row.category,
+            "storage_type": row.storage_type.value,
+            "storage_url": row.storage_url,
+            "requires_review": row.requires_review,
+            "is_active": row.is_active,
+            "created_at": row.created_at,
+        }
+        for row in templates_rows
+    ]
+
+    return templates.TemplateResponse(
+        "templates.html",
+        {
+            "request": request,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "rows": rows,
+            "libraries": libraries,
+            "clients": clients,
+            "projects": projects,
+            "people": people,
+            "instantiations": instantiations[:20],
+            "template_scope_options": [row.value for row in TemplateScope],
+            "template_storage_options": [row.value for row in TemplateStorageType],
+        },
+    )
+
+
+@router.post("/templates-ui/create-library", include_in_schema=False)
+def templates_ui_create_library(
+    name: str = Form(...),
+    scope: str = Form("global_scope"),
+    client_id: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    try:
+        parsed_scope = TemplateScope(scope)
+        parsed_client_id = _parse_uuid(client_id, "client_id") if client_id.strip() else None
+        library = TemplateLibrary(
+            name=name.strip(),
+            scope=parsed_scope,
+            client_id=parsed_client_id,
+        )
+        session.add(library)
+        session.commit()
+        return _redirect_ui("/templates-ui", ok=f"Library '{library.name}' created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/templates-ui", err=f"Create library failed: {exc}")
+
+
+@router.post("/templates-ui/create-template", include_in_schema=False)
+def templates_ui_create_template(
+    library_id: str = Form(...),
+    title: str = Form(...),
+    category: str = Form(...),
+    storage_type: str = Form(...),
+    storage_url: str = Form(...),
+    created_by: str = Form(...),
+    description: str = Form(""),
+    requires_review: str | None = Form(None),
+    session: Session = Depends(get_session),
+):
+    try:
+        template = Template(
+            library_id=_parse_uuid(library_id, "library_id"),
+            title=title.strip(),
+            category=category.strip(),
+            description=description.strip() or None,
+            storage_type=TemplateStorageType(storage_type),
+            storage_url=storage_url.strip(),
+            created_by=_parse_uuid(created_by, "created_by"),
+            requires_review=requires_review is not None,
+        )
+        session.add(template)
+        session.commit()
+        return _redirect_ui("/templates-ui", ok=f"Template '{template.title}' created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/templates-ui", err=f"Create template failed: {exc}")
+
+
+@router.post("/templates-ui/instantiate", include_in_schema=False)
+def templates_ui_instantiate(
+    template_id: str = Form(...),
+    project_id: str = Form(...),
+    client_id: str = Form(...),
+    author_id: str = Form(...),
+    reviewer_id: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    try:
+        template = session.get(Template, _parse_uuid(template_id, "template_id"))
+        if not template or not template.is_active:
+            return _redirect_ui("/templates-ui", err="Template not found or inactive")
+
+        TemplateService.instantiate_template(
+            session,
+            template=template,
+            payload=TemplateInstantiateCreate(
+                project_id=_parse_uuid(project_id, "project_id"),
+                client_id=_parse_uuid(client_id, "client_id"),
+                author_id=_parse_uuid(author_id, "author_id"),
+                reviewer_id=_parse_uuid(reviewer_id, "reviewer_id"),
+            ),
+        )
+        return _redirect_ui("/templates-ui", ok="Template instantiated")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/templates-ui", err=f"Template instantiation failed: {exc}")
 
 
 @router.get("/timeline-ui")
