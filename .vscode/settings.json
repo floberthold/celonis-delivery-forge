@@ -4,6 +4,16 @@
         "/^PowerShell -ExecutionPolicy Bypass -File \\.\\\\scripts\\\\build_standalone\\.ps1$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "pytest": true,
+        "/^python -m pytest -q$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"import foundry\\.api\\.main as app_main; print\\('import-ok'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        ".\\.venv\\Scripts\\python": true
     }
 }

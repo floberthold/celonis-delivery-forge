@@ -12,6 +12,7 @@ Built for consultants. Built for scale. Built to last.
 - Asset ownership and membership tracking
 - 4-eyes review flow (`submit -> approve/request changes`)
 - Timeline view for project and asset activity
+- Topic pages with inline create/edit/delete for projects, assets, reviews, people, clients, and timeline events
 - Local accounts with JWT login
 - Optional read-only Celonis import adapter (stub)
 - Companion Celonis actions (connect, extract, import) from dashboard

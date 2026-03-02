@@ -140,6 +140,41 @@ table {
     background: #243a66;
 }
 
+table input,
+table select {
+    width: 100%;
+    border: 1px solid #cdd6e6;
+    border-radius: 6px;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.88rem;
+}
+
+table button {
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.65rem;
+    background: #2e4a82;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+table button:hover {
+    background: #243a66;
+}
+
+.actions-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.inline-form {
+    display: inline-flex;
+    margin: 0;
+}
+
 .inline-checkbox {
     flex-direction: row !important;
     align-items: center;
