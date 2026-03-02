@@ -60,7 +60,7 @@
         {% else %}
         <tr>
             <td>{{ row.name }}</td>
-            <td>{{ row.tenant_url }}</td>
+            <td>{{ row.tenant_url | clickable_url }}</td>
             <td>{{ row.sensitivity_level }}</td>
             <td>{{ row.created_at }}</td>
             <td class="actions-cell">

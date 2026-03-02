@@ -13,12 +13,12 @@
         <article class="workspace-card" data-frame="1">
                 <div class="workspace-toolbar">
                         <label for="tenant-url-1">Frame 1 URL</label>
-                        <input id="tenant-url-1" type="url" value="{{ tenant_url }}" required>
+                <input id="tenant-url-1" type="url" value="{{ tenant_url | normalized_url }}" required>
                         <button type="button" class="load-frame">Load</button>
                         <button type="button" class="open-popup">Popup</button>
-                        <a class="link-button open-tab" href="{{ tenant_url }}" target="_blank" rel="noopener noreferrer">New tab</a>
+                <a class="link-button open-tab" href="{{ tenant_url | normalized_url }}" target="_blank" rel="noopener noreferrer">New tab</a>
                 </div>
-                <iframe id="tenant-frame-1" src="{{ tenant_url }}" title="Tenant Frame 1" class="tenant-frame"></iframe>
+            <iframe id="tenant-frame-1" src="{{ tenant_url | normalized_url }}" title="Tenant Frame 1" class="tenant-frame"></iframe>
         </article>
 
         <article class="workspace-card" data-frame="2">

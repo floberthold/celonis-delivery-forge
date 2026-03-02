@@ -302,7 +302,7 @@
         <h3>Celonis Connections</h3>
         <ul>
             {% for row in celonis_connections %}
-            <li>{{ row.client_id }} → {{ row.tenant_base_url }} (active={{ row.is_active }})</li>
+            <li>{{ row.client_id }} → {{ row.tenant_base_url | clickable_url }} (active={{ row.is_active }})</li>
             {% else %}
             <li>No connections configured yet.</li>
             {% endfor %}

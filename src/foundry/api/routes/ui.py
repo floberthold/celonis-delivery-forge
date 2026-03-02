@@ -1,12 +1,13 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 from sqlmodel import Session, select
 
 from foundry.db import get_session
@@ -52,6 +53,39 @@ from foundry.services.template_service import TemplateService
 
 router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[2] / "ui" / "templates"))
+
+
+def _normalize_http_url(value: str | None) -> str:
+    if not value:
+        return ""
+    candidate = value.strip()
+    if not candidate:
+        return ""
+    parsed = urlparse(candidate)
+    if not parsed.scheme:
+        candidate = f"https://{candidate}"
+        parsed = urlparse(candidate)
+    if parsed.scheme.lower() not in {"http", "https"}:
+        return ""
+    return candidate
+
+
+def _clickable_url(value: str | None) -> Markup:
+    if not value:
+        return Markup("-")
+    label = value.strip()
+    if not label:
+        return Markup("-")
+    href = _normalize_http_url(label)
+    if not href:
+        return Markup(escape(label))
+    return Markup(
+        f'<a href="{escape(href)}" target="_blank" rel="noopener noreferrer">{escape(label)}</a>'
+    )
+
+
+templates.env.filters["normalized_url"] = _normalize_http_url
+templates.env.filters["clickable_url"] = _clickable_url
 
 
 def _redirect_dashboard(*, ok: str | None = None, err: str | None = None) -> RedirectResponse:

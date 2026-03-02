@@ -112,7 +112,7 @@
             <td>{{ row.status }}</td>
             <td>{{ row.project_name }}</td>
             <td>{{ row.client_name }}</td>
-            <td>{{ row.celonis_url or '-' }}</td>
+            <td>{{ row.celonis_url | clickable_url }}</td>
             <td>{{ row.asset_identifier or '-' }}</td>
             <td>{{ row.created_at }}</td>
             <td class="actions-cell">
