@@ -54,7 +54,7 @@
         <h3>Create Person</h3>
         <label>Name<input name="name" required></label>
         <label>Email<input type="email" name="email" required></label>
-        <label>Password<input type="password" name="password" required></label>
+        <label>Password<input type="password" name="password" maxlength="72" required></label>
         <label>Global Role
             <select name="role_global">
                 {% for row in global_role_options %}

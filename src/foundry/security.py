@@ -1,19 +1,31 @@
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 from jose import jwt
-from passlib.context import CryptContext
 
 from foundry.settings import get_settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+BCRYPT_PASSWORD_MAX_BYTES = 72
+
+
+def validate_password_length(password: str) -> None:
+    password_bytes = len(password.encode("utf-8"))
+    if password_bytes > BCRYPT_PASSWORD_MAX_BYTES:
+        raise ValueError(
+            f"Password must be {BCRYPT_PASSWORD_MAX_BYTES} bytes or fewer (UTF-8)."
+        )
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    validate_password_length(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except ValueError:
+        return False
 
 
 def create_access_token(subject: str) -> str:

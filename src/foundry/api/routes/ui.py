@@ -48,7 +48,7 @@ from foundry.schemas import (
     TemplateInstantiateCreate,
 )
 from foundry.settings import get_settings
-from foundry.security import hash_password
+from foundry.security import hash_password, validate_password_length
 from foundry.services.project_service import ProjectService
 from foundry.services.review_service import ReviewService
 from foundry.services.template_service import TemplateService
@@ -233,6 +233,7 @@ def dashboard_create_person(
     session: Session = Depends(get_session),
 ):
     try:
+        validate_password_length(password)
         person = Person(
             name=name.strip(),
             email=email.strip().lower(),
@@ -886,6 +887,7 @@ def people_ui_create(
     session: Session = Depends(get_session),
 ):
     try:
+        validate_password_length(password)
         person = Person(
             name=name.strip(),
             email=email.strip().lower(),
@@ -919,6 +921,7 @@ def people_ui_update(
         person.email = email.strip().lower()
         person.role_global = GlobalRole(role_global)
         if password.strip():
+            validate_password_length(password)
             person.hashed_password = hash_password(password)
         session.add(person)
         session.commit()
