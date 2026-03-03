@@ -25,3 +25,39 @@ def log_activity(
     session.commit()
     session.refresh(event)
     return event
+
+
+def log_created(
+    session: Session,
+    *,
+    entity_type: EntityType,
+    entity_id: UUID,
+    actor_id: UUID,
+    metadata: dict | None = None,
+) -> ActivityLog:
+    return log_activity(
+        session,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        actor_id=actor_id,
+        action=f"{entity_type.value}.created",
+        metadata=metadata,
+    )
+
+
+def log_updated(
+    session: Session,
+    *,
+    entity_type: EntityType,
+    entity_id: UUID,
+    actor_id: UUID,
+    metadata: dict | None = None,
+) -> ActivityLog:
+    return log_activity(
+        session,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        actor_id=actor_id,
+        action=f"{entity_type.value}.updated",
+        metadata=metadata,
+    )

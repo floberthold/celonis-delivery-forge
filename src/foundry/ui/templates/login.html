@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Foundry{% endblock %}
+
+{% block content %}
+<h2>Login</h2>
+
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="panel login-panel">
+    <form class="form-card" method="post" action="/login">
+        <input type="hidden" name="next_path" value="/dashboard">
+        <label>Email
+            <input type="email" name="email" required>
+        </label>
+        <label>Password
+            <input type="password" name="password" required>
+        </label>
+        <button type="submit">Sign in</button>
+    </form>
+</section>
+{% endblock %}

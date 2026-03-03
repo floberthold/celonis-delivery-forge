@@ -32,6 +32,12 @@ body {
     padding: 0.8rem 0;
 }
 
+.header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .brand {
     margin: 0;
     font-size: 1.15rem;
@@ -53,6 +59,34 @@ body {
 
 .nav a:hover {
     color: #ffffff;
+}
+
+.auth-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #dce5ff;
+    font-size: 0.88rem;
+}
+
+.auth-badge a {
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-badge button {
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.55rem;
+    background: #2e4a82;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-badge button:hover {
+    background: #243a66;
 }
 
 .main-content {
@@ -204,6 +238,10 @@ table button:hover {
 
 .panel h3 {
     margin-top: 0;
+}
+
+.login-panel {
+    max-width: 420px;
 }
 
 .panel ul {

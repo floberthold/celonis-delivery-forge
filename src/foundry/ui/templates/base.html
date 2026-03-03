@@ -9,20 +9,33 @@
 <body>
     <header class="site-header">
         <div class="container">
-            <h1 class="brand">Celonis Delivery Forge</h1>
-            <nav class="nav">
-                <a href="/dashboard">Dashboard</a>
-                <a href="/projects-ui">Projects</a>
-                <a href="/assets-ui">Assets</a>
-                <a href="/reviews-ui">Reviews</a>
-                <a href="/people-ui">People</a>
-                <a href="/clients-ui">Clients</a>
-                <a href="/templates-ui">Templates</a>
-                <a href="/timeline-ui">Timeline</a>
-                <a href="/tenant-ui">Tenant</a>
-                <a href="/docu/user.html">User Docs</a>
-                <a href="/docu/developer.html">Developer Docs</a>
-            </nav>
+            <div class="header-main">
+                <h1 class="brand">Celonis Delivery Forge</h1>
+                <nav class="nav">
+                    <a href="/dashboard">Dashboard</a>
+                    <a href="/projects-ui">Projects</a>
+                    <a href="/assets-ui">Assets</a>
+                    <a href="/reviews-ui">Reviews</a>
+                    <a href="/people-ui">People</a>
+                    <a href="/clients-ui">Clients</a>
+                    <a href="/templates-ui">Templates</a>
+                    <a href="/timeline-ui">Timeline</a>
+                    <a href="/tenant-ui">Tenant</a>
+                    <a href="/docu/user.html">User Docs</a>
+                    <a href="/docu/developer.html">Developer Docs</a>
+                </nav>
+            </div>
+            <div class="auth-badge">
+                {% if current_person %}
+                <span>Signed in: {{ current_person.name }} ({{ current_person.email }})</span>
+                <form method="post" action="/logout" class="inline-form">
+                    <button type="submit">Logout</button>
+                </form>
+                {% else %}
+                <span>Not signed in</span>
+                <a href="/login">Login</a>
+                {% endif %}
+            </div>
         </div>
     </header>
     <main class="container main-content">

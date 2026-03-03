@@ -15,6 +15,10 @@
             "matchCommandLine": true
         },
         ".\\.venv\\Scripts\\python": true,
-        "c:/coding/celonis-delivery-forge/.venv/Scripts/python.exe": true
+        "c:/coding/celonis-delivery-forge/.venv/Scripts/python.exe": true,
+        "/^python -m compileall src/foundry$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

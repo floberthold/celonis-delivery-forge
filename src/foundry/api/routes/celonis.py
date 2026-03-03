@@ -3,9 +3,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from foundry.api.deps import get_current_person
 from foundry.db import get_session
 from foundry.integrations.celonis_import import CelonisGateway
-from foundry.models import CelonisConnection
+from foundry.models import CelonisConnection, EntityType, Person
 from foundry.schemas import (
     CelonisActionResult,
     CelonisConnectionOut,
@@ -14,6 +15,7 @@ from foundry.schemas import (
     CelonisImportRequest,
 )
 from foundry.settings import get_settings
+from foundry.services.activity_log import log_created, log_updated
 
 router = APIRouter(prefix="/celonis", tags=["celonis"])
 
@@ -32,7 +34,11 @@ def list_connections(session: Session = Depends(get_session)):
 
 
 @router.post("/connections/upsert", response_model=CelonisConnectionOut)
-def upsert_connection(payload: CelonisConnectionUpsert, session: Session = Depends(get_session)):
+def upsert_connection(
+    payload: CelonisConnectionUpsert,
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
     existing = session.exec(
         select(CelonisConnection).where(CelonisConnection.client_id == payload.client_id)
     ).first()
@@ -43,6 +49,14 @@ def upsert_connection(payload: CelonisConnectionUpsert, session: Session = Depen
         session.add(existing)
         session.commit()
         session.refresh(existing)
+
+        log_updated(
+            session,
+            entity_type=EntityType.celonis_connection,
+            entity_id=existing.id,
+            actor_id=current_person.id,
+            metadata={"client_id": str(existing.client_id), "is_active": existing.is_active},
+        )
         return existing
 
     row = CelonisConnection(
@@ -53,6 +67,14 @@ def upsert_connection(payload: CelonisConnectionUpsert, session: Session = Depen
     session.add(row)
     session.commit()
     session.refresh(row)
+
+    log_created(
+        session,
+        entity_type=EntityType.celonis_connection,
+        entity_id=row.id,
+        actor_id=current_person.id,
+        metadata={"client_id": str(row.client_id), "is_active": row.is_active},
+    )
     return row
 
 

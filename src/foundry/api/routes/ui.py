@@ -12,7 +12,8 @@ from jinja2 import ChoiceLoader, FileSystemLoader
 from markupsafe import Markup, escape
 from sqlmodel import Session, select
 
-from foundry.db import get_session
+from foundry.api.deps import AUTH_COOKIE_NAME, get_current_person, get_current_person_optional
+from foundry.db import engine, get_session
 from foundry.integrations.celonis_import import CelonisGateway
 from foundry.models import (
     ActivityLog,
@@ -51,9 +52,10 @@ from foundry.schemas import (
     TemplateInstantiateCreate,
 )
 from foundry.settings import get_settings
-from foundry.security import hash_password
+from foundry.security import create_access_token, hash_password, verify_password
 from foundry.services.project_service import ProjectService
 from foundry.services.review_service import ReviewService
+from foundry.services.activity_log import log_activity, log_created, log_updated
 from foundry.services.template_service import TemplateService
 
 router = APIRouter(tags=["ui"])
@@ -72,7 +74,17 @@ def _docu_dir() -> Path | None:
     return None
 
 
-templates = Jinja2Templates(directory=str(UI_TEMPLATE_DIR))
+
+def _template_auth_context(request: Request) -> dict:
+    with Session(engine) as session:
+        person = get_current_person_optional(request=request, token=None, session=session)
+    return {"current_person": person}
+
+
+templates = Jinja2Templates(
+    directory=str(UI_TEMPLATE_DIR),
+    context_processors=[_template_auth_context],
+)
 loaders = [FileSystemLoader(str(UI_TEMPLATE_DIR))]
 docu_template_dir = _docu_dir()
 if docu_template_dir:
@@ -175,6 +187,12 @@ def _normalize_redirect_path(path: str | None, fallback: str) -> str:
     return candidate
 
 
+def _redirect_login(*, err: str | None = None) -> RedirectResponse:
+    if err:
+        return RedirectResponse(url=f"/login?err={quote_plus(err)}", status_code=303)
+    return RedirectResponse(url="/login", status_code=303)
+
+
 def _validate_todo_scope(*, person_id: UUID | None, client_id: UUID | None, project_id: UUID | None) -> None:
     selected = sum(1 for value in [person_id, client_id, project_id] if value is not None)
     if selected != 1:
@@ -265,6 +283,51 @@ def root_redirect() -> RedirectResponse:
     return RedirectResponse(url="/dashboard", status_code=307)
 
 
+@router.get("/login")
+def login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "error_message": request.query_params.get("err"),
+        },
+    )
+
+
+@router.post("/login", include_in_schema=False)
+def login_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    next_path: str = Form("/dashboard"),
+    session: Session = Depends(get_session),
+):
+    person = session.exec(select(Person).where(Person.email == email.strip().lower())).first()
+    if not person or not verify_password(password, person.hashed_password):
+        return _redirect_login(err="Invalid credentials")
+
+    token = create_access_token(str(person.id))
+    target_path = _normalize_redirect_path(next_path, "/dashboard")
+    response = RedirectResponse(url=target_path, status_code=303)
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=get_settings().jwt_expire_minutes * 60,
+        path="/",
+    )
+    return response
+
+
+@router.post("/logout", include_in_schema=False)
+def logout() -> RedirectResponse:
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    return response
+
+
 @router.get("/dashboard")
 def dashboard(request: Request, session: Session = Depends(get_session)):
     return templates.TemplateResponse("dashboard.html", _dashboard_context(request, session))
@@ -276,6 +339,7 @@ def dashboard_create_client(
     tenant_url: str = Form(...),
     sensitivity_level: str = Form("medium"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         client = Client(
@@ -285,6 +349,14 @@ def dashboard_create_client(
         )
         session.add(client)
         session.commit()
+        session.refresh(client)
+        log_created(
+            session,
+            entity_type=EntityType.client,
+            entity_id=client.id,
+            actor_id=current_person.id,
+            metadata={"sensitivity_level": client.sensitivity_level.value},
+        )
         return _redirect_dashboard(ok=f"Client '{client.name}' created")
     except Exception as exc:
         session.rollback()
@@ -298,6 +370,7 @@ def dashboard_create_person(
     password: str = Form(...),
     role_global: str = Form("member"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         person = Person(
@@ -308,6 +381,14 @@ def dashboard_create_person(
         )
         session.add(person)
         session.commit()
+        session.refresh(person)
+        log_created(
+            session,
+            entity_type=EntityType.person,
+            entity_id=person.id,
+            actor_id=current_person.id,
+            metadata={"email": person.email, "role_global": person.role_global.value},
+        )
         return _redirect_dashboard(ok=f"Person '{person.name}' created")
     except Exception as exc:
         session.rollback()
@@ -320,6 +401,7 @@ def dashboard_create_project(
     client_id: str = Form(...),
     status: str = Form("planned"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         project = Project(
@@ -329,6 +411,14 @@ def dashboard_create_project(
         )
         session.add(project)
         session.commit()
+        session.refresh(project)
+        log_created(
+            session,
+            entity_type=EntityType.project,
+            entity_id=project.id,
+            actor_id=current_person.id,
+            metadata={"client_id": str(project.client_id), "status": project.status.value},
+        )
         return _redirect_dashboard(ok=f"Project '{project.name}' created")
     except Exception as exc:
         session.rollback()
@@ -341,6 +431,7 @@ def dashboard_create_membership(
     person_id: str = Form(...),
     role: str = Form("contributor"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         membership = ProjectMembership(
@@ -350,6 +441,18 @@ def dashboard_create_membership(
         )
         session.add(membership)
         session.commit()
+        session.refresh(membership)
+        log_created(
+            session,
+            entity_type=EntityType.membership,
+            entity_id=membership.id,
+            actor_id=current_person.id,
+            metadata={
+                "project_id": str(membership.project_id),
+                "person_id": str(membership.person_id),
+                "role": membership.role.value,
+            },
+        )
         return _redirect_dashboard(ok="Project membership created")
     except Exception as exc:
         session.rollback()
@@ -365,6 +468,7 @@ def dashboard_create_asset(
     celonis_url: str = Form(""),
     asset_identifier: str = Form(""),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         asset = Asset(
@@ -377,6 +481,18 @@ def dashboard_create_asset(
         )
         session.add(asset)
         session.commit()
+        session.refresh(asset)
+        log_created(
+            session,
+            entity_type=EntityType.asset,
+            entity_id=asset.id,
+            actor_id=current_person.id,
+            metadata={
+                "type": asset.type.value,
+                "project_id": str(asset.project_id),
+                "client_id": str(asset.client_id),
+            },
+        )
         return _redirect_dashboard(ok=f"Asset '{asset.name}' created")
     except Exception as exc:
         session.rollback()
@@ -391,6 +507,7 @@ def dashboard_create_review(
     reviewer_id: str = Form(...),
     change_summary: str = Form(...),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         payload = ReviewRequestCreate(
@@ -400,7 +517,14 @@ def dashboard_create_review(
             reviewer_id=_parse_uuid(reviewer_id, "reviewer_id"),
             change_summary=change_summary.strip(),
         )
-        ReviewService.submit_for_review(session, payload)
+        review = ReviewService.submit_for_review(session, payload)
+        log_created(
+            session,
+            entity_type=EntityType.review,
+            entity_id=review.id,
+            actor_id=current_person.id,
+            metadata={"asset_id": str(review.asset_id), "project_id": str(review.project_id)},
+        )
         return _redirect_dashboard(ok="Review submitted")
     except Exception as exc:
         session.rollback()
@@ -415,6 +539,7 @@ def dashboard_review_decision(
     note: str = Form(""),
     snippet_worthy: str | None = Form(None),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         payload = ReviewDecisionCreate(
@@ -424,7 +549,14 @@ def dashboard_review_decision(
             note=note.strip() or None,
             snippet_worthy=snippet_worthy is not None,
         )
-        ReviewService.decide_review(session, payload)
+        review = ReviewService.decide_review(session, payload)
+        log_updated(
+            session,
+            entity_type=EntityType.review,
+            entity_id=review.id,
+            actor_id=current_person.id,
+            metadata={"decision": payload.decision.value, "status": review.status.value},
+        )
         return _redirect_dashboard(ok="Review decision applied")
     except Exception as exc:
         session.rollback()
@@ -436,6 +568,7 @@ def dashboard_celonis_connection(
     client_id: str = Form(...),
     tenant_base_url: str = Form(...),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         parsed_client_id = _parse_uuid(client_id, "client_id")
@@ -448,11 +581,27 @@ def dashboard_celonis_connection(
             existing.updated_at = datetime.utcnow()
             session.add(existing)
             session.commit()
+            session.refresh(existing)
+            log_updated(
+                session,
+                entity_type=EntityType.celonis_connection,
+                entity_id=existing.id,
+                actor_id=current_person.id,
+                metadata={"client_id": str(existing.client_id), "is_active": existing.is_active},
+            )
             return _redirect_dashboard(ok="Celonis connection updated")
 
         row = CelonisConnection(client_id=parsed_client_id, tenant_base_url=tenant_base_url.strip())
         session.add(row)
         session.commit()
+        session.refresh(row)
+        log_created(
+            session,
+            entity_type=EntityType.celonis_connection,
+            entity_id=row.id,
+            actor_id=current_person.id,
+            metadata={"client_id": str(row.client_id), "is_active": row.is_active},
+        )
         return _redirect_dashboard(ok="Celonis connection created")
     except Exception as exc:
         session.rollback()
@@ -569,6 +718,7 @@ def projects_ui_create(
     client_id: str = Form(...),
     status: str = Form("planned"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         project = Project(
@@ -578,6 +728,14 @@ def projects_ui_create(
         )
         session.add(project)
         session.commit()
+        session.refresh(project)
+        log_created(
+            session,
+            entity_type=EntityType.project,
+            entity_id=project.id,
+            actor_id=current_person.id,
+            metadata={"client_id": str(project.client_id), "status": project.status.value},
+        )
         return _redirect_ui("/projects-ui", ok=f"Project '{project.name}' created")
     except Exception as exc:
         session.rollback()
@@ -591,6 +749,7 @@ def projects_ui_update(
     client_id: str = Form(...),
     status: str = Form(...),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         parsed_project_id = _parse_uuid(project_id, "project_id")
@@ -609,6 +768,14 @@ def projects_ui_update(
         project.status = parsed_status
         session.add(project)
         session.commit()
+        session.refresh(project)
+        log_updated(
+            session,
+            entity_type=EntityType.project,
+            entity_id=project.id,
+            actor_id=current_person.id,
+            metadata={"client_id": str(project.client_id), "status": project.status.value},
+        )
         return _redirect_ui("/projects-ui", ok="Project updated")
     except Exception as exc:
         session.rollback()
@@ -703,6 +870,7 @@ def assets_ui_create(
     celonis_url: str = Form(""),
     asset_identifier: str = Form(""),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         asset = Asset(
@@ -716,6 +884,18 @@ def assets_ui_create(
         )
         session.add(asset)
         session.commit()
+        session.refresh(asset)
+        log_created(
+            session,
+            entity_type=EntityType.asset,
+            entity_id=asset.id,
+            actor_id=current_person.id,
+            metadata={
+                "type": asset.type.value,
+                "project_id": str(asset.project_id),
+                "client_id": str(asset.client_id),
+            },
+        )
         return _redirect_ui("/assets-ui", ok=f"Asset '{asset.name}' created")
     except Exception as exc:
         session.rollback()
@@ -733,6 +913,7 @@ def assets_ui_update(
     celonis_url: str = Form(""),
     asset_identifier: str = Form(""),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         asset = session.get(Asset, _parse_uuid(asset_id, "asset_id"))
@@ -748,6 +929,18 @@ def assets_ui_update(
         asset.asset_identifier = asset_identifier.strip() or None
         session.add(asset)
         session.commit()
+        session.refresh(asset)
+        log_updated(
+            session,
+            entity_type=EntityType.asset,
+            entity_id=asset.id,
+            actor_id=current_person.id,
+            metadata={
+                "type": asset.type.value,
+                "project_id": str(asset.project_id),
+                "client_id": str(asset.client_id),
+            },
+        )
         return _redirect_ui("/assets-ui", ok="Asset updated")
     except Exception as exc:
         session.rollback()
@@ -840,6 +1033,7 @@ def reviews_ui_create(
     reviewer_id: str = Form(...),
     change_summary: str = Form(...),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         payload = ReviewRequestCreate(
@@ -849,7 +1043,14 @@ def reviews_ui_create(
             reviewer_id=_parse_uuid(reviewer_id, "reviewer_id"),
             change_summary=change_summary.strip(),
         )
-        ReviewService.submit_for_review(session, payload)
+        review = ReviewService.submit_for_review(session, payload)
+        log_created(
+            session,
+            entity_type=EntityType.review,
+            entity_id=review.id,
+            actor_id=current_person.id,
+            metadata={"asset_id": str(review.asset_id), "project_id": str(review.project_id)},
+        )
         return _redirect_ui("/reviews-ui", ok="Review created")
     except Exception as exc:
         session.rollback()
@@ -867,6 +1068,7 @@ def reviews_ui_update(
     change_summary: str = Form(...),
     snippet_worthy: str | None = Form(None),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         review = session.get(ReviewRequest, _parse_uuid(review_id, "review_id"))
@@ -882,6 +1084,14 @@ def reviews_ui_update(
         review.snippet_worthy = snippet_worthy is not None
         session.add(review)
         session.commit()
+        session.refresh(review)
+        log_updated(
+            session,
+            entity_type=EntityType.review,
+            entity_id=review.id,
+            actor_id=current_person.id,
+            metadata={"status": review.status.value, "snippet_worthy": review.snippet_worthy},
+        )
         return _redirect_ui("/reviews-ui", ok="Review updated")
     except Exception as exc:
         session.rollback()
@@ -955,6 +1165,7 @@ def people_ui_create(
     password: str = Form(...),
     role_global: str = Form("member"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         person = Person(
@@ -965,6 +1176,14 @@ def people_ui_create(
         )
         session.add(person)
         session.commit()
+        session.refresh(person)
+        log_created(
+            session,
+            entity_type=EntityType.person,
+            entity_id=person.id,
+            actor_id=current_person.id,
+            metadata={"email": person.email, "role_global": person.role_global.value},
+        )
         return _redirect_ui("/people-ui", ok=f"Person '{person.name}' created")
     except Exception as exc:
         session.rollback()
@@ -979,6 +1198,7 @@ def people_ui_update(
     role_global: str = Form(...),
     password: str = Form(""),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         parsed_person_id = _parse_uuid(person_id, "person_id")
@@ -993,6 +1213,14 @@ def people_ui_update(
             person.hashed_password = hash_password(password)
         session.add(person)
         session.commit()
+        session.refresh(person)
+        log_updated(
+            session,
+            entity_type=EntityType.person,
+            entity_id=person.id,
+            actor_id=current_person.id,
+            metadata={"email": person.email, "role_global": person.role_global.value},
+        )
         return _redirect_ui("/people-ui", ok="Person updated")
     except Exception as exc:
         session.rollback()
@@ -1078,6 +1306,7 @@ def clients_ui_create(
     tenant_url: str = Form(...),
     sensitivity_level: str = Form("medium"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         client = Client(
@@ -1087,6 +1316,14 @@ def clients_ui_create(
         )
         session.add(client)
         session.commit()
+        session.refresh(client)
+        log_created(
+            session,
+            entity_type=EntityType.client,
+            entity_id=client.id,
+            actor_id=current_person.id,
+            metadata={"sensitivity_level": client.sensitivity_level.value},
+        )
         return _redirect_ui("/clients-ui", ok=f"Client '{client.name}' created")
     except Exception as exc:
         session.rollback()
@@ -1100,6 +1337,7 @@ def clients_ui_update(
     tenant_url: str = Form(...),
     sensitivity_level: str = Form(...),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         client = session.get(Client, _parse_uuid(client_id, "client_id"))
@@ -1111,6 +1349,14 @@ def clients_ui_update(
         client.sensitivity_level = SensitivityLevel(sensitivity_level)
         session.add(client)
         session.commit()
+        session.refresh(client)
+        log_updated(
+            session,
+            entity_type=EntityType.client,
+            entity_id=client.id,
+            actor_id=current_person.id,
+            metadata={"sensitivity_level": client.sensitivity_level.value},
+        )
         return _redirect_ui("/clients-ui", ok="Client updated")
     except Exception as exc:
         session.rollback()
@@ -1651,6 +1897,7 @@ def templates_ui_create_library(
     scope: str = Form("global_scope"),
     client_id: str = Form(""),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         parsed_scope = TemplateScope(scope)
@@ -1662,6 +1909,17 @@ def templates_ui_create_library(
         )
         session.add(library)
         session.commit()
+        session.refresh(library)
+        log_created(
+            session,
+            entity_type=EntityType.template,
+            entity_id=library.id,
+            actor_id=current_person.id,
+            metadata={
+                "scope": library.scope.value,
+                "client_id": str(library.client_id) if library.client_id else None,
+            },
+        )
         return _redirect_ui("/templates-ui", ok=f"Library '{library.name}' created")
     except Exception as exc:
         session.rollback()
@@ -1679,6 +1937,7 @@ def templates_ui_create_template(
     description: str = Form(""),
     requires_review: str | None = Form(None),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         template = Template(
@@ -1693,6 +1952,14 @@ def templates_ui_create_template(
         )
         session.add(template)
         session.commit()
+        session.refresh(template)
+        log_created(
+            session,
+            entity_type=EntityType.template,
+            entity_id=template.id,
+            actor_id=current_person.id,
+            metadata={"library_id": str(template.library_id), "category": template.category},
+        )
         return _redirect_ui("/templates-ui", ok=f"Template '{template.title}' created")
     except Exception as exc:
         session.rollback()
@@ -1707,13 +1974,14 @@ def templates_ui_instantiate(
     author_id: str = Form(...),
     reviewer_id: str = Form(...),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         template = session.get(Template, _parse_uuid(template_id, "template_id"))
         if not template or not template.is_active:
             return _redirect_ui("/templates-ui", err="Template not found or inactive")
 
-        TemplateService.instantiate_template(
+        instantiation = TemplateService.instantiate_template(
             session,
             template=template,
             payload=TemplateInstantiateCreate(
@@ -1722,6 +1990,13 @@ def templates_ui_instantiate(
                 author_id=_parse_uuid(author_id, "author_id"),
                 reviewer_id=_parse_uuid(reviewer_id, "reviewer_id"),
             ),
+        )
+        log_created(
+            session,
+            entity_type=EntityType.template_instantiation,
+            entity_id=instantiation.id,
+            actor_id=current_person.id,
+            metadata={"template_id": str(template.id), "project_id": str(instantiation.project_id)},
         )
         return _redirect_ui("/templates-ui", ok="Template instantiated")
     except Exception as exc:
@@ -1756,6 +2031,7 @@ def timeline_ui_create(
     actor_id: str = Form(...),
     metadata_json: str = Form("{}"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         row = ActivityLog(
@@ -1767,6 +2043,15 @@ def timeline_ui_create(
         )
         session.add(row)
         session.commit()
+        session.refresh(row)
+        log_activity(
+            session,
+            entity_type=row.entity_type,
+            entity_id=row.id,
+            actor_id=current_person.id,
+            action="timeline_entry.created",
+            metadata={"target_entity_id": str(row.entity_id), "target_action": row.action},
+        )
         return _redirect_ui("/timeline-ui", ok="Timeline event created")
     except Exception as exc:
         session.rollback()
@@ -1782,6 +2067,7 @@ def timeline_ui_update(
     actor_id: str = Form(...),
     metadata_json: str = Form("{}"),
     session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
 ):
     try:
         row = session.get(ActivityLog, _parse_uuid(log_id, "log_id"))
@@ -1795,6 +2081,15 @@ def timeline_ui_update(
         row.metadata_json = _parse_json_object(metadata_json, field_name="metadata_json")
         session.add(row)
         session.commit()
+        session.refresh(row)
+        log_activity(
+            session,
+            entity_type=row.entity_type,
+            entity_id=row.id,
+            actor_id=current_person.id,
+            action="timeline_entry.updated",
+            metadata={"target_entity_id": str(row.entity_id), "target_action": row.action},
+        )
         return _redirect_ui("/timeline-ui", ok="Timeline event updated")
     except Exception as exc:
         session.rollback()
@@ -1802,13 +2097,29 @@ def timeline_ui_update(
 
 
 @router.post("/timeline-ui/delete", include_in_schema=False)
-def timeline_ui_delete(log_id: str = Form(...), session: Session = Depends(get_session)):
+def timeline_ui_delete(
+    log_id: str = Form(...),
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
     try:
         row = session.get(ActivityLog, _parse_uuid(log_id, "log_id"))
         if not row:
             return _redirect_ui("/timeline-ui", err="Timeline entry not found")
+        deleted_row_id = row.id
+        deleted_entity_type = row.entity_type
+        deleted_entity_id = row.entity_id
+        deleted_action = row.action
         session.delete(row)
         session.commit()
+        log_activity(
+            session,
+            entity_type=deleted_entity_type,
+            entity_id=deleted_row_id,
+            actor_id=current_person.id,
+            action="timeline_entry.deleted",
+            metadata={"target_entity_id": str(deleted_entity_id), "target_action": deleted_action},
+        )
         return _redirect_ui("/timeline-ui", ok="Timeline event deleted")
     except Exception as exc:
         session.rollback()

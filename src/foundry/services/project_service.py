@@ -58,6 +58,7 @@ class ProjectService:
         if payload.status == ProjectStatus.closed:
             ProjectService.ensure_can_be_closed(session, project_id)
 
+        previous_status = project.status
         project.status = payload.status
         session.add(project)
         session.commit()
@@ -68,8 +69,8 @@ class ProjectService:
             entity_type=EntityType.project,
             entity_id=project.id,
             actor_id=actor_id,
-            action="project.status.changed",
-            metadata={"status": payload.status.value},
+            action="project.updated",
+            metadata={"old_status": previous_status.value, "new_status": payload.status.value},
         )
 
         return project
