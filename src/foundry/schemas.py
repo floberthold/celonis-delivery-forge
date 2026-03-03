@@ -13,6 +13,8 @@ from foundry.models import (
     ProjectStatus,
     ReviewStatus,
     SensitivityLevel,
+    TodoPriority,
+    TodoStatus,
     TemplateScope,
     TemplateStorageType,
 )
@@ -200,3 +202,44 @@ class CelonisActionResult(BaseModel):
     status_code: int
     ok: bool
     response_preview: str
+
+
+class TodoCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    priority: TodoPriority = TodoPriority.medium
+    due_at: Optional[datetime] = None
+    assignee_id: Optional[UUID] = None
+    created_by: UUID
+    person_id: Optional[UUID] = None
+    client_id: Optional[UUID] = None
+    project_id: Optional[UUID] = None
+
+
+class TodoUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[TodoStatus] = None
+    priority: Optional[TodoPriority] = None
+    due_at: Optional[datetime] = None
+    assignee_id: Optional[UUID] = None
+
+
+class TodoOut(BaseModel):
+    id: UUID
+    title: str
+    description: Optional[str]
+    status: TodoStatus
+    priority: TodoPriority
+    due_at: Optional[datetime]
+    assignee_id: Optional[UUID]
+    created_by: UUID
+    person_id: Optional[UUID]
+    client_id: Optional[UUID]
+    project_id: Optional[UUID]
+    created_at: datetime
+    updated_at: datetime
+    completed_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True

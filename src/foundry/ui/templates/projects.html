@@ -80,6 +80,7 @@
             <td>{{ row.membership_summary }}</td>
             <td>{{ row.created_at }}</td>
             <td class="actions-cell">
+                <a class="link-button" href="/projects-ui/{{ row.id }}/overview">Overview</a>
                 <a class="link-button" href="/projects-ui?edit={{ row.id }}">Edit</a>
                 <form method="post" action="/projects-ui/delete" class="inline-form">
                     <input type="hidden" name="project_id" value="{{ row.id }}">

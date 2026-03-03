@@ -68,6 +68,7 @@
             <td>{{ row.role_global }}</td>
             <td>{{ row.created_at }}</td>
             <td class="actions-cell">
+                <a class="link-button" href="/people-ui/{{ row.id }}/overview">Overview</a>
                 <a class="link-button" href="/people-ui?edit={{ row.id }}">Edit</a>
                 <form method="post" action="/people-ui/delete" class="inline-form">
                     <input type="hidden" name="person_id" value="{{ row.id }}">

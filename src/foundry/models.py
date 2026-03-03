@@ -76,9 +76,22 @@ class EntityType(str, Enum):
     membership = "membership"
     asset = "asset"
     review = "review"
+    todo = "todo"
     celonis_connection = "celonis_connection"
     template = "template"
     template_instantiation = "template_instantiation"
+
+
+class TodoStatus(str, Enum):
+    open = "open"
+    in_progress = "in_progress"
+    done = "done"
+
+
+class TodoPriority(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
 
 
 class TemplateStorageType(str, Enum):
@@ -195,6 +208,23 @@ class ActivityLog(SQLModel, table=True):
     actor_id: UUID = Field(index=True, foreign_key="person.id")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     metadata_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
+
+class Todo(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    title: str
+    description: Optional[str] = None
+    status: TodoStatus = Field(default=TodoStatus.open, index=True)
+    priority: TodoPriority = Field(default=TodoPriority.medium)
+    due_at: Optional[datetime] = Field(default=None, index=True)
+    assignee_id: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
+    created_by: UUID = Field(index=True, foreign_key="person.id")
+    person_id: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
+    client_id: Optional[UUID] = Field(default=None, index=True, foreign_key="client.id")
+    project_id: Optional[UUID] = Field(default=None, index=True, foreign_key="project.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
 
 
 class CelonisConnection(SQLModel, table=True):

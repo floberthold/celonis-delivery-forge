@@ -39,6 +39,9 @@ from foundry.models import (
     Template,
     TemplateInstantiation,
     TemplateLibrary,
+    Todo,
+    TodoPriority,
+    TodoStatus,
     TemplateScope,
     TemplateStorageType,
 )
@@ -133,6 +136,27 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
         raise ValueError(f"Invalid UUID for {field_name}") from exc
 
 
+def _parse_optional_uuid(value: str | None, field_name: str) -> UUID | None:
+    if value is None:
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    return _parse_uuid(candidate, field_name)
+
+
+def _parse_optional_datetime(value: str | None, field_name: str) -> datetime | None:
+    if value is None:
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    try:
+        return datetime.fromisoformat(candidate)
+    except ValueError as exc:
+        raise ValueError(f"Invalid datetime for {field_name}") from exc
+
+
 def _parse_json_object(value: str, *, field_name: str) -> dict:
     if not value.strip():
         return {}
@@ -140,6 +164,55 @@ def _parse_json_object(value: str, *, field_name: str) -> dict:
     if not isinstance(parsed, dict):
         raise ValueError(f"{field_name} must be a JSON object")
     return parsed
+
+
+def _normalize_redirect_path(path: str | None, fallback: str) -> str:
+    if not path:
+        return fallback
+    candidate = path.strip()
+    if not candidate.startswith("/"):
+        return fallback
+    return candidate
+
+
+def _validate_todo_scope(*, person_id: UUID | None, client_id: UUID | None, project_id: UUID | None) -> None:
+    selected = sum(1 for value in [person_id, client_id, project_id] if value is not None)
+    if selected != 1:
+        raise ValueError("Exactly one of person_id, client_id, project_id is required")
+
+
+def _timeline_by_entity_keys(
+    session: Session,
+    entity_keys: list[tuple[EntityType, UUID]],
+) -> list[dict]:
+    unique_keys = sorted(set(entity_keys), key=lambda item: (item[0].value, str(item[1])))
+    if not unique_keys:
+        return []
+
+    key_set = set(unique_keys)
+    rows = [
+        row
+        for row in session.exec(select(ActivityLog)).all()
+        if (row.entity_type, row.entity_id) in key_set
+    ]
+    rows.sort(key=lambda row: row.timestamp, reverse=True)
+
+    people = list(session.exec(select(Person)).all())
+    person_name_by_id = {person.id: person.name for person in people}
+
+    return [
+        {
+            "id": row.id,
+            "timestamp": row.timestamp,
+            "action": row.action,
+            "entity_type": row.entity_type.value,
+            "entity_id": row.entity_id,
+            "actor_id": row.actor_id,
+            "actor_name": person_name_by_id.get(row.actor_id, "Unknown"),
+            "metadata_json": row.metadata_json,
+        }
+        for row in rows
+    ]
 
 
 def _dashboard_context(request: Request, session: Session) -> dict:
@@ -566,6 +639,10 @@ def projects_ui_delete(project_id: str = Form(...), session: Session = Depends(g
         if has_reviews:
             return _redirect_ui("/projects-ui", err="Cannot delete project with reviews")
 
+        has_todos = session.exec(select(Todo).where(Todo.project_id == parsed_project_id)).first()
+        if has_todos:
+            return _redirect_ui("/projects-ui", err="Cannot delete project with todos")
+
         session.delete(project)
         session.commit()
         return _redirect_ui("/projects-ui", ok="Project deleted")
@@ -950,8 +1027,15 @@ def people_ui_delete(person_id: str = Form(...), session: Session = Depends(get_
         activity_ref = session.exec(
             select(ActivityLog).where(ActivityLog.actor_id == parsed_person_id)
         ).first()
+        todo_ref = session.exec(
+            select(Todo).where(
+                (Todo.created_by == parsed_person_id)
+                | (Todo.assignee_id == parsed_person_id)
+                | (Todo.person_id == parsed_person_id)
+            )
+        ).first()
 
-        if membership_ref or review_ref or comment_ref or decision_ref or activity_ref:
+        if membership_ref or review_ref or comment_ref or decision_ref or activity_ref or todo_ref:
             return _redirect_ui("/people-ui", err="Cannot delete person with existing references")
 
         session.delete(person)
@@ -1046,8 +1130,9 @@ def clients_ui_delete(client_id: str = Form(...), session: Session = Depends(get
         connection_ref = session.exec(
             select(CelonisConnection).where(CelonisConnection.client_id == parsed_client_id)
         ).first()
+        todo_ref = session.exec(select(Todo).where(Todo.client_id == parsed_client_id)).first()
 
-        if project_ref or asset_ref or connection_ref:
+        if project_ref or asset_ref or connection_ref or todo_ref:
             return _redirect_ui("/clients-ui", err="Cannot delete client with existing references")
 
         session.delete(client)
@@ -1056,6 +1141,456 @@ def clients_ui_delete(client_id: str = Form(...), session: Session = Depends(get
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/clients-ui", err=f"Delete client failed: {exc}")
+
+
+@router.post("/todos-ui/create", include_in_schema=False)
+def todos_ui_create(
+    title: str = Form(...),
+    description: str = Form(""),
+    priority: str = Form("medium"),
+    due_at: str = Form(""),
+    assignee_id: str = Form(""),
+    created_by: str = Form(...),
+    person_id: str = Form(""),
+    client_id: str = Form(""),
+    project_id: str = Form(""),
+    redirect_to: str = Form("/dashboard"),
+    session: Session = Depends(get_session),
+):
+    target_path = _normalize_redirect_path(redirect_to, "/dashboard")
+    try:
+        parsed_person_id = _parse_optional_uuid(person_id, "person_id")
+        parsed_client_id = _parse_optional_uuid(client_id, "client_id")
+        parsed_project_id = _parse_optional_uuid(project_id, "project_id")
+        _validate_todo_scope(
+            person_id=parsed_person_id,
+            client_id=parsed_client_id,
+            project_id=parsed_project_id,
+        )
+
+        todo = Todo(
+            title=title.strip(),
+            description=description.strip() or None,
+            priority=TodoPriority(priority),
+            due_at=_parse_optional_datetime(due_at, "due_at"),
+            assignee_id=_parse_optional_uuid(assignee_id, "assignee_id"),
+            created_by=_parse_uuid(created_by, "created_by"),
+            person_id=parsed_person_id,
+            client_id=parsed_client_id,
+            project_id=parsed_project_id,
+        )
+        session.add(todo)
+        session.commit()
+
+        metadata = {
+            "person_id": str(todo.person_id) if todo.person_id else None,
+            "client_id": str(todo.client_id) if todo.client_id else None,
+            "project_id": str(todo.project_id) if todo.project_id else None,
+            "status": todo.status.value,
+            "priority": todo.priority.value,
+        }
+        session.add(
+            ActivityLog(
+                entity_type=EntityType.todo,
+                entity_id=todo.id,
+                actor_id=todo.created_by,
+                action="todo.created",
+                metadata_json=metadata,
+            )
+        )
+        session.commit()
+        return _redirect_ui(target_path, ok="Todo created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(target_path, err=f"Create todo failed: {exc}")
+
+
+@router.post("/todos-ui/update", include_in_schema=False)
+def todos_ui_update(
+    todo_id: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    status: str = Form("open"),
+    priority: str = Form("medium"),
+    due_at: str = Form(""),
+    assignee_id: str = Form(""),
+    redirect_to: str = Form("/dashboard"),
+    session: Session = Depends(get_session),
+):
+    target_path = _normalize_redirect_path(redirect_to, "/dashboard")
+    try:
+        parsed_todo_id = _parse_uuid(todo_id, "todo_id")
+        todo = session.get(Todo, parsed_todo_id)
+        if not todo:
+            return _redirect_ui(target_path, err="Todo not found")
+
+        todo.title = title.strip()
+        todo.description = description.strip() or None
+        todo.status = TodoStatus(status)
+        todo.priority = TodoPriority(priority)
+        todo.due_at = _parse_optional_datetime(due_at, "due_at")
+        todo.assignee_id = _parse_optional_uuid(assignee_id, "assignee_id")
+        todo.updated_at = datetime.utcnow()
+        if todo.status == TodoStatus.done:
+            todo.completed_at = datetime.utcnow()
+        else:
+            todo.completed_at = None
+
+        session.add(todo)
+        session.commit()
+
+        session.add(
+            ActivityLog(
+                entity_type=EntityType.todo,
+                entity_id=todo.id,
+                actor_id=todo.created_by,
+                action="todo.updated",
+                metadata_json={
+                    "status": todo.status.value,
+                    "priority": todo.priority.value,
+                },
+            )
+        )
+        session.commit()
+        return _redirect_ui(target_path, ok="Todo updated")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(target_path, err=f"Update todo failed: {exc}")
+
+
+@router.post("/todos-ui/delete", include_in_schema=False)
+def todos_ui_delete(
+    todo_id: str = Form(...),
+    redirect_to: str = Form("/dashboard"),
+    session: Session = Depends(get_session),
+):
+    target_path = _normalize_redirect_path(redirect_to, "/dashboard")
+    try:
+        parsed_todo_id = _parse_uuid(todo_id, "todo_id")
+        todo = session.get(Todo, parsed_todo_id)
+        if not todo:
+            return _redirect_ui(target_path, err="Todo not found")
+
+        actor_id = todo.created_by
+        session.delete(todo)
+        session.commit()
+
+        session.add(
+            ActivityLog(
+                entity_type=EntityType.todo,
+                entity_id=parsed_todo_id,
+                actor_id=actor_id,
+                action="todo.deleted",
+                metadata_json={},
+            )
+        )
+        session.commit()
+        return _redirect_ui(target_path, ok="Todo deleted")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(target_path, err=f"Delete todo failed: {exc}")
+
+
+@router.get("/people-ui/{person_id}/overview")
+def person_overview_ui(person_id: str, request: Request, session: Session = Depends(get_session)):
+    try:
+        parsed_person_id = _parse_uuid(person_id, "person_id")
+    except ValueError as exc:
+        return _redirect_ui("/people-ui", err=str(exc))
+
+    person = session.get(Person, parsed_person_id)
+    if not person:
+        return _redirect_ui("/people-ui", err="Person not found")
+
+    memberships = list(
+        session.exec(select(ProjectMembership).where(ProjectMembership.person_id == parsed_person_id)).all()
+    )
+    project_ids = {membership.project_id for membership in memberships}
+    all_projects = list(session.exec(select(Project)).all())
+    projects = [project for project in all_projects if project.id in project_ids] if project_ids else []
+    client_ids = {project.client_id for project in projects}
+
+    asset_memberships = list(
+        session.exec(select(AssetMembership).where(AssetMembership.person_id == parsed_person_id)).all()
+    )
+    direct_asset_ids = {membership.asset_id for membership in asset_memberships}
+    all_assets = list(session.exec(select(Asset)).all())
+    project_assets = [asset for asset in all_assets if asset.project_id in project_ids] if project_ids else []
+    direct_assets = [asset for asset in all_assets if asset.id in direct_asset_ids] if direct_asset_ids else []
+    asset_by_id = {asset.id: asset for asset in [*project_assets, *direct_assets]}
+    assets = sorted(asset_by_id.values(), key=lambda row: row.created_at, reverse=True)
+
+    reviews = list(
+        session.exec(
+            select(ReviewRequest).where(
+                (ReviewRequest.author_id == parsed_person_id) | (ReviewRequest.reviewer_id == parsed_person_id)
+            )
+        ).all()
+    )
+    review_ids = {review.id for review in reviews}
+
+    all_todos = list(session.exec(select(Todo)).all())
+    todos = [
+        row
+        for row in all_todos
+        if row.person_id == parsed_person_id
+        or row.assignee_id == parsed_person_id
+        or (row.project_id in project_ids if row.project_id else False)
+        or (row.client_id in client_ids if row.client_id else False)
+    ]
+    todos.sort(key=lambda row: row.created_at, reverse=True)
+    todo_ids = {todo.id for todo in todos}
+
+    entity_keys: list[tuple[EntityType, UUID]] = [(EntityType.person, parsed_person_id)]
+    entity_keys.extend((EntityType.membership, row.id) for row in memberships)
+    entity_keys.extend((EntityType.project, row.id) for row in projects)
+    entity_keys.extend((EntityType.client, client_id_value) for client_id_value in client_ids)
+    entity_keys.extend((EntityType.asset, row.id) for row in assets)
+    entity_keys.extend((EntityType.review, review_id) for review_id in review_ids)
+    entity_keys.extend((EntityType.todo, todo_id) for todo_id in todo_ids)
+    timeline_rows = _timeline_by_entity_keys(session, entity_keys)
+
+    project_name_by_id = {project.id: project.name for project in projects}
+    project_status_by_id = {project.id: project.status.value for project in projects}
+    project_client_id_by_project_id = {project.id: project.client_id for project in projects}
+    all_clients = list(session.exec(select(Client)).all())
+    client_name_by_id = {client.id: client.name for client in all_clients if client.id in client_ids}
+    people = list(session.exec(select(Person)).all())
+    person_name_by_id = {row.id: row.name for row in people}
+    asset_name_by_id = {asset.id: asset.name for asset in assets}
+
+    todo_rows = [
+        {
+            "id": row.id,
+            "title": row.title,
+            "description": row.description,
+            "status": row.status.value,
+            "priority": row.priority.value,
+            "due_at": row.due_at,
+            "assignee_id": row.assignee_id,
+            "assignee_name": person_name_by_id.get(row.assignee_id, "-") if row.assignee_id else "-",
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        }
+        for row in todos
+    ]
+    membership_rows = [
+        {
+            "project_id": membership.project_id,
+            "project_name": project_name_by_id.get(membership.project_id, "-"),
+            "client_name": client_name_by_id.get(project_client_id_by_project_id[membership.project_id], "-")
+            if membership.project_id in project_client_id_by_project_id
+            else "-",
+            "status": project_status_by_id.get(membership.project_id, "-"),
+            "role": membership.role.value,
+            "start_date": membership.start_date,
+        }
+        for membership in memberships
+    ]
+
+    return templates.TemplateResponse(
+        "person_overview.html",
+        {
+            "request": request,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "edit_todo_id": request.query_params.get("edit_todo"),
+            "person": person,
+            "memberships": memberships,
+            "membership_rows": membership_rows,
+            "projects": projects,
+            "assets": assets,
+            "reviews": reviews,
+            "todo_rows": todo_rows,
+            "timeline_rows": timeline_rows,
+            "project_name_by_id": project_name_by_id,
+            "client_name_by_id": client_name_by_id,
+            "person_name_by_id": person_name_by_id,
+            "asset_name_by_id": asset_name_by_id,
+            "people": people,
+            "todo_status_options": [row.value for row in TodoStatus],
+            "todo_priority_options": [row.value for row in TodoPriority],
+        },
+    )
+
+
+@router.get("/clients-ui/{client_id}/overview")
+def client_overview_ui(client_id: str, request: Request, session: Session = Depends(get_session)):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+    except ValueError as exc:
+        return _redirect_ui("/clients-ui", err=str(exc))
+
+    client = session.get(Client, parsed_client_id)
+    if not client:
+        return _redirect_ui("/clients-ui", err="Client not found")
+
+    projects = list(session.exec(select(Project).where(Project.client_id == parsed_client_id)).all())
+    project_ids = {project.id for project in projects}
+    assets = list(session.exec(select(Asset).where(Asset.client_id == parsed_client_id)).all())
+    asset_ids = {asset.id for asset in assets}
+    all_memberships = list(session.exec(select(ProjectMembership)).all())
+    memberships = [row for row in all_memberships if row.project_id in project_ids] if project_ids else []
+    person_ids = {membership.person_id for membership in memberships}
+
+    all_reviews = list(session.exec(select(ReviewRequest)).all())
+    reviews = [
+        row
+        for row in all_reviews
+        if row.project_id in project_ids or row.asset_id in asset_ids
+    ]
+    person_ids.update(review.author_id for review in reviews)
+    person_ids.update(review.reviewer_id for review in reviews)
+
+    all_people = list(session.exec(select(Person)).all())
+    people = [row for row in all_people if row.id in person_ids] if person_ids else []
+    person_name_by_id = {person.id: person.name for person in people}
+
+    all_todos = list(session.exec(select(Todo)).all())
+    todos = [
+        row
+        for row in all_todos
+        if row.client_id == parsed_client_id or (row.project_id in project_ids if row.project_id else False)
+    ]
+    todos.sort(key=lambda row: row.created_at, reverse=True)
+    todo_ids = {todo.id for todo in todos}
+
+    entity_keys: list[tuple[EntityType, UUID]] = [(EntityType.client, parsed_client_id)]
+    entity_keys.extend((EntityType.project, row.id) for row in projects)
+    entity_keys.extend((EntityType.membership, row.id) for row in memberships)
+    entity_keys.extend((EntityType.asset, row.id) for row in assets)
+    entity_keys.extend((EntityType.review, row.id) for row in reviews)
+    entity_keys.extend((EntityType.person, person_id_value) for person_id_value in person_ids)
+    entity_keys.extend((EntityType.todo, todo_id) for todo_id in todo_ids)
+    timeline_rows = _timeline_by_entity_keys(session, entity_keys)
+
+    project_name_by_id = {project.id: project.name for project in projects}
+    asset_name_by_id = {asset.id: asset.name for asset in assets}
+    all_people_name_by_id = {person.id: person.name for person in all_people}
+
+    todo_rows = [
+        {
+            "id": row.id,
+            "title": row.title,
+            "description": row.description,
+            "status": row.status.value,
+            "priority": row.priority.value,
+            "due_at": row.due_at,
+            "assignee_id": row.assignee_id,
+            "assignee_name": all_people_name_by_id.get(row.assignee_id, "-") if row.assignee_id else "-",
+            "project_id": row.project_id,
+            "project_name": project_name_by_id.get(row.project_id, "-") if row.project_id else "-",
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        }
+        for row in todos
+    ]
+
+    return templates.TemplateResponse(
+        "client_overview.html",
+        {
+            "request": request,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "edit_todo_id": request.query_params.get("edit_todo"),
+            "client": client,
+            "projects": projects,
+            "assets": assets,
+            "reviews": reviews,
+            "people": people,
+            "memberships": memberships,
+            "todo_rows": todo_rows,
+            "timeline_rows": timeline_rows,
+            "person_name_by_id": person_name_by_id,
+            "project_name_by_id": project_name_by_id,
+            "asset_name_by_id": asset_name_by_id,
+            "all_people": all_people,
+            "todo_status_options": [row.value for row in TodoStatus],
+            "todo_priority_options": [row.value for row in TodoPriority],
+        },
+    )
+
+
+@router.get("/projects-ui/{project_id}/overview")
+def project_overview_ui(project_id: str, request: Request, session: Session = Depends(get_session)):
+    try:
+        parsed_project_id = _parse_uuid(project_id, "project_id")
+    except ValueError as exc:
+        return _redirect_ui("/projects-ui", err=str(exc))
+
+    project = session.get(Project, parsed_project_id)
+    if not project:
+        return _redirect_ui("/projects-ui", err="Project not found")
+
+    client = session.get(Client, project.client_id)
+    memberships = list(
+        session.exec(select(ProjectMembership).where(ProjectMembership.project_id == parsed_project_id)).all()
+    )
+    person_ids = {membership.person_id for membership in memberships}
+    all_people = list(session.exec(select(Person)).all())
+    people = [row for row in all_people if row.id in person_ids] if person_ids else []
+    person_name_by_id = {person.id: person.name for person in people}
+
+    assets = list(session.exec(select(Asset).where(Asset.project_id == parsed_project_id)).all())
+    asset_ids = {asset.id for asset in assets}
+    reviews = list(session.exec(select(ReviewRequest).where(ReviewRequest.project_id == parsed_project_id)).all())
+    for review in reviews:
+        person_ids.add(review.author_id)
+        person_ids.add(review.reviewer_id)
+
+    todos = list(session.exec(select(Todo).where(Todo.project_id == parsed_project_id)).all())
+    todos.sort(key=lambda row: row.created_at, reverse=True)
+    todo_ids = {todo.id for todo in todos}
+
+    entity_keys: list[tuple[EntityType, UUID]] = [(EntityType.project, parsed_project_id)]
+    entity_keys.append((EntityType.client, project.client_id))
+    entity_keys.extend((EntityType.membership, row.id) for row in memberships)
+    entity_keys.extend((EntityType.asset, asset_id) for asset_id in asset_ids)
+    entity_keys.extend((EntityType.review, review.id) for review in reviews)
+    entity_keys.extend((EntityType.person, person_id_value) for person_id_value in person_ids)
+    entity_keys.extend((EntityType.todo, todo_id) for todo_id in todo_ids)
+    timeline_rows = _timeline_by_entity_keys(session, entity_keys)
+
+    asset_name_by_id = {asset.id: asset.name for asset in assets}
+    all_people_name_by_id = {person.id: person.name for person in all_people}
+    todo_rows = [
+        {
+            "id": row.id,
+            "title": row.title,
+            "description": row.description,
+            "status": row.status.value,
+            "priority": row.priority.value,
+            "due_at": row.due_at,
+            "assignee_id": row.assignee_id,
+            "assignee_name": all_people_name_by_id.get(row.assignee_id, "-") if row.assignee_id else "-",
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        }
+        for row in todos
+    ]
+
+    return templates.TemplateResponse(
+        "project_overview.html",
+        {
+            "request": request,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "edit_todo_id": request.query_params.get("edit_todo"),
+            "project": project,
+            "client": client,
+            "memberships": memberships,
+            "people": people,
+            "assets": assets,
+            "reviews": reviews,
+            "todo_rows": todo_rows,
+            "timeline_rows": timeline_rows,
+            "person_name_by_id": person_name_by_id,
+            "asset_name_by_id": asset_name_by_id,
+            "all_people": all_people,
+            "todo_status_options": [row.value for row in TodoStatus],
+            "todo_priority_options": [row.value for row in TodoPriority],
+        },
+    )
 
 
 @router.get("/templates-ui")

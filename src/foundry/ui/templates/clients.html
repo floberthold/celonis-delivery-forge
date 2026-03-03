@@ -64,6 +64,7 @@
             <td>{{ row.sensitivity_level }}</td>
             <td>{{ row.created_at }}</td>
             <td class="actions-cell">
+                <a class="link-button" href="/clients-ui/{{ row.id }}/overview">Overview</a>
                 <a class="link-button" href="/clients-ui?edit={{ row.id }}">Edit</a>
                 <form method="post" action="/clients-ui/delete" class="inline-form">
                     <input type="hidden" name="client_id" value="{{ row.id }}">

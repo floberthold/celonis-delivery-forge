@@ -4,7 +4,19 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from foundry.api.routes import assets, auth, celonis, clients, projects, reviews, templates, timeline, ui, users
+from foundry.api.routes import (
+    assets,
+    auth,
+    celonis,
+    clients,
+    projects,
+    reviews,
+    templates,
+    timeline,
+    todos,
+    ui,
+    users,
+)
 from foundry.db import init_db
 from foundry.settings import get_settings
 
@@ -39,4 +51,5 @@ app.include_router(assets.router)
 app.include_router(reviews.router)
 app.include_router(templates.router)
 app.include_router(timeline.router)
+app.include_router(todos.router)
 app.include_router(celonis.router)
