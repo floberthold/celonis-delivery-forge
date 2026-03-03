@@ -48,7 +48,7 @@ from foundry.schemas import (
     TemplateInstantiateCreate,
 )
 from foundry.settings import get_settings
-from foundry.security import hash_password, validate_password_length
+from foundry.security import hash_password
 from foundry.services.project_service import ProjectService
 from foundry.services.review_service import ReviewService
 from foundry.services.template_service import TemplateService
@@ -58,29 +58,23 @@ UI_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "ui" / "templates"
 
 
 def _docu_dir() -> Path | None:
-    project_docu = Path(__file__).resolve().parents[4] / "docu"
-    if project_docu.exists():
-        return project_docu
-
-    bundled_root = getattr(sys, "_MEIPASS", None)
-    if bundled_root:
-        bundled_docu = Path(bundled_root) / "docu"
-        if bundled_docu.exists():
-            return bundled_docu
-
-    cwd_docu = Path.cwd() / "docu"
-    if cwd_docu.exists():
-        return cwd_docu
+    candidates: list[Path] = [Path(__file__).resolve().parents[4] / "docu"]
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        candidates.append(Path(meipass) / "docu")
+    candidates.append(Path.cwd() / "docu")
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
     return None
 
 
-template_paths = [str(UI_TEMPLATE_DIR)]
-docu_dir = _docu_dir()
-if docu_dir:
-    template_paths.append(str(docu_dir))
-
 templates = Jinja2Templates(directory=str(UI_TEMPLATE_DIR))
-templates.env.loader = ChoiceLoader([FileSystemLoader(path) for path in template_paths])
+loaders = [FileSystemLoader(str(UI_TEMPLATE_DIR))]
+docu_template_dir = _docu_dir()
+if docu_template_dir:
+    loaders.insert(0, FileSystemLoader(str(docu_template_dir)))
+templates.env.loader = ChoiceLoader(loaders)
 
 
 def _normalize_http_url(value: str | None) -> str:
@@ -233,7 +227,6 @@ def dashboard_create_person(
     session: Session = Depends(get_session),
 ):
     try:
-        validate_password_length(password)
         person = Person(
             name=name.strip(),
             email=email.strip().lower(),
@@ -887,7 +880,6 @@ def people_ui_create(
     session: Session = Depends(get_session),
 ):
     try:
-        validate_password_length(password)
         person = Person(
             name=name.strip(),
             email=email.strip().lower(),
@@ -921,7 +913,6 @@ def people_ui_update(
         person.email = email.strip().lower()
         person.role_global = GlobalRole(role_global)
         if password.strip():
-            validate_password_length(password)
             person.hashed_password = hash_password(password)
         session.add(person)
         session.commit()
@@ -1290,12 +1281,12 @@ def timeline_ui_delete(log_id: str = Form(...), session: Session = Depends(get_s
 
 
 @router.get("/docu/user.html")
-def user_docs_ui(request: Request):
+def docu_user(request: Request):
     return templates.TemplateResponse("user.html", {"request": request})
 
 
 @router.get("/docu/developer.html")
-def developer_docs_ui(request: Request):
+def docu_developer(request: Request):
     return templates.TemplateResponse("developer.html", {"request": request})
 
 

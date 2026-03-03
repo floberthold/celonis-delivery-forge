@@ -4,44 +4,139 @@
 
 {% block content %}
 <h2>Developer Documentation</h2>
-<p>Technical guide for extending Celonis Delivery Forge.</p>
+<p class="muted-note">Technical guide for extending Celonis Delivery Forge safely and consistently.</p>
 
-<div class="grid">
-    <section class="panel">
-        <h3>Architecture</h3>
-        <ul>
-            <li>FastAPI app entry: <code>foundry.api.main:app</code></li>
-            <li>UI routes and templates via Jinja2</li>
-            <li>SQLModel domain models with timeline and review services</li>
-        </ul>
-    </section>
+<section class="panel">
+    <h3>Quick Navigation</h3>
+    <p>
+        <a class="link-button" href="#architecture">Architecture</a>
+        <a class="link-button" href="#routes">Routes</a>
+        <a class="link-button" href="#dev">Dev Loop</a>
+        <a class="link-button" href="#docsystem">Doc System</a>
+        <a class="link-button" href="#packaging">Packaging</a>
+        <a class="link-button" href="#quality">Quality</a>
+    </p>
+</section>
 
-    <section class="panel">
-        <h3>Key route modules</h3>
-        <ul>
-            <li><code>/dashboard</code> and topic pages in <code>ui.py</code></li>
-            <li>API resources under <code>src/foundry/api/routes/</code></li>
-            <li>Static assets under <code>src/foundry/ui/static/</code></li>
-        </ul>
-    </section>
+<section class="panel" id="architecture">
+    <h3>1) Runtime Architecture</h3>
+    <img src="/static/docs/developer-architecture.svg" alt="Developer architecture overview" width="100%">
+    <p class="muted-note">The docs pages are rendered by UI routes and loaded from root <code>docu/</code> through Jinja loader fallback logic.</p>
+</section>
 
-    <section class="panel">
-        <h3>Local development</h3>
-        <ol>
-            <li>Install package in editable mode.</li>
-            <li>Run <code>uvicorn foundry.api.main:app --reload</code>.</li>
-            <li>Use <a href="/docs">Swagger UI</a> for API testing.</li>
-            <li>Use <a href="/dashboard">Dashboard</a> for integrated UI validation.</li>
-        </ol>
-    </section>
+<section class="panel" id="routes">
+    <h3>2) Route &amp; Template Layers</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>API + UI Routing</h3>
+            <ul>
+                <li><code>foundry.api.main</code> mounts static files and includes all route modules.</li>
+                <li><code>foundry.api.routes.ui</code> serves dashboard/topic pages and docs routes.</li>
+                <li>REST APIs stay in dedicated modules under <code>src/foundry/api/routes/</code>.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Template Locations</h3>
+            <ul>
+                <li>Core UI templates: <code>src/foundry/ui/templates/</code>.</li>
+                <li>Documentation source: root <code>docu/</code>.</li>
+                <li>Shared shell and nav: <code>base.html</code>.</li>
+            </ul>
+        </div>
+    </div>
+    <svg viewBox="0 0 760 220" width="100%" height="220" role="img" aria-label="Template resolution flow">
+        <rect x="20" y="40" width="170" height="64" rx="10" fill="#f1f4fa" stroke="#2e4a82" />
+        <text x="105" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Request /docu/*</text>
+        <rect x="250" y="40" width="230" height="64" rx="10" fill="#f1f4fa" stroke="#2e4a82" />
+        <text x="365" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">ui.py Jinja ChoiceLoader</text>
+        <rect x="540" y="40" width="190" height="64" rx="10" fill="#e8f8ee" stroke="#19633a" />
+        <text x="635" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Rendered HTML</text>
+        <line x1="190" y1="72" x2="250" y2="72" stroke="#2e4a82" stroke-width="2" />
+        <line x1="480" y1="72" x2="540" y2="72" stroke="#2e4a82" stroke-width="2" />
+        <polygon points="246,68 250,72 246,76" fill="#2e4a82" />
+        <polygon points="536,68 540,72 536,76" fill="#2e4a82" />
+    </svg>
+</section>
 
-    <section class="panel">
-        <h3>Packaging</h3>
-        <ul>
-            <li>Docker image runs app from <code>/app</code>.</li>
-            <li>Windows standalone is built with PyInstaller script.</li>
-            <li>Root <code>docu/</code> content is bundled and served in-app.</li>
-        </ul>
-    </section>
-</div>
+<section class="panel" id="dev">
+    <h3>3) Daily Development Loop</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Step</th>
+                <th>Command / Action</th>
+                <th>Output</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Install</td>
+                <td><code>python -m pip install -e .</code></td>
+                <td>Editable runtime with local sources</td>
+            </tr>
+            <tr>
+                <td>Run API</td>
+                <td><code>uvicorn foundry.api.main:app --reload</code></td>
+                <td>Interactive UI + Swagger</td>
+            </tr>
+            <tr>
+                <td>Verify docs</td>
+                <td>Open <a href="/docu/user.html">User Docs</a> and <a href="/docu/developer.html">Developer Docs</a></td>
+                <td>Layout, diagrams, links, and content checks</td>
+            </tr>
+            <tr>
+                <td>Package test</td>
+                <td><code>.\scripts\build_standalone.ps1</code></td>
+                <td>Desktop executable with bundled doc source</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="panel" id="docsystem">
+    <h3>4) Documentation System</h3>
+    <div class="cards">
+        <div class="card">
+            <h3>Source of truth</h3>
+            <p>Keep long-form docs in root <code>docu/</code> as Jinja pages extending <code>base.html</code>.</p>
+        </div>
+        <div class="card">
+            <h3>Visual assets</h3>
+            <p>Store reusable graphics in <code>/static/docs</code>; use inline SVG for page-specific diagrams.</p>
+        </div>
+        <div class="card">
+            <h3>Navigation</h3>
+            <p>Expose docs in top navigation to reduce onboarding friction for users and contributors.</p>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="packaging">
+    <h3>5) Packaging Expectations</h3>
+    <ul>
+        <li>Docker copies <code>src/</code> and root <code>docu/</code> into container runtime.</li>
+        <li>Standalone script includes <code>docu</code> via PyInstaller <code>--add-data</code>.</li>
+        <li>Spec file mirrors this through <code>datas=[('docu', 'docu')]</code>.</li>
+    </ul>
+    <div class="alert success">When adding new docs pages, use the same pattern and route them explicitly in <code>ui.py</code>.</div>
+</section>
+
+<section class="panel" id="quality">
+    <h3>6) Quality Checklist</h3>
+    <ul>
+        <li>Routes return 200 for docs pages in local and packaged runs.</li>
+        <li>Graphics render without external dependencies.</li>
+        <li>Links in docs target valid routes only.</li>
+        <li>No regressions in existing topic pages and dashboard flows.</li>
+    </ul>
+</section>
+
+<section class="panel">
+    <h3>7) Fast Links</h3>
+    <p>
+        <a class="link-button" href="/docs">Open Swagger</a>
+        <a class="link-button" href="/dashboard">Open Dashboard</a>
+        <a class="link-button" href="/templates-ui">Open Templates</a>
+    </p>
+</section>
 {% endblock %}

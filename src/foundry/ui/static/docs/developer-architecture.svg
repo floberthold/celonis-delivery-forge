@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Developer architecture diagram">
+  <rect width="1200" height="520" fill="#ffffff"/>
+  <text x="34" y="44" fill="#1b2230" font-size="30" font-family="Segoe UI" font-weight="700">Foundry Runtime Architecture</text>
+  <text x="34" y="74" fill="#57627a" font-size="16" font-family="Segoe UI">UI templates, API routes, services, and persistence layers</text>
+
+  <rect x="40" y="120" width="250" height="120" rx="12" fill="#f1f4fa" stroke="#2e4a82" stroke-width="2"/>
+  <text x="165" y="156" text-anchor="middle" fill="#1b2230" font-size="18" font-family="Segoe UI">Browser</text>
+  <text x="165" y="184" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">/dashboard /docu/* /docs</text>
+  <text x="165" y="205" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">Static + HTML requests</text>
+
+  <rect x="360" y="120" width="250" height="120" rx="12" fill="#f1f4fa" stroke="#2e4a82" stroke-width="2"/>
+  <text x="485" y="156" text-anchor="middle" fill="#1b2230" font-size="18" font-family="Segoe UI">FastAPI App</text>
+  <text x="485" y="184" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">foundry.api.main</text>
+  <text x="485" y="205" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">router + static mount</text>
+
+  <rect x="680" y="120" width="250" height="120" rx="12" fill="#f1f4fa" stroke="#2e4a82" stroke-width="2"/>
+  <text x="805" y="156" text-anchor="middle" fill="#1b2230" font-size="18" font-family="Segoe UI">Route Modules</text>
+  <text x="805" y="184" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">ui.py + domain APIs</text>
+  <text x="805" y="205" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">projects/assets/reviews</text>
+
+  <rect x="950" y="120" width="210" height="120" rx="12" fill="#e8f8ee" stroke="#19633a" stroke-width="2"/>
+  <text x="1055" y="156" text-anchor="middle" fill="#1b2230" font-size="18" font-family="Segoe UI">Templates</text>
+  <text x="1055" y="184" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">ui/templates + docu/</text>
+  <text x="1055" y="205" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">Jinja ChoiceLoader</text>
+
+  <rect x="250" y="320" width="290" height="140" rx="12" fill="#f5f7fb" stroke="#dfe4ee" stroke-width="2"/>
+  <text x="395" y="358" text-anchor="middle" fill="#1b2230" font-size="18" font-family="Segoe UI">Service Layer</text>
+  <text x="395" y="386" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">ProjectService / ReviewService</text>
+  <text x="395" y="408" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">TemplateService / CelonisGateway</text>
+
+  <rect x="650" y="320" width="290" height="140" rx="12" fill="#f5f7fb" stroke="#dfe4ee" stroke-width="2"/>
+  <text x="795" y="358" text-anchor="middle" fill="#1b2230" font-size="18" font-family="Segoe UI">Persistence Layer</text>
+  <text x="795" y="386" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">SQLModel + SQLAlchemy</text>
+  <text x="795" y="408" text-anchor="middle" fill="#57627a" font-size="14" font-family="Segoe UI">PostgreSQL or local SQLite</text>
+
+  <line x1="290" y1="180" x2="360" y2="180" stroke="#2e4a82" stroke-width="3"/>
+  <line x1="610" y1="180" x2="680" y2="180" stroke="#2e4a82" stroke-width="3"/>
+  <line x1="930" y1="180" x2="950" y2="180" stroke="#2e4a82" stroke-width="3"/>
+  <polygon points="355,174 365,180 355,186" fill="#2e4a82"/>
+  <polygon points="675,174 685,180 675,186" fill="#2e4a82"/>
+  <polygon points="945,174 955,180 945,186" fill="#2e4a82"/>
+
+  <line x1="780" y1="240" x2="780" y2="320" stroke="#2e4a82" stroke-width="3"/>
+  <line x1="720" y1="240" x2="500" y2="320" stroke="#2e4a82" stroke-width="3"/>
+  <polygon points="774,316 780,326 786,316" fill="#2e4a82"/>
+  <polygon points="497,313 502,323 509,316" fill="#2e4a82"/>
+</svg>

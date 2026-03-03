@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field
 
 from foundry.models import (
     ArtifactType,
@@ -16,19 +16,12 @@ from foundry.models import (
     TemplateScope,
     TemplateStorageType,
 )
-from foundry.security import validate_password_length
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     name: str
     password: str
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, value: str) -> str:
-        validate_password_length(value)
-        return value
 
 
 class ClientCreate(BaseModel):

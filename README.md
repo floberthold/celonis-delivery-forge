@@ -55,6 +55,7 @@ Built for consultants. Built for scale. Built to last.
 - Developer Docs: <http://127.0.0.1:8000/docu/developer.html>
 
 Documentation source files for these pages are stored in the root `docu/` folder.
+Reusable visual graphics for the docs are stored in `src/foundry/ui/static/docs/`.
 
 5. Configure Celonis token for companion actions:
 
