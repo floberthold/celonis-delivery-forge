@@ -3,9 +3,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from foundry.api.deps import get_current_person
+from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
-from foundry.models import EntityType, Person, Project, ProjectMembership
+from foundry.models import Client, EntityType, Project, ProjectMembership
 from foundry.schemas import ProjectAssign, ProjectCreate, ProjectStatusUpdate
 from foundry.services.activity_log import log_created
 from foundry.services.project_service import ProjectService
@@ -17,9 +17,16 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 def create_project(
     payload: ProjectCreate,
     session: Session = Depends(get_session),
-    current_person: Person = Depends(get_current_person),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
-    project = Project(**payload.model_dump())
+    client = session.get(Client, payload.client_id)
+    if not client or client.organization_id != current_actor.organization.id:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    project = Project(
+        organization_id=current_actor.organization.id,
+        **payload.model_dump(),
+    )
     session.add(project)
     session.commit()
     session.refresh(project)
@@ -27,15 +34,20 @@ def create_project(
         session,
         entity_type=EntityType.project,
         entity_id=project.id,
-        actor_id=current_person.id,
+        actor_id=current_actor.person.id,
+        organization_id=current_actor.organization.id,
         metadata={"client_id": str(project.client_id), "status": project.status.value},
     )
     return project
 
 
 @router.get("/", response_model=list[Project])
-def list_projects(session: Session = Depends(get_session)):
-    return list(session.exec(select(Project)).all())
+def list_projects(
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    stmt = select(Project).where(Project.organization_id == current_actor.organization.id)
+    return list(session.exec(stmt).all())
 
 
 @router.post("/{project_id}/memberships", response_model=ProjectMembership)
@@ -43,10 +55,10 @@ def assign_user(
     project_id: UUID,
     payload: ProjectAssign,
     session: Session = Depends(get_session),
-    current_person: Person = Depends(get_current_person),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
     project = session.get(Project, project_id)
-    if not project:
+    if not project or project.organization_id != current_actor.organization.id:
         raise HTTPException(status_code=404, detail="Project not found")
 
     assignment = ProjectMembership(
@@ -62,7 +74,8 @@ def assign_user(
         session,
         entity_type=EntityType.membership,
         entity_id=assignment.id,
-        actor_id=current_person.id,
+        actor_id=current_actor.person.id,
+        organization_id=current_actor.organization.id,
         metadata={"project_id": str(project_id), "role": payload.role.value},
     )
 
@@ -74,11 +87,12 @@ def update_project_status(
     project_id: UUID,
     payload: ProjectStatusUpdate,
     session: Session = Depends(get_session),
-    current_person: Person = Depends(get_current_person),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
     return ProjectService.update_project_status(
         session,
         project_id=project_id,
-        actor_id=current_person.id,
+        actor_id=current_actor.person.id,
+        organization_id=current_actor.organization.id,
         payload=payload,
     )

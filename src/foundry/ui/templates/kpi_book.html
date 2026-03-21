@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}KPI Book – {{ client.name }} | Foundry{% endblock %}
+
+{% block content %}
+<h2>KPI Book — {{ client.name }}</h2>
+<p class="muted-note">Curated KPIs saved from Celonis snapshots or added manually.</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<details class="form-panel">
+    <summary>+ Add KPI Manually</summary>
+    <form method="post" action="/kpi-book-ui/{{ client.id }}/create" class="form-grid">
+        <label>Name *
+            <input type="text" name="name" required>
+        </label>
+        <label>Package / Module
+            <input type="text" name="package_name">
+        </label>
+        <label>Type (kpi / view / sql_task…)
+            <input type="text" name="task_type">
+        </label>
+        <label>PQL Formula
+            <textarea name="pql_formula" rows="4"></textarea>
+        </label>
+        <label>Description
+            <textarea name="description" rows="3"></textarea>
+        </label>
+        <label class="checkbox-label">
+            <input type="checkbox" name="is_shared"> Shared with team
+        </label>
+        <button type="submit" class="btn-primary">Add to KPI Book</button>
+    </form>
+</details>
+
+<h3>Entries ({{ entries|length }})</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Package</th>
+            <th>Shared</th>
+            <th>PQL (preview)</th>
+            <th>From Snapshot</th>
+            <th>Saved</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in entries %}
+        <tr>
+            <td>{{ entry.name }}</td>
+            <td>{{ entry.task_type or '—' }}</td>
+            <td>{{ entry.package_name or '—' }}</td>
+            <td>{{ '✓' if entry.is_shared else '' }}</td>
+            <td class="monospace small">{{ (entry.pql_formula or '')[:60] }}{% if entry.pql_formula and entry.pql_formula|length > 60 %}…{% endif %}</td>
+            <td>
+                {% if entry.snapshot_id %}
+                <a href="/snapshots-ui/{{ client.id }}/{{ entry.snapshot_id }}/detail">View Snapshot</a>
+                {% else %}—{% endif %}
+            </td>
+            <td>{{ entry.created_at.strftime('%Y-%m-%d') }}</td>
+            <td>
+                <form method="post" action="/kpi-book-ui/{{ client.id }}/{{ entry.id }}/delete"
+                      onsubmit="return confirm('Remove this KPI Book entry?')">
+                    <button type="submit" class="btn-danger-sm">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No entries yet. Run a snapshot and save KPIs, or add manually above.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/clients-ui/{{ client.id }}/overview">← Back to Client Overview</a></p>
+{% endblock %}

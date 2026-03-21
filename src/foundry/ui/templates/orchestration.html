@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Orchestration | Foundry{% endblock %}
+
+{% block content %}
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="orchestration-hero">
+    <div>
+        <h2>Orchestration Command Center</h2>
+        <p>RTS-style overview for agents, projects, and quest pressure across your active organization.</p>
+    </div>
+    <div class="policy-chip">{{ override_policy }}</div>
+</section>
+
+<section class="panel orchestration-create-panel">
+    <div class="section-header">
+        <h3>Create Quest</h3>
+    </div>
+    <form method="post" action="/orchestration-ui/quests/create" class="orchestration-create-form">
+        <label>Title
+            <input name="title" required>
+        </label>
+        <label>Description
+            <input name="description">
+        </label>
+        <label>Project
+            <select name="project_id">
+                <option value="">Unscoped</option>
+                {% for row in form_projects %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Priority
+            <select name="priority">
+                {% for row in quest_priority_options %}
+                <option value="{{ row }}">{{ row }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Create Quest</button>
+    </form>
+</section>
+
+<section class="cards">
+    <div class="card">
+        <h3>Agents</h3>
+        <p class="metric">{{ agents_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Clients</h3>
+        <p class="metric">{{ clients_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Projects</h3>
+        <p class="metric">{{ projects_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Open Quests</h3>
+        <p class="metric">{{ open_quests_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Active Quests</h3>
+        <p class="metric">{{ active_quests_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Blocked Quests</h3>
+        <p class="metric">{{ blocked_quests_count }}</p>
+    </div>
+</section>
+
+<section class="orchestration-grid">
+    <article class="panel command-map">
+        <div class="section-header">
+            <h3>Command Map (Preview)</h3>
+        </div>
+        <p class="map-hint">Regions represent projects. Intensity indicates task pressure.</p>
+        <div class="region-list">
+            {% for row in hotspots %}
+            <div class="region-row">
+                <div>
+                    <strong>{{ row.project_name }}</strong>
+                    <div class="region-meta">Open quests: {{ row.open_count }} | High priority: {{ row.high_count }}</div>
+                </div>
+                <span class="threat-level {% if row.high_count > 2 %}critical{% elif row.high_count > 0 %}warning{% else %}healthy{% endif %}">
+                    {% if row.high_count > 2 %}critical{% elif row.high_count > 0 %}warning{% else %}stable{% endif %}
+                </span>
+            </div>
+            {% else %}
+            <p>No active pressure hotspots.</p>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="section-header">
+            <h3>Quest Log</h3>
+        </div>
+        <div class="quest-list">
+            {% for row in quest_rows %}
+            <div class="quest-row">
+                <div>
+                    <strong>{{ row.title }}</strong>
+                    <div class="region-meta">{{ row.project_name }} | {{ row.source }} | {{ row.priority }}</div>
+                </div>
+                <div class="quest-actions">
+                    <span class="quest-status {{ row.status }}">{{ row.status }}</span>
+                    {% if row.can_override %}
+                    <span class="quest-override">override ready</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if row.can_override %}
+            <div class="quest-controls">
+                <form method="post" action="/orchestration-ui/quests/{{ row.id }}/pause" class="inline-form">
+                    <button type="submit">Pause</button>
+                </form>
+                <form method="post" action="/orchestration-ui/quests/{{ row.id }}/reprioritize" class="inline-form quest-inline-form">
+                    <select name="priority">
+                        {% for option in quest_priority_options %}
+                        <option value="{{ option }}" {% if option == row.priority %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Reprioritize</button>
+                </form>
+                <form method="post" action="/orchestration-ui/quests/{{ row.id }}/edit" class="inline-form quest-inline-form">
+                    <input name="title" value="{{ row.title }}" required>
+                    <select name="status">
+                        {% for option in quest_status_options %}
+                        <option value="{{ option }}" {% if option == row.status %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="priority">
+                        {% for option in quest_priority_options %}
+                        <option value="{{ option }}" {% if option == row.priority %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Edit</button>
+                </form>
+                <form method="post" action="/orchestration-ui/quests/{{ row.id }}/replace" class="inline-form quest-inline-form">
+                    <input name="title" placeholder="Replacement title" required>
+                    <select name="priority">
+                        {% for option in quest_priority_options %}
+                        <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Replace</button>
+                </form>
+                <form method="post" action="/orchestration-ui/quests/{{ row.id }}/delete" class="inline-form">
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+
+            <div class="quest-subsection">
+                <h4>Objectives</h4>
+                <form method="post" action="/orchestration-ui/quests/{{ row.id }}/objectives/create" class="inline-form quest-inline-form">
+                    <input name="title" placeholder="Objective title" required>
+                    <input name="details" placeholder="Details (optional)">
+                    <button type="submit">Add Objective</button>
+                </form>
+                <div class="quest-sublist">
+                    {% for objective in row.objectives %}
+                    <div class="quest-subrow">
+                        <span>{{ objective.title }}</span>
+                        <div class="quest-actions-inline">
+                            <form method="post" action="/orchestration-ui/quests/{{ row.id }}/objectives/{{ objective.id }}/toggle" class="inline-form">
+                                <input type="hidden" name="is_done" value="{{ 'false' if objective.is_done else 'true' }}">
+                                <button type="submit">{{ 'Reopen' if objective.is_done else 'Complete' }}</button>
+                            </form>
+                            <form method="post" action="/orchestration-ui/quests/{{ row.id }}/objectives/{{ objective.id }}/delete" class="inline-form">
+                                <button type="submit">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="region-meta">No objectives yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="quest-subsection">
+                <h4>Assignments</h4>
+                <form method="post" action="/orchestration-ui/quests/{{ row.id }}/assignments/create" class="inline-form quest-inline-form">
+                    <select name="assignee_person_id">
+                        <option value="">Person</option>
+                        {% for person in form_people %}
+                        <option value="{{ person.id }}">{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="agent_id">
+                        <option value="">Agent</option>
+                        {% for agent in form_agents %}
+                        <option value="{{ agent.id }}">{{ agent.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input name="role" placeholder="Role">
+                    <select name="state">
+                        {% for option in assignment_state_options %}
+                        <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">Assign</button>
+                </form>
+                <div class="quest-sublist">
+                    {% for assignment in row.assignments %}
+                    <div class="quest-subrow">
+                        <span>
+                            {{ assignment.assignee_name or assignment.agent_name or 'Unassigned' }}
+                            {% if assignment.role %}| {{ assignment.role }}{% endif %}
+                        </span>
+                        <div class="quest-actions-inline">
+                            <form method="post" action="/orchestration-ui/quests/{{ row.id }}/assignments/{{ assignment.id }}/state" class="inline-form quest-inline-form">
+                                <select name="state">
+                                    {% for option in assignment_state_options %}
+                                    <option value="{{ option }}" {% if option == assignment.state %}selected{% endif %}>{{ option }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit">Set</button>
+                            </form>
+                            <form method="post" action="/orchestration-ui/quests/{{ row.id }}/assignments/{{ assignment.id }}/delete" class="inline-form">
+                                <button type="submit">Unassign</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="region-meta">No assignments yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <p>No open quests currently.</p>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="section-header">
+            <h3>Unit Roster</h3>
+        </div>
+        <div class="unit-list">
+            {% for row in units %}
+            <div class="unit-row">
+                <span class="unit-type">{{ row.unit_type }}</span>
+                <span>{{ row.name }}</span>
+                <span class="region-meta">{{ row.role }}</span>
+            </div>
+            {% else %}
+            <p>No units available.</p>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="section-header">
+            <h3>Quest Timeline</h3>
+        </div>
+        <form method="get" action="/orchestration-ui" class="quest-timeline-filter-form">
+            <label>Action
+                <select name="quest_action">
+                    <option value="">All actions</option>
+                    {% for action in quest_timeline_actions %}
+                    <option value="{{ action }}" {% if action == selected_quest_action %}selected{% endif %}>{{ action }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Actor
+                <select name="quest_actor_id">
+                    <option value="">All actors</option>
+                    {% for actor in quest_timeline_actors %}
+                    <option value="{{ actor.id }}" {% if actor.id == selected_quest_actor_id %}selected{% endif %}>{{ actor.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit">Filter</button>
+            <a href="/orchestration-ui" class="link-button">Reset</a>
+        </form>
+        <div class="quest-timeline-list">
+            {% for row in quest_timeline_rows %}
+            <div class="quest-timeline-row">
+                <div>
+                    <strong>{{ row.title }}</strong>
+                    <div class="region-meta">{{ row.action }} | {{ row.actor_name }}</div>
+                </div>
+                <div class="quest-timeline-meta">
+                    <span class="region-meta">{{ row.timestamp.strftime("%Y-%m-%d %H:%M") }}</span>
+                    {% if row.status %}
+                    <span class="quest-status {{ row.status }}">{{ row.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <p>No quest events yet.</p>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+{% endblock %}

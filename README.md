@@ -108,15 +108,29 @@ docker compose up --build
 - `POST /reviews/submit` submit change for review
 - `POST /reviews/decision` approve or request changes
 - `GET /timeline/` timeline by entity
+- `POST /forum-insights/` create a forum-derived insight item
+- `GET /forum-insights/` list forum insights with filters
+- `PATCH /forum-insights/{insight_id}` update lifecycle, ownership, and priority
 - `POST /celonis/connections/upsert` upsert tenant-scoped Celonis connection
 - `GET /celonis/connections` list configured Celonis connections
+- `GET /celonis/connections/{client_id}/preflight` run service-scoped connection diagnostics (`service`, optional `probe_path` override)
+- `POST /celonis/connections/{client_id}/preflight/batch` run multi-service diagnostics in one call (optional comma-separated `services`)
+- `GET /celonis/connections/{client_id}/preflight/history` read persisted preflight snapshots (`limit`)
 - `POST /celonis/extract` trigger API extract call for a client connection
 - `POST /celonis/import` trigger API import call for a client connection
+- `POST /use-cases/` create use-case library entry
+- `GET /use-cases/` list and search use cases with filters
+- `PATCH /use-cases/{use_case_id}` update use case metadata and visibility flags
+- `POST /use-cases/roadmap` create roadmap progress item
+- `GET /use-cases/roadmap` list roadmap progress items
+- `PATCH /use-cases/roadmap/{item_id}` update roadmap progress
 
 ## Companion Workflow
 
 - Open `/dashboard` and use the Celonis cards:
 	- **Celonis Connection**: bind a `client` to a `tenant base URL`.
+	- **Celonis Preflight**: choose a Celonis service scope and run connectivity/permission diagnostics (optional custom probe path).
+	- **Celonis Preflight (All Services)**: run one-click batch diagnostics and persist snapshot results for history/audit.
 	- **Celonis Extract**: call a GET endpoint path on that tenant.
 	- **Celonis Import**: call a POST endpoint path with JSON payload.
 - Open `/tenant-ui` for multi-frame navigation and popup/new-tab fallback when embedding is blocked.
@@ -141,6 +155,48 @@ docker compose up --build
 ## Architecture Decision Record
 
 - See `docs/adr/0001-mvp-architecture.md`
+
+## Roadmaps
+
+- Master roadmap: `docs/master-roadmap.md`
+- Engineering roadmap: `docs/dev-roadmap.md`
+- Agent and Celonis coverage roadmap: `docs/agent-feature-roadmap.md`
+- Celonis support forum insights roadmap: `docs/celonis-forum-insights-roadmap.md`
+- Agent orchestrators adoption roadmap: `docs/agent-orchestrators-roadmap.md`
+- Agent orchestration operating model: `docs/agent-orchestration-operating-model.md`
+
+## Agent Run Bootstrap
+
+Create an isolated, governed agent run with one command:
+
+```powershell
+.\scripts\new_agent_run.ps1 -TaskId O6-PILOT-001 -Title "Parallel merge safety pilot" -Agent codex -Lane pilot -BaseBranch main
+```
+
+This creates a dedicated worktree in `.worktrees/` and a run card in `.orchestration/runs/`.
+
+Move a run through governed closure states:
+
+```powershell
+.\scripts\close_agent_run.ps1 -RunCard .\.orchestration\runs\<run-id>.md -Status "IN REVIEW"
+.\scripts\close_agent_run.ps1 -RunCard .\.orchestration\runs\<run-id>.md -Status "DONE"
+```
+
+The close script enforces evidence and review gates before allowing status transitions.
+
+List run cards for standup or triage:
+
+```powershell
+.\scripts\list_agent_runs.ps1
+.\scripts\list_agent_runs.ps1 -Summary
+.\scripts\list_agent_runs.ps1 -Summary -Json
+.\scripts\list_agent_runs.ps1 -Status "IN REVIEW"
+.\scripts\list_agent_runs.ps1 -Detailed
+```
+
+## Celonis Asset Intelligence
+
+- **Agent-readable feature coverage roadmap**: `docs/agent-feature-roadmap.md`
 
 # Developers
 

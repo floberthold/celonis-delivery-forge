@@ -1,0 +1,7 @@
+python-dotenv
+pandas
+
+--extra-index-url https://pypi.celonis.cloud/c591f5a8f4874916a268b4911580bebb
+--extra-index-url https://pypi.celonis.cloud/
+business_landscape_pycelonis
+pycelonis==2.11.0

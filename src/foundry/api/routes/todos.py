@@ -4,12 +4,27 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
 from foundry.models import EntityType, Todo, TodoStatus
 from foundry.schemas import TodoCreate, TodoOut, TodoUpdate
 from foundry.services.activity_log import log_activity
+from foundry.services.todo_service import delete_todo_with_children
 
 router = APIRouter(prefix="/todos", tags=["todos"])
+
+
+def _todo_activity_metadata(todo: Todo) -> dict:
+    return {
+        "title": todo.title,
+        "person_id": str(todo.person_id) if todo.person_id else None,
+        "client_id": str(todo.client_id) if todo.client_id else None,
+        "project_id": str(todo.project_id) if todo.project_id else None,
+        "assignee_id": str(todo.assignee_id) if todo.assignee_id else None,
+        "status": todo.status.value,
+        "priority": todo.priority.value,
+        "has_long_description": bool(todo.long_description_markdown and todo.long_description_markdown.strip()),
+    }
 
 
 def _validate_scope(*, person_id: UUID | None, client_id: UUID | None, project_id: UUID | None) -> None:
@@ -20,9 +35,13 @@ def _validate_scope(*, person_id: UUID | None, client_id: UUID | None, project_i
 
 
 @router.post("/", response_model=TodoOut)
-def create_todo(payload: TodoCreate, session: Session = Depends(get_session)):
+def create_todo(
+    payload: TodoCreate,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
     _validate_scope(person_id=payload.person_id, client_id=payload.client_id, project_id=payload.project_id)
-    todo = Todo(**payload.model_dump())
+    todo = Todo(organization_id=current_actor.organization.id, **payload.model_dump())
     session.add(todo)
     session.commit()
     session.refresh(todo)
@@ -33,13 +52,8 @@ def create_todo(payload: TodoCreate, session: Session = Depends(get_session)):
         entity_id=todo.id,
         actor_id=todo.created_by,
         action="todo.created",
-        metadata={
-            "person_id": str(todo.person_id) if todo.person_id else None,
-            "client_id": str(todo.client_id) if todo.client_id else None,
-            "project_id": str(todo.project_id) if todo.project_id else None,
-            "status": todo.status.value,
-            "priority": todo.priority.value,
-        },
+        organization_id=current_actor.organization.id,
+        metadata=_todo_activity_metadata(todo),
     )
     return todo
 
@@ -52,8 +66,9 @@ def list_todos(
     assignee_id: UUID | None = None,
     status: TodoStatus | None = None,
     session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
-    stmt = select(Todo)
+    stmt = select(Todo).where(Todo.organization_id == current_actor.organization.id)
     if person_id:
         stmt = stmt.where(Todo.person_id == person_id)
     if client_id:
@@ -70,12 +85,18 @@ def list_todos(
 
 
 @router.patch("/{todo_id}", response_model=TodoOut)
-def update_todo(todo_id: UUID, payload: TodoUpdate, session: Session = Depends(get_session)):
+def update_todo(
+    todo_id: UUID,
+    payload: TodoUpdate,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
     todo = session.get(Todo, todo_id)
-    if not todo:
+    if not todo or todo.organization_id != current_actor.organization.id:
         raise HTTPException(status_code=404, detail="Todo not found")
 
     updates = payload.model_dump(exclude_unset=True)
+    changed_fields = sorted(updates.keys())
     for field_name, field_value in updates.items():
         setattr(todo, field_name, field_value)
 
@@ -96,20 +117,27 @@ def update_todo(todo_id: UUID, payload: TodoUpdate, session: Session = Depends(g
         entity_id=todo.id,
         actor_id=todo.created_by,
         action="todo.updated",
-        metadata={"status": todo.status.value, "priority": todo.priority.value},
+        organization_id=current_actor.organization.id,
+        metadata={
+            **_todo_activity_metadata(todo),
+            "changed_fields": changed_fields,
+        },
     )
     return todo
 
 
 @router.delete("/{todo_id}")
-def delete_todo(todo_id: UUID, session: Session = Depends(get_session)):
+def delete_todo(
+    todo_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
     todo = session.get(Todo, todo_id)
-    if not todo:
+    if not todo or todo.organization_id != current_actor.organization.id:
         raise HTTPException(status_code=404, detail="Todo not found")
 
     actor_id = todo.created_by
-    session.delete(todo)
-    session.commit()
+    deleted_files = delete_todo_with_children(session, todo)
 
     log_activity(
         session,
@@ -117,5 +145,7 @@ def delete_todo(todo_id: UUID, session: Session = Depends(get_session)):
         entity_id=todo_id,
         actor_id=actor_id,
         action="todo.deleted",
+        organization_id=current_actor.organization.id,
+        metadata={"deleted_file_count": len(deleted_files)},
     )
     return {"deleted": True, "id": str(todo_id)}

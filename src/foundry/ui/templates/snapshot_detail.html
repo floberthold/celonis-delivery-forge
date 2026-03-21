@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Snapshot Detail | Foundry{% endblock %}
+
+{% block content %}
+<h2>Snapshot Detail</h2>
+<p class="muted-note">
+    Client: <strong>{{ client.name }}</strong> ·
+    Status: <span class="badge badge-{{ snap.status.value }}">{{ snap.status.value }}</span> ·
+    Started: {{ snap.started_at or '—' }} ·
+    Finished: {{ snap.finished_at or '—' }}
+</p>
+
+{% if snap.error_message %}
+<div class="alert error">{{ snap.error_message }}</div>
+{% endif %}
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="section-header">
+    <h3>Clone Bundle</h3>
+    <div>
+        <form method="post" action="/snapshots-ui/{{ client.id }}/{{ snap.id }}/export" style="display:inline">
+            <button type="submit" class="btn-primary">Generate Export + Docs</button>
+        </form>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/download">Download ZIP</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/delta" target="_blank">Delta JSON</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/replay-plan" target="_blank">Replay Plan</a>
+    </div>
+</div>
+
+{% if snap.summary_json.get('export_bundle') %}
+<p class="muted-note">
+    Latest auto-generated docs: {{ snap.summary_json.get('export_bundle', {}).get('docs_path') }}
+</p>
+{% elif snap.summary_json.get('export_bundle_error') %}
+<p class="muted-note">Auto-export warning: {{ snap.summary_json.get('export_bundle_error') }}</p>
+{% endif %}
+
+<div class="tab-bar">
+    <a class="tab-link {% if active_tab == 'tasks' %}active{% endif %}"
+       href="?tab=tasks">Tasks ({{ tasks|length }})</a>
+    <a class="tab-link {% if active_tab == 'packages' %}active{% endif %}"
+       href="?tab=packages">Packages ({{ packages|length }})</a>
+    <a class="tab-link {% if active_tab == 'data_models' %}active{% endif %}"
+       href="?tab=data_models">Data Models ({{ data_models|length }})</a>
+    <a class="tab-link {% if active_tab == 'jobs' %}active{% endif %}"
+       href="?tab=jobs">Jobs ({{ jobs|length }})</a>
+    <a class="tab-link {% if active_tab == 'knowledge_models' %}active{% endif %}"
+       href="?tab=knowledge_models">Knowledge Models ({{ knowledge_models|length }})</a>
+</div>
+
+{% if active_tab == 'tasks' %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Package</th>
+            <th>Change</th>
+            <th>PQL (preview)</th>
+            <th>Save</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks %}
+        <tr>
+            <td>{{ task.name }}</td>
+            <td>{{ task.task_type or '—' }}</td>
+            <td>{{ task.package_id or '—' }}</td>
+            <td><span class="badge badge-{{ task.change_type.value }}">{{ task.change_type.value }}</span></td>
+            <td class="monospace small">{{ (task.pql_formula or '')[:80] }}{% if task.pql_formula and task.pql_formula|length > 80 %}…{% endif %}</td>
+            <td>
+                <form method="post" action="/kpi-book-ui/{{ client.id }}/save-from-snapshot/{{ task.id }}">
+                    <button type="submit" class="btn-small">Save to KPI Book</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No tasks captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'packages' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>Key</th><th>Space</th><th>Change</th></tr>
+    </thead>
+    <tbody>
+        {% for pkg in packages %}
+        <tr>
+            <td>{{ pkg.name }}</td>
+            <td class="monospace">{{ pkg.key or '—' }}</td>
+            <td>{{ pkg.space_name or '—' }}</td>
+            <td><span class="badge badge-{{ pkg.change_type.value }}">{{ pkg.change_type.value }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">No packages captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'data_models' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>ID</th><th>Space</th></tr>
+    </thead>
+    <tbody>
+        {% for dm in data_models %}
+        <tr>
+            <td>{{ dm.name }}</td>
+            <td class="monospace">{{ dm.data_model_id }}</td>
+            <td>{{ dm.space_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No data models captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'jobs' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>Job ID</th><th>Pool</th></tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        <tr>
+            <td>{{ job.name }}</td>
+            <td class="monospace">{{ job.job_id }}</td>
+            <td>{{ job.pool_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No jobs captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'knowledge_models' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>ID</th><th>Space</th></tr>
+    </thead>
+    <tbody>
+        {% for km in knowledge_models %}
+        <tr>
+            <td>{{ km.name }}</td>
+            <td class="monospace">{{ km.km_id }}</td>
+            <td>{{ km.space_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No knowledge models captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<p><a href="/snapshots-ui/{{ client.id }}">← Back to Snapshot History</a></p>
+{% endblock %}

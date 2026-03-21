@@ -17,7 +17,18 @@
     <article class="card"><h3>Assets</h3><p class="metric">{{ assets|length }}</p></article>
     <article class="card"><h3>People</h3><p class="metric">{{ people|length }}</p></article>
     <article class="card"><h3>Reviews</h3><p class="metric">{{ reviews|length }}</p></article>
+    <article class="card"><h3>Repos</h3><p class="metric">{{ gitlab_repo_rows|length }}</p></article>
     <article class="card"><h3>Todos</h3><p class="metric">{{ todo_rows|length }}</p></article>
+    <article class="card">
+        <h3>Snapshots</h3>
+        {% if latest_snapshot %}
+        <p class="metric"><a href="/snapshots-ui/{{ client.id }}">{{ latest_snapshot.status.value }}</a></p>
+        <p class="muted-note">{{ latest_snapshot.created_at.strftime('%Y-%m-%d') }}</p>
+        {% else %}
+        <p class="metric"><a href="/snapshots-ui/{{ client.id }}">None yet</a></p>
+        {% endif %}
+        <p><a href="/kpi-book-ui/{{ client.id }}">KPI Book →</a></p>
+    </article>
 </div>
 
 <h3>Connected Projects</h3>
@@ -90,7 +101,31 @@
     </tbody>
 </table>
 
-<h3>Todo List</h3>
+<h3>CI/CD Repos</h3>
+<table>
+    <thead><tr><th>Name</th><th>Project</th><th>Path</th><th>Branch</th><th>Active</th><th>Last Status</th><th>Last Run</th><th>Overview</th></tr></thead>
+    <tbody>
+        {% for row in gitlab_repo_rows %}
+        <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.project_name }}</td>
+            <td>{{ row.repo_path }}</td>
+            <td>{{ row.default_branch }}</td>
+            <td>{{ "yes" if row.is_active else "no" }}</td>
+            <td>{{ row.last_status }}</td>
+            <td>{{ row.last_triggered_at or '-' }}</td>
+            <td><a class="link-button" href="/gitlab-ui/{{ row.id }}/overview">Open</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No repositories configured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="section-header">
+    <h3>Todo List</h3>
+    <a class="link-button" href="/todos-ui">Open Todo Workspace</a>
+</div>
 <table>
     <thead><tr><th>Title</th><th>Description</th><th>Status</th><th>Priority</th><th>Due</th><th>Project</th><th>Assignee</th><th>Actions</th></tr></thead>
     <tbody>
@@ -167,6 +202,7 @@
             <td>{{ row.project_name }}</td>
             <td>{{ row.assignee_name }}</td>
             <td class="actions-cell">
+                <a class="link-button" href="/todos-ui?selected={{ row.id }}">Open</a>
                 <a class="link-button" href="/clients-ui/{{ client.id }}/overview?edit_todo={{ row.id }}">Edit</a>
                 <form method="post" action="/todos-ui/delete" class="inline-form">
                     <input type="hidden" name="todo_id" value="{{ row.id }}">

@@ -16,6 +16,7 @@
     <article class="card"><h3>Members</h3><p class="metric">{{ memberships|length }}</p></article>
     <article class="card"><h3>Assets</h3><p class="metric">{{ assets|length }}</p></article>
     <article class="card"><h3>Reviews</h3><p class="metric">{{ reviews|length }}</p></article>
+    <article class="card"><h3>Repos</h3><p class="metric">{{ gitlab_repo_rows|length }}</p></article>
     <article class="card"><h3>Todos</h3><p class="metric">{{ todo_rows|length }}</p></article>
 </div>
 
@@ -72,7 +73,54 @@
     </tbody>
 </table>
 
-<h3>Todo List</h3>
+<div class="section-header">
+    <h3>CI/CD Repos</h3>
+    <a class="link-button" href="#add-repo">Add Repo</a>
+</div>
+<table>
+    <thead><tr><th>Name</th><th>Path</th><th>Branch</th><th>Active</th><th>Last Status</th><th>Last Run</th><th>Actions</th></tr></thead>
+    <tbody>
+        {% for row in gitlab_repo_rows %}
+        <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.repo_path }}</td>
+            <td>{{ row.default_branch }}</td>
+            <td>{{ "yes" if row.is_active else "no" }}</td>
+            <td>{{ row.last_status }}</td>
+            <td>{{ row.last_triggered_at or '-' }}</td>
+            <td class="actions-cell">
+                <a class="link-button" href="/gitlab-ui/{{ row.id }}/overview">Open</a>
+                <form method="post" action="/gitlab-ui/repos/{{ row.id }}/trigger" class="inline-form">
+                    <input type="hidden" name="redirect_to" value="/projects-ui/{{ project.id }}/overview">
+                    <button type="submit" {% if not row.is_active %}disabled{% endif %}>Run</button>
+                </form>
+                <form method="post" action="/gitlab-ui/repos/{{ row.id }}/deactivate" class="inline-form">
+                    <input type="hidden" name="redirect_to" value="/projects-ui/{{ project.id }}/overview">
+                    <button type="submit" {% if not row.is_active %}disabled{% endif %}>Deactivate</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No repositories configured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h4 id="add-repo">Add Repository</h4>
+<form method="post" action="/gitlab-ui/repos/create" class="inline-form">
+    <input type="hidden" name="project_id" value="{{ project.id }}">
+    <input type="text" name="name" placeholder="Repo name" required>
+    <input type="text" name="repo_path" placeholder="group/project" required>
+    <input type="text" name="default_branch" value="main" placeholder="Branch">
+    <input type="text" name="token_override" placeholder="Optional token override">
+    <input type="text" name="webhook_secret" placeholder="Optional webhook secret">
+    <button type="submit">Add Repo</button>
+</form>
+
+<div class="section-header">
+    <h3>Todo List</h3>
+    <a class="link-button" href="/todos-ui">Open Todo Workspace</a>
+</div>
 <table>
     <thead><tr><th>Title</th><th>Description</th><th>Status</th><th>Priority</th><th>Due</th><th>Assignee</th><th>Actions</th></tr></thead>
     <tbody>
@@ -146,6 +194,7 @@
             <td>{{ row.due_at or '-' }}</td>
             <td>{{ row.assignee_name }}</td>
             <td class="actions-cell">
+                <a class="link-button" href="/todos-ui?selected={{ row.id }}">Open</a>
                 <a class="link-button" href="/projects-ui/{{ project.id }}/overview?edit_todo={{ row.id }}">Edit</a>
                 <form method="post" action="/todos-ui/delete" class="inline-form">
                     <input type="hidden" name="todo_id" value="{{ row.id }}">

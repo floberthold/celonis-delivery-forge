@@ -12,9 +12,11 @@ def log_activity(
     entity_id: UUID,
     actor_id: UUID,
     action: str,
+    organization_id: UUID | None = None,
     metadata: dict | None = None,
 ) -> ActivityLog:
     event = ActivityLog(
+        organization_id=organization_id,
         entity_type=entity_type,
         entity_id=entity_id,
         actor_id=actor_id,
@@ -33,6 +35,7 @@ def log_created(
     entity_type: EntityType,
     entity_id: UUID,
     actor_id: UUID,
+    organization_id: UUID | None = None,
     metadata: dict | None = None,
 ) -> ActivityLog:
     return log_activity(
@@ -41,6 +44,7 @@ def log_created(
         entity_id=entity_id,
         actor_id=actor_id,
         action=f"{entity_type.value}.created",
+        organization_id=organization_id,
         metadata=metadata,
     )
 
@@ -51,6 +55,7 @@ def log_updated(
     entity_type: EntityType,
     entity_id: UUID,
     actor_id: UUID,
+    organization_id: UUID | None = None,
     metadata: dict | None = None,
 ) -> ActivityLog:
     return log_activity(
@@ -59,5 +64,6 @@ def log_updated(
         entity_id=entity_id,
         actor_id=actor_id,
         action=f"{entity_type.value}.updated",
+        organization_id=organization_id,
         metadata=metadata,
     )

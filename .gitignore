@@ -1,16 +1,79 @@
+# OS-generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Python bytecode and extensions
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
 *.pyd
 *.so
+
+# Python packaging artifacts
 *.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.whl
+build/
+dist/
+site/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Test, lint, and type-check caches
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.venv/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.cache/
+
+# Coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.py,cover
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment and local secrets
 .env
+.env.*
+!.env.example
+
+# Local runtime/database artifacts
 foundry.db
-build/
-dist/
-*.spec
-!.github/
+*.sqlite
+*.sqlite3
+tmp*.db
+uploads/
+
+# Local orchestration/worktree helpers
+.orchestration/
+.worktrees/
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+temp/
+
+# IDE/project-local metadata
+.idea/
+*.iml
+
+# JavaScript package artifacts (for extension tooling)
+node_modules/
+.npm/
+.pnpm-store/

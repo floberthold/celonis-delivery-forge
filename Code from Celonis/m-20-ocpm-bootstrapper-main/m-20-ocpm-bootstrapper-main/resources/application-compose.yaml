@@ -1,0 +1,33 @@
+app:
+  ddtrace_enabled: false
+  openapi_url: "/openapi.json"
+  docs_url: "/docs"
+  redoc_url: "/redoc"
+
+logging:
+  root:
+    level: "INFO"
+    handlers: ["default"]
+  loggers:
+    app:
+      handlers: ["default"]
+      level: "DEBUG"
+      propagate: False
+  formatters:
+    default:
+      format: "[%(asctime)s] - %(levelname)s - %(name)s: %(message)s"
+
+celonis:
+  services:
+    team:
+      url: http://host.docker.internal:8080
+    integration:
+      url: http://host.docker.internal:8082/integration
+    package-manager:
+      url: http://host.docker.internal:8102/package-manager
+    semantic-layer:
+      url: http://host.docker.internal:8075/semantic-layer
+    machine-learning:
+      url: http://host.docker.internal:8099/machine-learning
+    backend:
+      url: http://host.docker.internal:8099/backend

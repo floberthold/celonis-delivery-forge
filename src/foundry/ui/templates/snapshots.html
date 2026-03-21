@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Snapshots – {{ client.name }} | Foundry{% endblock %}
+
+{% block content %}
+<h2>Celonis Snapshots — {{ client.name }}</h2>
+<p class="muted-note">{{ client.tenant_url }}</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="section-header">
+    <h3>Snapshot History</h3>
+    <form method="post" action="/snapshots-ui/{{ client.id }}/trigger">
+        <button type="submit" class="btn-primary">Run New Snapshot</button>
+    </form>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Packages</th>
+            <th>Data Models</th>
+            <th>Jobs</th>
+            <th>Knowledge Models</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for snap in snapshots %}
+        <tr>
+            <td class="monospace">{{ snap.id | string | truncate(8, True, '') }}</td>
+            <td>
+                <span class="badge badge-{{ snap.status.value }}">{{ snap.status.value }}</span>
+            </td>
+            <td>{{ snap.summary_json.get('packages', '—') }}</td>
+            <td>{{ snap.summary_json.get('data_models', '—') }}</td>
+            <td>{{ snap.summary_json.get('jobs', '—') }}</td>
+            <td>{{ snap.summary_json.get('knowledge_models', '—') }}</td>
+            <td>{{ snap.started_at or '—' }}</td>
+            <td>{{ snap.finished_at or '—' }}</td>
+            <td>
+                <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/detail">Detail</a>
+                <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/download">ZIP</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">No snapshots yet. Click "Run New Snapshot" to pull from Celonis.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/clients-ui/{{ client.id }}/overview">← Back to Client Overview</a></p>
+{% endblock %}

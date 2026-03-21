@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: "pig-compability-wrapper"
+  title: "pig-compability-wrapper"
+  description: "<Service Description>"
+  tags:
+    - python
+    - python-core
+  annotations:
+    github.com/project-slug: celonis/cloud-pig-compability-wrapper
+    github.com/team-slug: celonis/nexus
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: "nexus"
+  definition:
+    $text: https://github.com/celonis/cloud-pig-compability-wrapper/blob/main/openapi.json

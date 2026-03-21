@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlmodel import Session, select
 
 from foundry.models import Template, TemplateLibrary, TemplateScope, TemplateStorageType
@@ -13,16 +15,21 @@ DEFAULT_TEMPLATES: tuple[tuple[str, str], ...] = (
 )
 
 
-def seed_default_templates(session: Session) -> None:
+def seed_default_templates(session: Session, organization_id: UUID | None = None) -> None:
     library = session.exec(
         select(TemplateLibrary).where(
             TemplateLibrary.scope == TemplateScope.global_scope,
             TemplateLibrary.name == DEFAULT_LIBRARY_NAME,
+            TemplateLibrary.organization_id == organization_id,
         )
     ).first()
 
     if library is None:
-        library = TemplateLibrary(name=DEFAULT_LIBRARY_NAME, scope=TemplateScope.global_scope)
+        library = TemplateLibrary(
+            organization_id=organization_id,
+            name=DEFAULT_LIBRARY_NAME,
+            scope=TemplateScope.global_scope,
+        )
         session.add(library)
         session.commit()
         session.refresh(library)
@@ -40,6 +47,7 @@ def seed_default_templates(session: Session) -> None:
             continue
         rows_to_add.append(
             Template(
+                organization_id=organization_id,
                 library_id=library.id,
                 title=title,
                 category=category,

@@ -56,16 +56,26 @@ def upgrade() -> None:
     op.create_index("ix_todo_client_status_due", "todo", ["client_id", "status", "due_at"], unique=False)
     op.create_index("ix_todo_person_status_due", "todo", ["person_id", "status", "due_at"], unique=False)
 
-    op.create_index(
-        "ix_activitylog_entity_type_entity_id_timestamp",
-        "activitylog",
-        ["entity_type", "entity_id", "timestamp"],
-        unique=False,
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "activitylog" in inspector.get_table_names():
+        existing_indexes = {index["name"] for index in inspector.get_indexes("activitylog")}
+        if "ix_activitylog_entity_type_entity_id_timestamp" not in existing_indexes:
+            op.create_index(
+                "ix_activitylog_entity_type_entity_id_timestamp",
+                "activitylog",
+                ["entity_type", "entity_id", "timestamp"],
+                unique=False,
+            )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_activitylog_entity_type_entity_id_timestamp", table_name="activitylog")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "activitylog" in inspector.get_table_names():
+        existing_indexes = {index["name"] for index in inspector.get_indexes("activitylog")}
+        if "ix_activitylog_entity_type_entity_id_timestamp" in existing_indexes:
+            op.drop_index("ix_activitylog_entity_type_entity_id_timestamp", table_name="activitylog")
 
     op.drop_index("ix_todo_person_status_due", table_name="todo")
     op.drop_index("ix_todo_client_status_due", table_name="todo")

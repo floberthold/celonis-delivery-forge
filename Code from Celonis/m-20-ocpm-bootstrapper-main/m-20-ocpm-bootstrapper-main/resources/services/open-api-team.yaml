@@ -1,0 +1,277 @@
+openapi: 3.0.1
+info:
+  title: Pycelonis Contract
+  description: This is the Pycelonis open api spec
+  contact:
+    name: Celonis SE
+    url: https://www.celonis.com/
+    email: info@celonis.com
+  license:
+    name: License Agreement
+    url: https://celonis.com/license
+  version: 1.0.0
+servers:
+- url: http://127.0.0.1:8080
+  description: Generated server url
+paths:
+  /api/cloud:
+    get:
+      tags:
+      - cloud-user-controller
+      operationId: getUser
+      responses:
+        "403":
+          description: Forbidden
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/ValidationExceptionDescriptor'
+                - type: string
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "204":
+          description: No Content
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UserTransport'
+  /api/cloud/permissions:
+    get:
+      tags:
+      - cloud-user-controller
+      operationId: getUserServicePermissions
+      responses:
+        "403":
+          description: Forbidden
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/ValidationExceptionDescriptor'
+                - type: string
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "204":
+          description: No Content
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserServicePermissionsTransport'
+  /api/internal/applications:
+    get:
+      tags:
+        - application-key-controller
+      operationId: findAll_24
+      responses:
+        "403":
+          description: Forbidden
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationExceptionDescriptor'
+                  - type: string
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "204":
+          description: No Content
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationKeyTransport'
+    post:
+      tags:
+        - application-key-controller
+      operationId: create_12
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationKeyTransport'
+        required: true
+      responses:
+        "403":
+          description: Forbidden
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationExceptionDescriptor'
+                  - type: string
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "204":
+          description: No Content
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApplicationKeyTransport'
+components:
+  schemas:
+    ExceptionReference:
+      type: object
+      properties:
+        reference:
+          type: string
+        message:
+          type: string
+        shortMessage:
+          type: string
+    ValidationError:
+      type: object
+      properties:
+        attribute:
+          type: string
+        error:
+          type: string
+        errorCode:
+          type: string
+        additionalInfo:
+          type: string
+    ValidationExceptionDescriptor:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    UserTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        teamName:
+          type: string
+        teamId:
+          type: string
+        teamDomain:
+          type: string
+        apiToken:
+          type: string
+        active:
+          type: boolean
+        token:
+          type: string
+        accountCreated:
+          type: boolean
+        current:
+          type: boolean
+        language:
+          type: string
+        avatarUrl:
+          type: string
+        enableNotifications:
+          type: boolean
+        notificationsTime:
+          type: string
+        timeZone:
+          type: string
+        role:
+          type: integer
+          format: int32
+        effectiveRole:
+          type: integer
+          format: int32
+        contentstoreAdmin:
+          type: boolean
+        backendAccess:
+          type: boolean
+        lastLogInDate:
+          type: string
+          format: date-time
+        isFirstLogIn:
+          type: boolean
+        isCelonisUser:
+          type: boolean
+        fullTemplateAccess:
+          type: boolean
+        groupIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        cloudAdmin:
+          type: boolean
+        migratedToIdp:
+          type: boolean
+        analyst:
+          type: boolean
+        member:
+          type: boolean
+        admin:
+          type: boolean
+        nameOrEmail:
+          type: string
+        nameAndEmail:
+          type: string
+    UserServicePermissionsTransport:
+      type: object
+      properties:
+        serviceName:
+          type: string
+        permissions:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+    ApplicationKeyTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        key:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+        teamRole:
+          type: integer
+          format: int32
+        sshEnabled:
+          type: boolean

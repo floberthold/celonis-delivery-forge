@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 720
     celonis_api_token: str = ""
     celonis_timeout_seconds: int = 20
+    gitlab_base_url: str = ""
+    gitlab_api_token: str = ""
+    uploads_dir: str = "./uploads"
+    public_base_url: str = ""
+    delivery_file_max_upload_bytes: int = 25 * 1024 * 1024
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="FORGE_", extra="ignore")
 

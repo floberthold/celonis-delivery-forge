@@ -1,0 +1,188 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - python-core-testing.celonis.cloud
+      user-agent:
+      - python_core_internal_client/0.15.0
+      x-celonis-service:
+      - PYTHON_CORE_TESTING_SERVICE
+      x-celonis-team-domain:
+      - PYTHON_CORE_TESTING_TEAM_DOMAIN
+    method: GET
+    uri: http://python-core-testing.celonis.cloud:9999/api/internal/v2/auth/team-id/PYTHON_CORE_TESTING_TEAM_DOMAIN
+  response:
+    content: '{"teamId":"67238b59-9a7b-4fbe-9228-a0ea3de8ea88","teamActive":true}'
+    headers:
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Connection:
+      - keep-alive
+      Content-Security-Policy:
+      - report-uri /api/public/csp-report/; upgrade-insecure-requests; img-src res.cloudinary.com
+        'self' twemoji.maxcdn.com data:; style-src fonts.googleapis.com 'unsafe-inline'
+        'self' *.appcues.com *.appcues.net 'report-sample'; connect-src wss://*.appcues.com
+        'self' wss://api.appcues.net *.appcues.com wss://*.appcues.net *.appcues.net
+        https://translation.mf.celonis.cloud; block-all-mixed-content; manifest-src
+        'self'; default-src 'self' *.celonis.cloud; frame-src *.appcues.com *.celonis.com;
+        object-src 'self'; media-src 'self'; worker-src 'self'; font-src 'self' https://fonts.gstatic.com;
+        base-uri 'self'; script-src https://fast.appcues.net 'self' 'sha256-rRMdkshZyJlCmDX27XnL7g3zXaxv7ei6Sg+yt4R3svU='
+        'sha256-NRh94R9joAzTKwuanaruZCK9YU7H9m2JmJO3iBmvhcs=' 'report-sample' 'unsafe-hashes'
+        https://fast.appcues.com
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Mon, 03 Jun 2024 14:42:10 GMT
+      Expires:
+      - '0'
+      Keep-Alive:
+      - timeout=60
+      Pragma:
+      - no-cache
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+      X-XSS-Protection:
+      - '0'
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"token": "<AUTHORIZATION_TOKEN>", "teamId": "67238b59-9a7b-4fbe-9228-a0ea3de8ea88"}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '171'
+      content-type:
+      - application/json
+      host:
+      - python-core-testing.celonis.cloud
+      user-agent:
+      - python_core_internal_client/0.15.0
+      x-celonis-service:
+      - PYTHON_CORE_TESTING_SERVICE
+      x-celonis-team-domain:
+      - PYTHON_CORE_TESTING_TEAM_DOMAIN
+      x-celonis-team-id:
+      - 67238b59-9a7b-4fbe-9228-a0ea3de8ea88
+    method: POST
+    uri: http://python-core-testing.celonis.cloud:9999/api/internal/v2/auth/application-key
+  response:
+    content: '{"accessToken": "eyJhbGciOiJIUzUxMiIsImtpZCI6Im1vNVNnMVU1cC1VUVlGNGVaX2MtTGxmNFJCazY4a2VHVk9jV2lIZkJiWHciLCJ0eXAiOiJKV1QiLCJ6aXAiOiJERUYifQ.eJyNWFtv27gS_iuFn0OjuTRJ-xZ0i7PBdttity8HB4VBiSOZMUVqScqOu9j_fr6h5BslZ_OSWDMfqeFcvhnq71noiicq4yK6FdlF3LY0-zCTbWt0KaN2drGi7eyCYZC_vbxXxeX9W_FOlTfirihuhLyq7sXl7dvisrq8VbJ6B7CVDe_yp26cffPZldK8-YXWZFzbkI1vPj4CE0k2Yfbhf3_PtAL29u7q-r549168l3eFuKkKEu-vru6FfEvyWtE9yfv7_c62M-ZiplwjtcXab__9_uvXL4uPX__4tPj-6c_vj1_-g_8Pvy9--fr7w-MXLPPOYNnVxaz2rmv5tT8uZhXJ2Hn6jbYsmEm1lrYkJVryjQ4BZw8iUIza1gF7SIhClDYe_xaKGncsmNMzlV2kRVhpY07WzSvnN9KrRdC1lSYsCPabE4S2hXte0HPrPL-m6IK2FIIw0qpQSsTmYlbelPwX3rQ6iFoaQ357JNGq5SfjOiVK17QwRhi9pknhnKwsDClW9uL0y5ad9wiVaFUl-hMldxjd6NgjIqtDdJ7yZ6EtTmNMSh-x0T9x5gGjbee6IJSMUrRdWArZaqjSM_Sha9q0iCx8VRJny07dO0VU3jXiYOo5lYhLRLpeCpeyOxkm67QCAesNqMmSl1CwdIvM0qVYtVpE6WuKHDpqgpBdRJ6xVSxY8ylLB5-XydBQLkl1BinC2p2jkDZ-rUtKstbg1cOp2NfpHcrD-X5ab67FwzfxV0chOf0saIcQzpJwVQXgclt4zc7WlUelIBKRar-z_uzTfJ_7yTGNU2SGIO1r4bgUTpY28idrr3O514XMZYMvS7zCange-_G-XXsGiI2l3W6WlLLsBPETpSv6eCzBTVPaIQoCZSTWVxmkkE3hXC7UNbyayulUjGwtjA7LFLNTVSy6ckUxl-9KF4J2mSlLibQRT65I-dPkbgJflh3Kh7hWTdfY3Oe7UpflkBI13pVjUhGPhfSsXTMWV6YjW05sgjSNIqJkyFBMRo8w7VYAFcZpVYJsR4dj2TgcZYcSze1SshYSlEl9MuLduScOiKESaYyIspAhP9lRou-4zjipUEtCtXlaHMCgV_uCMZBHL22oyIuC4oZoQLfOmUl41_JrAT9QxglGe6avPWGO1CGxAbMe2YCUEUG2ImxDpEZE3RBqM9-TjAxcg4GkL_Mdyaq0DgzetHxYzrG1jlvm50rX3SR_1EMnO5E5V7Np0mBPmWfiTps60oGdJyAoup6NT3Qerl2il-SLltLmGbfENLOt3PMZ8TgXexbl3iQw_HAHWCI_hnloCptbp21pOgV6ekY29DUaZVgNyVPnaI9SNVJl4idVlEJ1_SBGwqNvrWXu5ATiRi52PdT2nSnHaZ-7ZSWrVS5DC_QuuCoKmbvroBp6ZRDXt-9ykHvKa-eI6RNb575qOhN1a3Zcbtyow1jaHPclrpcMMTR5LnN1qLcchFDsMm5aRaOKbqXn-cqI1rsSbD5il9aFeBiQxFTzaD0mXRRpLt7GJVYMEXN5fXjaT-BH-_c-Orj0hUUaGC0Npq-JdEAkMWtNCsflEFDBIc1jZxWoYD7l2KIjyMS-edtn7rq5LSekw5idixvp0Xo5t6bCCkQY9c5dnwBR67pG29p3jhw4TA_Wbc5rJg1bQs51a1fCtRPe7-d_wYCRddizMnI1MmbnXyRMiQEyHzdCV3J-ikpyLuW79j3J-WGkQlZHzb_G8TqHFA4dHqSY25Xhkf_dGKJt7qJOtzLmraezqQO_XOowo3CBQMpKJ7aox4cYhhH21jky4KkGlZJJN86vCoxByzT1p66KoWccQMYpmRf6T_Q5Cqtc2rlEvStEFhet1OUazH-Y2IRBBx6CkIvmilQifjU3fB-ZgugGTTPMnzpwCSYIpAck5hVI6yJh-F0JY5oJeLpuDmbt2blvZcgt3OjiEmMGrhfpa8HFjBMF7Qk1qJngkdghHomV26TIcla2GGs5XYRUfWnwvFSu-pe1fH3rL5Lw_lNIfh-Y9-geJgrvVmkQH-vm6do9LwyqJOzn5K5VfQstnVeC-4mMSMuCL4roqSllJ96TGGsnZ-_Ck-w2Zh3QxlIOFLyDgH5dYGbeHgk5V0IrS5qSpQuatylof3UaNuPyGWF4WGeSfBg61lm5Ru_zmXTfsni3Q3c9i6rT3q8AHrolRiRRNK8B4mb-OiALcXfjm_9LK5j8qSz_xYA9yr8G9bKNO9RrDaww-YKnGsyj9e5Dxlmoa_kLRmd5zn7NCm7vJdiYh4F_hz9TOBvWoZf1Te5Y8ZxmHZ_ubwF8UKQBOlh2g9LDmHv8PeFYJVrT8fJhsB-M9EkC4nb7Hwhge_IwB9Jsgw6n0j179p1hr5xD2Y_GxGSDexffYrPFiRNORWtNm8Mm_HS0ZqMVfwCan37-GcTzHa0Nl6zDyD2xQ9BNN3wHkwhFnED0j7hEa-NYzxeFHdkc_d4POOf0B87OejKCG5PrJ-VzkP7u9qA5bj1TTWOZ4Hzs3zIMOHsuXoMN011UqoY3OnxEnf345wfOjSNS_6H18HGZ71czKGF83fEN8MOMOJf4e23C_vH186fFw7dvnx8_Pnx__PqFwfTczj5cXd7c3dxf397c_fN_YaJnlA.auXyOhv0ercdSL9bGOnXBJQNToQhfCiysR3_6aXxaGg_a2aliW4KGuYdP8y3htg9vqEPgSzWoQlM8pivbIHhSw",
+      "claims": {"subject_token_type": "application_key", "sub": "018db180-5dc4-7bb4-a2f8-160b1f16daf5",
+      "name": "Simon Local Development CI", "teams": [{"id": "67238b59-9a7b-4fbe-9228-a0ea3de8ea88",
+      "name": null, "domain": "applied-ml", "role": 2, "groups": [], "featureKeys":
+      ["advanced-permissions-settings", "assistant", "assistant-demo", "assistant.execute_skills",
+      "assistant.forward_signals_email", "assistant.inbox_export", "business-landscape",
+      "c4c", "celonis-gallery", "celonis-idp", "cloud-compute-live", "cloud-compute-live.enabled",
+      "compute", "concurrent-pdf-executions-limit", "content-store", "content-store-installation-wizard",
+      "continuous-data-push-api", "data-consumption-enforcement", "data-export-from-compute",
+      "data-export-from-compute-through-object-storage", "demo-data-generator", "dynamic-kpi-targets",
+      "ems-automation", "event-collection-scheduling", "execution-service", "exploration-enable-kpi-driver",
+      "exploration-enable-l3-AP-questions", "exploration-enable-l3-question-one-off",
+      "hybrid", "iframe-integration", "integration", "integration.advanced-data-model-data-permission-settings",
+      "integration.amazon-s3", "integration.ariba", "integration.automatic-monitoring-setup",
+      "integration.automation-anywhere", "integration.azure-event-hub", "integration.azure-service-bus-v2",
+      "integration.bamboo", "integration.bigquery", "integration.bi-publisher", "integration.bitbucket",
+      "integration.business-graph", "integration.cache-job-schema", "integration.calculated-columns",
+      "integration.celonis-action-engine", "integration.concur", "integration.conexiom",
+      "integration.confluence", "integration.convert-to-delete-job", "integration.copy-version",
+      "integration.coupa", "integration.coupa-v2", "integration.custom", "integration.dag-aware-data-jobs",
+      "integration.dag-aware-schedules", "integration.database", "integration.data-model-current-load-on-dpo",
+      "integration.data-models-in-data-jobs", "integration.data-transfer-between-data-pools",
+      "integration.data-uploader-service", "integration.direct-data-push", "integration.disable-compensate-sap-system-timezone",
+      "integration.elastic-search", "integration.end-timestamp-in-activity-configuration",
+      "integration.gmail", "integration.google-calendar", "integration.google-cloud-storage",
+      "integration.google-sheets", "integration.greenhouse", "integration.hana", "integration.happyfox",
+      "integration.happyfox-v2", "integration.hybrid-api-key-authentication", "integration.hybris",
+      "integration.include-extraction-tasks-in-dag", "integration.ironclad", "integration.jdbc-duplicate-removal",
+      "integration.jdbc-live-data-connection", "integration.jira", "integration.kafka",
+      "integration.microsoft-ax", "integration.microsoft-dynamics-365", "integration.mojo",
+      "integration.monitoring-events", "integration.multiple-event-logs", "integration.new-data-model-load",
+      "integration.object-based-data-pool", "integration.oracle-cloud", "integration.oracle-ebs",
+      "integration.parallel-processes", "integration.post-execution-query", "integration.preamble",
+      "integration.python-connector", "integration.replication-execution-event-monitoring",
+      "integration.replication-initialization", "integration.rossum", "integration.rossum-v2",
+      "integration.salesforce", "integration.salesforce-streaming", "integration.salesforce-v2",
+      "integration.sap", "integration.sap-46c", "integration.sap-demo", "integration.sap-marketing-cloud",
+      "integration.sapsns", "integration.schedule-triggers-schedule", "integration.service-now",
+      "integration.service-now-demo", "integration.show-uplink-option", "integration.signal-links",
+      "integration.snowflake", "integration.streaming-cockpit", "integration.success-factors",
+      "integration.transformation-partitioning", "integration.transformation-partition-override",
+      "integration.transformation-queue", "integration.trino", "integration.uipath",
+      "integration.unload-data-model-load", "integration.verbose-audit-logging", "integration.versioning-data-pool",
+      "integration.vertica", "integration.workbench-auto-completion", "integration.workday",
+      "integration.zendesk", "integration.zuora", "knowledge", "machine-learning",
+      "machine-learning.dedicated.large", "machine-learning.images.jupyter-minimal",
+      "machine-learning.images.jupyter-notebook-llm", "machine-learning-landing",
+      "multiple-extractors-with-same-type", "on-prem-clients-list", "on-prem-downloads",
+      "platform-adoption-tracking", "pm-content-to-json", "process-automation-broker",
+      "process-automation.skill.blocks.celonis-update-record-new-attribute-value",
+      "process-automation-v2", "process-mining.bookmarks-sharing", "process-repository",
+      "process-workspace", "process-workspace-internal", "quickstarts.csv", "quickstarts.google-sheets",
+      "quickstarts.nav-bar", "quickstarts.processes.csv-event-log", "quickstarts.processes.gsheet-event-log",
+      "quickstarts.processes.oracle-ebs-ap-bm", "quickstarts.processes.oracle-ebs-om-bm",
+      "quickstarts.processes.oracle-ebs-procurement-bm", "quickstarts.processes.sap-ecc-ap-bm",
+      "quickstarts.processes.sap-ecc-ar-bm", "quickstarts.processes.sap-ecc-om-bm",
+      "quickstarts.processes.sap-ecc-procurement-bm", "quickstarts.processes.sf-case-management",
+      "quickstarts.processes.sf-opportunity-management", "quickstarts.processes.sn-incident-management",
+      "quickstarts.processes.xes-event-log", "quickstarts.servicenow", "quickstarts.xes",
+      "rpa", "sandbox", "snap-edition.integration", "snap-edition-plus", "storage-manager",
+      "studio", "studio-app", "studio-app.analysis", "studio-app.knowledge-model",
+      "studio.app-remove-preferences", "studio-app.skill", "studio-app.view", "studio.views",
+      "studio-widgets.ems-automation-widget.on-prem-system-connections", "studio-widgets.simulation-asset",
+      "studio-widgets.studio-copilot", "task-mining.task-mining-cloud", "task-mining.task-mining-landing",
+      "transformation-center", "transformation-center.leave-data-in-place", "transformation-center.reporting",
+      "uplink-broker", "variable-admin-permissions"]}], "scopes": ["application-key"],
+      "language": "en", "roles": ["ROLE_APPLICATION"]}}'
+    headers:
+      Cache-Control:
+      - no-cache, no-store, max-age=0, must-revalidate
+      Connection:
+      - keep-alive
+      Content-Security-Policy:
+      - report-uri /api/public/csp-report/; upgrade-insecure-requests; img-src res.cloudinary.com
+        'self' twemoji.maxcdn.com data:; style-src fonts.googleapis.com 'unsafe-inline'
+        'self' *.appcues.com *.appcues.net 'report-sample'; connect-src wss://*.appcues.com
+        'self' wss://api.appcues.net *.appcues.com wss://*.appcues.net *.appcues.net
+        https://translation.mf.celonis.cloud; block-all-mixed-content; manifest-src
+        'self'; default-src 'self' *.celonis.cloud; frame-src *.appcues.com *.celonis.com;
+        object-src 'self'; media-src 'self'; worker-src 'self'; font-src 'self' https://fonts.gstatic.com;
+        base-uri 'self'; script-src https://fast.appcues.net 'self' 'sha256-rRMdkshZyJlCmDX27XnL7g3zXaxv7ei6Sg+yt4R3svU='
+        'sha256-NRh94R9joAzTKwuanaruZCK9YU7H9m2JmJO3iBmvhcs=' 'report-sample' 'unsafe-hashes'
+        https://fast.appcues.com
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Mon, 03 Jun 2024 14:42:10 GMT
+      Expires:
+      - '0'
+      Keep-Alive:
+      - timeout=60
+      Pragma:
+      - no-cache
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+      X-XSS-Protection:
+      - '0'
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

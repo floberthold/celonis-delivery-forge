@@ -227,6 +227,41 @@
         <button type="submit">Run Extract</button>
     </form>
 
+    <form class="panel form-card" method="post" action="/dashboard/celonis-preflight">
+        <h3>Celonis Preflight</h3>
+        <label>Client
+            <select name="client_id" required>
+                {% for row in form_clients %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Service
+            <select name="service">
+                <option value="core">core</option>
+                <option value="process-mining">process-mining</option>
+                <option value="data-integration">data-integration</option>
+                <option value="studio">studio</option>
+                <option value="apps">apps</option>
+            </select>
+        </label>
+        <label>Probe Path Override (optional)<input name="probe_path" value="" placeholder="Leave empty to use service default"></label>
+        <button type="submit">Run Preflight</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/dashboard/celonis-preflight-batch">
+        <h3>Celonis Preflight (All Services)</h3>
+        <label>Client
+            <select name="client_id" required>
+                {% for row in form_clients %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <p class="hint">Runs checks for core, process-mining, data-integration, studio, and apps using default probe paths.</p>
+        <button type="submit">Run Batch Preflight</button>
+    </form>
+
     <form class="panel form-card" method="post" action="/dashboard/celonis-import">
         <h3>Celonis Import</h3>
         <label>Client
@@ -305,6 +340,22 @@
             <li>{{ row.client_id }} → {{ row.tenant_base_url | clickable_url }} (active={{ row.is_active }})</li>
             {% else %}
             <li>No connections configured yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="panel">
+        <h3>Celonis Preflight History</h3>
+        <ul>
+            {% for row in celonis_preflight_history %}
+            <li>
+                {{ row.timestamp }} · {{ row.client_name }} · {{ row.service }} ·
+                <span class="celonis-status-badge celonis-status-{{ row.permission_status|replace('_', '-') }}">{{ row.permission_status }}</span>
+                {% if row.status_code %}(HTTP {{ row.status_code }}){% endif %}
+                {% if row.run_id %} · run {{ row.run_id }}{% endif %}
+            </li>
+            {% else %}
+            <li>No preflight checks yet.</li>
             {% endfor %}
         </ul>
     </div>

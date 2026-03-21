@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+app:
+  ddtrace_enabled: true
+
+celonis:
+  services:
+    team:
+      url: http://team
+    integration:
+      url: http://integration/integration
+    package-manager:
+      url: http://package-manager/package-manager
+    semantic-layer:
+      url: http://semantic-layer/semantic-layer
+    machine-learning:
+      url: http://machine-learning/machine-learning
+    backend:
+      url: http://backend/backend

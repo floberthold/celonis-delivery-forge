@@ -1,0 +1,10 @@
+server:
+  port: 9080
+
+app:
+  name: "pig-compability-wrapper"
+
+cloud:
+  celonis:
+    content_security_policy:
+      enabled: true

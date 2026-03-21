@@ -1,18 +1,23 @@
 from datetime import datetime
+from uuid import UUID
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
+from foundry.integrations.gitlab_gateway import GitLabGateway
 from foundry.models import (
     Asset,
     AssetStatus,
     DecisionType,
     EntityType,
+    GitLabPipelineRun,
+    GitLabRepo,
     ProjectMembership,
     ReviewDecision,
     ReviewRequest,
     ReviewStatus,
 )
+from foundry.settings import get_settings
 from foundry.schemas import ReviewDecisionCreate, ReviewRequestCreate
 from foundry.services.activity_log import log_activity
 
@@ -54,10 +59,18 @@ class ReviewService:
             raise HTTPException(status_code=400, detail=error_text)
 
     @staticmethod
-    def submit_for_review(session: Session, payload: ReviewRequestCreate) -> ReviewRequest:
+    def submit_for_review(
+        session: Session,
+        payload: ReviewRequestCreate,
+        *,
+        organization_id: UUID | None = None,
+    ) -> ReviewRequest:
         asset = session.get(Asset, payload.asset_id)
-        if not asset:
+        if not asset or asset.organization_id != organization_id:
             raise HTTPException(status_code=404, detail="Asset not found")
+
+        if asset.project_id != payload.project_id or asset.client_id is None:
+            raise HTTPException(status_code=400, detail="Asset does not match the specified project")
 
         review = ReviewRequest(
             asset_id=payload.asset_id,
@@ -94,12 +107,18 @@ class ReviewService:
             entity_id=review.id,
             actor_id=payload.author_id,
             action="review.submitted",
+            organization_id=organization_id,
             metadata={"asset_id": str(payload.asset_id), "project_id": str(payload.project_id)},
         )
         return review
 
     @staticmethod
-    def decide_review(session: Session, payload: ReviewDecisionCreate) -> ReviewRequest:
+    def decide_review(
+        session: Session,
+        payload: ReviewDecisionCreate,
+        *,
+        organization_id: UUID | None = None,
+    ) -> ReviewRequest:
         review = session.get(ReviewRequest, payload.review_id)
         if not review:
             raise HTTPException(status_code=404, detail="Review request not found")
@@ -107,7 +126,7 @@ class ReviewService:
             raise HTTPException(status_code=403, detail="Only assigned reviewer can decide this review")
 
         asset = session.get(Asset, review.asset_id)
-        if not asset:
+        if not asset or asset.organization_id != organization_id:
             raise HTTPException(status_code=404, detail="Asset not found")
 
         decision = ReviewDecision(
@@ -123,6 +142,42 @@ class ReviewService:
             review.snippet_worthy = payload.snippet_worthy
             asset.status = AssetStatus.approved
             activity = "review.approved"
+
+            repos = list(
+                session.exec(
+                    select(GitLabRepo).where(
+                        GitLabRepo.project_id == review.project_id,
+                        GitLabRepo.is_active == True,
+                    )
+                ).all()
+            )
+            if repos:
+                settings = get_settings()
+                gateway = GitLabGateway(settings)
+                for repo in repos:
+                    try:
+                        result = gateway.trigger_pipeline(
+                            repo_path=repo.repo_path,
+                            ref=repo.default_branch,
+                            variables={
+                                "TRIGGER_SOURCE": "review_approved",
+                                "REVIEW_ID": str(review.id),
+                            },
+                            token_override=repo.token_override,
+                        )
+                        session.add(
+                            GitLabPipelineRun(
+                                repo_id=repo.id,
+                                pipeline_id=result.pipeline_id,
+                                ref=result.ref,
+                                status=result.status,
+                                triggered_by=payload.reviewer_id,
+                                web_url=result.web_url,
+                            )
+                        )
+                    except Exception:
+                        # CI trigger failures must not block review approval.
+                        continue
         else:
             review.status = ReviewStatus.changes_requested
             review.snippet_worthy = False
@@ -144,6 +199,7 @@ class ReviewService:
             entity_id=review.id,
             actor_id=payload.reviewer_id,
             action=activity,
+            organization_id=organization_id,
             metadata={"decision": payload.decision.value, "asset_id": str(review.asset_id)},
         )
 

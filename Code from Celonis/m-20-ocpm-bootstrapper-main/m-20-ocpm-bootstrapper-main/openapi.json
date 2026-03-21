@@ -1,0 +1,1437 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "FastAPI",
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/pig-compability-wrapper/api/feature_a": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get Description",
+                "description": "Returns an example description.",
+                "operationId": "getDescription",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "title": "Response Getdescription"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/feature_a/items": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get Items",
+                "description": "Returns a list of items.",
+                "operationId": "getItems",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/FeatureAItemTransport"
+                                    },
+                                    "type": "array",
+                                    "title": "Response Getitems"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/feature_a/permissions": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get Permissions",
+                "description": "Returns users permissions.",
+                "operationId": "getPermissions",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "anyOf": [
+                                            {
+                                                "$ref": "#/components/schemas/UserServicePermissionsTransport"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "type": "array",
+                                    "title": "Response Getpermissions"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/feature_a/internal/pools": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get Data Pools Internal",
+                "description": "Returns data pools using internal endpoint.",
+                "operationId": "getDataPools",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "anyOf": [
+                                            {
+                                                "$ref": "#/components/schemas/DataPoolTransport"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "type": "array",
+                                    "title": "Response Getdatapools"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Create Data Pool Internal",
+                "description": "Creates data pool using internal endpoint.",
+                "operationId": "createDataPool",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DataPoolTransport"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DataPoolTransport"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/feature_a/spaces": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get Spaces",
+                "description": "Returns spaces.",
+                "operationId": "getSpaces",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "anyOf": [
+                                            {
+                                                "$ref": "#/components/schemas/SpaceTransport"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "type": "array",
+                                    "title": "Response Getspaces"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_a/packages/{id_}": {
+            "delete": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Delete Package",
+                "description": "Returns spaces.",
+                "operationId": "deletePackage",
+                "parameters": [
+                    {
+                        "name": "id_",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Id "
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_a/ml-job/pc-sandbox": {
+            "post": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Execute Ml Job",
+                "description": "Triggers pc-sandbox ml job with given input.",
+                "operationId": "triggerJob",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "title": "Job Input"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JobExecution"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_a/ml-job/{execution_id}/cancel": {
+            "post": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Cancel Ml Job",
+                "description": "Cancel pc-sandbox ml job with given JobExecution.",
+                "operationId": "cancelJob",
+                "parameters": [
+                    {
+                        "name": "execution_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Execution Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JobExecution"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_a/ml-job/{execution_id}": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get Ml Job Status",
+                "description": "Get pc-sandbox ml job JobExecution status.",
+                "operationId": "getJobStatus",
+                "parameters": [
+                    {
+                        "name": "execution_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Execution Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JobExecution"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_a/features": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get My Team Features",
+                "description": "Returns features of current team.",
+                "operationId": "getMyTeamFeatures",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "anyOf": [
+                                            {
+                                                "$ref": "#/components/schemas/FeatureActiveResponseTransport"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "type": "array",
+                                    "title": "Response Getmyteamfeatures"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_a/features/ml": {
+            "get": {
+                "tags": [
+                    "feature_a"
+                ],
+                "summary": "Get Machine Learning Images Features",
+                "description": "Example how to get features for specific prefix.",
+                "operationId": "getMLFeatures",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "anyOf": [
+                                            {
+                                                "$ref": "#/components/schemas/FeatureActiveResponseTransport"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "type": "array",
+                                    "title": "Response Getmlfeatures"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_sqlalchemy": {
+            "get": {
+                "tags": [
+                    "feature_sqlalchemy"
+                ],
+                "summary": "Find All Users",
+                "description": "Returns all users.",
+                "operationId": "findUsers",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/UserTransport"
+                                    },
+                                    "type": "array",
+                                    "title": "Response Findusers"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "feature_sqlalchemy"
+                ],
+                "summary": "Create User",
+                "description": "Creates and returns user.",
+                "operationId": "createUser",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateUserTransport"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserTransport"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_sqlalchemy/{user_id}": {
+            "get": {
+                "tags": [
+                    "feature_sqlalchemy"
+                ],
+                "summary": "Find User",
+                "description": "Returns user.",
+                "operationId": "findUser",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserTransport"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "feature_sqlalchemy"
+                ],
+                "summary": "Update User",
+                "description": "Updates and returns user.",
+                "operationId": "updateUser",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateUserTransport"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserTransport"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "feature_sqlalchemy"
+                ],
+                "summary": "Delete User",
+                "description": "Deletes user.",
+                "operationId": "deleteUser",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_sqlalchemy/{user_id}/same": {
+            "get": {
+                "tags": [
+                    "feature_sqlalchemy"
+                ],
+                "summary": "Find Users With Same Name",
+                "description": "Returns user.",
+                "operationId": "findUserWithSameName",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/UserTransport"
+                                    },
+                                    "title": "Response Finduserwithsamename"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pig-compability-wrapper/api/v1/feature_rabbit_mq": {
+            "post": {
+                "tags": [
+                    "feature_rabbit_mq"
+                ],
+                "summary": "Publish Task",
+                "description": "Creates task.",
+                "operationId": "publishTask",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TaskMessage"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskMessage"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CreateUserTransport": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "email": {
+                        "type": "string",
+                        "title": "Email"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "email"
+                ],
+                "title": "CreateUserTransport",
+                "description": "Transport class to create tenant aware user."
+            },
+            "DataPoolTransport": {
+                "properties": {
+                    "permissions": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "anyOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Permissions"
+                    },
+                    "id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Id"
+                    },
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "timeStamp": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Timestamp"
+                    },
+                    "configurationStatus": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Configurationstatus"
+                    },
+                    "locked": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Locked"
+                    },
+                    "contentId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Contentid"
+                    },
+                    "contentVersion": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Contentversion"
+                    },
+                    "tags": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/Tag"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Tags"
+                    },
+                    "originalId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Originalid"
+                    },
+                    "monitoringTarget": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Monitoringtarget"
+                    },
+                    "customMonitoringTarget": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Custommonitoringtarget"
+                    },
+                    "customMonitoringTargetActive": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Custommonitoringtargetactive"
+                    },
+                    "exported": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Exported"
+                    },
+                    "monitoringMessageColumnsMigrated": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Monitoringmessagecolumnsmigrated"
+                    },
+                    "creatorUserId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Creatoruserid"
+                    },
+                    "objectId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Objectid"
+                    }
+                },
+                "type": "object",
+                "title": "DataPoolTransport"
+            },
+            "FeatureAItemTransport": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "number": {
+                        "type": "number",
+                        "title": "Number"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "number"
+                ],
+                "title": "FeatureAItemTransport",
+                "description": "Example Transport class of Feature A item."
+            },
+            "FeatureActiveResponseTransport": {
+                "properties": {
+                    "active": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Active"
+                    },
+                    "featureKey": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Featurekey"
+                    }
+                },
+                "type": "object",
+                "title": "FeatureActiveResponseTransport"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "JobExecution": {
+                "properties": {
+                    "completed": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Completed"
+                    },
+                    "errorMessage": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Errormessage"
+                    },
+                    "id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Id"
+                    },
+                    "image": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Image"
+                    },
+                    "input": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Input"
+                    },
+                    "jobExecutionSource": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Jobexecutionsource"
+                    },
+                    "jobExecutionSourceId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Jobexecutionsourceid"
+                    },
+                    "jobId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Jobid"
+                    },
+                    "optionalTenantId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Optionaltenantid"
+                    },
+                    "started": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Started"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "tenantId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Tenantid"
+                    },
+                    "timeout": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Timeout"
+                    }
+                },
+                "type": "object",
+                "title": "JobExecution"
+            },
+            "SpaceTransport": {
+                "properties": {
+                    "permissions": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "anyOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Permissions"
+                    },
+                    "id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Id"
+                    },
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "iconReference": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Iconreference"
+                    },
+                    "creationDate": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Creationdate"
+                    },
+                    "changeDate": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Changedate"
+                    },
+                    "objectId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Objectid"
+                    }
+                },
+                "type": "object",
+                "title": "SpaceTransport"
+            },
+            "Tag": {
+                "properties": {
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    }
+                },
+                "type": "object",
+                "title": "Tag"
+            },
+            "TaskMessage": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "status": {
+                        "type": "string",
+                        "title": "Status"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "description",
+                    "status"
+                ],
+                "title": "TaskMessage",
+                "description": "Task message."
+            },
+            "UpdateUserTransport": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "email": {
+                        "type": "string",
+                        "title": "Email"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "email"
+                ],
+                "title": "UpdateUserTransport",
+                "description": "Transport class to update tenant aware user."
+            },
+            "UserServicePermissionsTransport": {
+                "properties": {
+                    "serviceName": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Servicename"
+                    },
+                    "permissions": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "anyOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Permissions"
+                    }
+                },
+                "type": "object",
+                "title": "UserServicePermissionsTransport"
+            },
+            "UserTransport": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Id"
+                    },
+                    "tenantId": {
+                        "type": "string",
+                        "title": "Tenantid"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "email": {
+                        "type": "string",
+                        "title": "Email"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "tenantId",
+                    "name",
+                    "email"
+                ],
+                "title": "UserTransport",
+                "description": "Transport class of tenant aware user."
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}

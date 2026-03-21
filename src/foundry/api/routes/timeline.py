@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
+from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
 from foundry.models import ActivityLog, EntityType
 
@@ -14,8 +15,9 @@ def list_timeline(
     entity_type: EntityType | None = None,
     entity_id: UUID | None = None,
     session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
-    stmt = select(ActivityLog)
+    stmt = select(ActivityLog).where(ActivityLog.organization_id == current_actor.organization.id)
     if entity_type:
         stmt = stmt.where(ActivityLog.entity_type == entity_type)
     if entity_id:

@@ -1,0 +1,2139 @@
+components:
+  schemas:
+    ApplicationKeyTransport:
+      properties:
+        createdAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        key:
+          type: string
+        lastUsedAt:
+          format: date-time
+          type: string
+        name:
+          type: string
+        originalId:
+          type: string
+        teamRole:
+          format: int32
+          type: integer
+      type: object
+    ExceptionReference:
+      properties:
+        message:
+          type: string
+        reference:
+          type: string
+        shortMessage:
+          type: string
+      type: object
+    ExecutionPattern:
+      enum:
+      - HOURLY
+      - X_HOURLY
+      - DAILY
+      - WEEKLY
+      - MONTHLY
+      - CUSTOM
+      type: string
+    FrontendHandledBackendError:
+      properties:
+        errorInformation:
+          type: object
+        frontendErrorKey:
+          type: string
+      type: object
+    ImageTransport:
+      properties:
+        homePath:
+          type: string
+        id:
+          type: string
+        imageKey:
+          type: string
+        imageType:
+          $ref: '#/components/schemas/ImageType'
+        imageUrl:
+          type: string
+        name:
+          type: string
+        visibleInDropdown:
+          type: boolean
+      type: object
+    ImageType:
+      enum:
+      - JUPYTER
+      - VSCODE
+      - STREAMLIT
+      type: string
+    JobConfigTransport:
+      type: object
+      properties:
+        applicationKeyId:
+          type: string
+        id:
+          type: string
+    JobExecution:
+      properties:
+        completed:
+          format: date-time
+          type: string
+        errorMessage:
+          type: string
+        id:
+          type: string
+        image:
+          type: string
+        input:
+          type: string
+        jobExecutionSource:
+          $ref: '#/components/schemas/JobExecutionSource'
+        jobExecutionSourceId:
+          type: string
+        jobId:
+          type: string
+        optionalTenantId:
+          type: string
+        started:
+          format: date-time
+          type: string
+        status:
+          $ref: '#/components/schemas/JobExecutionStatus'
+        tenantId:
+          type: string
+          writeOnly: true
+        timeout:
+          format: int64
+          type: integer
+      type: object
+    JobExecutionGroup:
+      properties:
+        jobName:
+          type: string
+        lastJobExecutionId:
+          type: string
+        lastJobExecutionStartedDate:
+          format: date-time
+          type: string
+        lastJobExecutionStatus:
+          $ref: '#/components/schemas/JobExecutionStatus'
+      type: object
+    JobExecutionSource:
+      enum:
+      - API
+      - KNOWLEDGE_MODEL
+      - DATA_MODEL_RELOAD
+      - SKILL_UPDATE
+      type: string
+    JobExecutionStatus:
+      enum:
+      - CREATED
+      - STARTED
+      - RUNNING
+      - COMPLETED
+      - FAILED
+      - CANCELED
+      type: string
+    JobExecutionStatusTransport:
+      enum:
+      - CREATED
+      - STARTED
+      - RUNNING
+      - COMPLETED
+      - FAILED
+      - CANCELED
+      type: string
+    JobExecutionTransport:
+      properties:
+        completed:
+          format: date-time
+          type: string
+        errorMessage:
+          type: string
+        id:
+          type: string
+        jobExecutionSource:
+          type: string
+        jobId:
+          type: string
+        params:
+          $ref: '#/components/schemas/JsonNode'
+        started:
+          format: date-time
+          type: string
+        status:
+          $ref: '#/components/schemas/JobExecutionStatusTransport'
+      type: object
+    JsonNode:
+      type: object
+    LogLevel:
+      enum:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+      type: string
+    MonthPattern:
+      enum:
+      - SPECIFIC_DAY
+      - LAST_DAY
+      type: string
+    NotebookAccessInformationTransport:
+      properties:
+        appKey:
+          type: string
+        cpuCoresLimit:
+          type: string
+        diskUsageLimit:
+          type: string
+        execCommands:
+          items:
+            type: string
+          type: array
+        gpuCoresLimit:
+          type: string
+        imageType:
+          type: string
+        imageUrl:
+          type: string
+        instanceType:
+          type: string
+        kubernetes:
+          type: boolean
+        machineId:
+          type: string
+        memoryLimit:
+          type: string
+        migration:
+          type: boolean
+        publicAddress:
+          type: string
+        puppetId:
+          type: string
+        token:
+          type: string
+        volumeDriver:
+          type: string
+        withPlan:
+          type: boolean
+      type: object
+    NotebookExecutionLogTransport:
+      properties:
+        logLevel:
+          type: string
+        message:
+          type: string
+        notebookExecutionId:
+          type: string
+        timestamp:
+          format: date-time
+          type: string
+      type: object
+    NotebookExecutionRequestApiModel:
+      properties:
+        executionFileName:
+          type: string
+        notebookId:
+          type: string
+        params:
+          $ref: '#/components/schemas/JsonNode'
+      type: object
+    NotebookExecutionSource:
+      enum:
+      - SCHEDULING
+      - API
+      - KNOWLEDGE_MODEL
+      - DATA_MODEL_RELOAD
+      - SKILL_UPDATE
+      type: string
+    NotebookExecutionStatus:
+      enum:
+      - CREATED
+      - QUEUED
+      - STARTING
+      - STARTED
+      - COMPLETED
+      - NOTEBOOK_ERROR
+      - FAILED
+      - TIMEOUT
+      - CANCELED
+      - RESOURCES_ERROR
+      - CONFIGURATION_ERROR
+      type: string
+    NotebookRequestApiModel:
+      properties:
+        agreement:
+          type: boolean
+        imageId:
+          type: string
+        name:
+          type: string
+        notebookResources:
+          $ref: '#/components/schemas/NotebookResourcesTransport'
+      type: object
+    NotebookResourcesRequestApiModel:
+      properties:
+        cpu:
+          format: int32
+          type: integer
+        gpu:
+          format: int32
+          type: integer
+        memory:
+          format: int32
+          type: integer
+        storage:
+          format: int32
+          type: integer
+      type: object
+    NotebookResourcesTransport:
+      properties:
+        cpu:
+          format: int32
+          type: integer
+        gpu:
+          format: int32
+          type: integer
+        memory:
+          format: int32
+          type: integer
+        storage:
+          format: int32
+          type: integer
+      type: object
+    NotebookTransport:
+      properties:
+        agreement:
+          type: boolean
+        appKey:
+          type: string
+        availableStorageInMb:
+          format: int32
+          type: integer
+        homePath:
+          type: string
+        id:
+          type: string
+        imageId:
+          type: string
+        imageKey:
+          type: string
+        imageType:
+          $ref: '#/components/schemas/ImageType'
+        lastAccessDate:
+          format: date-time
+          type: string
+        logRetentionDays:
+          format: int32
+          type: integer
+        machineId:
+          type: string
+        memorySizeId:
+          type: string
+        mlflowId:
+          type: string
+        name:
+          type: string
+        notebookResources:
+          $ref: '#/components/schemas/NotebookResourcesTransport'
+        objectId:
+          type: string
+        permissions:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        productive:
+          type: boolean
+        status:
+          type: string
+        stopped:
+          type: boolean
+        url:
+          type: string
+        versionId:
+          type: string
+        workspaceId:
+          type: string
+      type: object
+    NotebookTreeItem:
+      properties:
+        children:
+          items:
+            $ref: '#/components/schemas/NotebookTreeItem'
+          type: array
+        content:
+          type: object
+        directory:
+          type: boolean
+        name:
+          type: string
+        notebook:
+          type: boolean
+        path:
+          type: string
+        type:
+          type: string
+      type: object
+    NotebookVersionTransport:
+      properties:
+        createdDate:
+          format: date-time
+          type: string
+        id:
+          type: string
+        imageId:
+          type: string
+        imageKey:
+          type: string
+        latest:
+          type: boolean
+        releaseNotes:
+          type: string
+        versionCode:
+          type: string
+        warning:
+          type: string
+        warningCode:
+          type: string
+      type: object
+    PageJobExecutionTransport:
+      properties:
+        content:
+          items:
+            $ref: '#/components/schemas/JobExecutionTransport'
+          type: array
+        empty:
+          type: boolean
+        first:
+          type: boolean
+        last:
+          type: boolean
+        pageNumber:
+          format: int32
+          type: integer
+        pageSize:
+          format: int32
+          type: integer
+        totalCount:
+          format: int64
+          type: integer
+        totalPages:
+          format: int32
+          type: integer
+      type: object
+    SchedulingConfig:
+      properties:
+        customCron:
+          type: string
+        day:
+          format: int32
+          type: integer
+        enabled:
+          type: boolean
+        everyXHours:
+          format: int32
+          type: integer
+        executionPattern:
+          $ref: '#/components/schemas/ExecutionPattern'
+        lastExecutionDate:
+          format: date-time
+          type: string
+        minute:
+          format: int32
+          type: integer
+        monthPattern:
+          $ref: '#/components/schemas/MonthPattern'
+        nextExecutionDate:
+          format: date-time
+          type: string
+        time:
+          type: string
+        timezoneId:
+          type: string
+        weekDays:
+          items:
+            format: int32
+            type: integer
+          type: array
+      type: object
+    SchedulingRequestApiModel:
+      properties:
+        executeFile:
+          type: string
+        name:
+          type: string
+        notebookId:
+          type: string
+        schedulingConfig:
+          $ref: '#/components/schemas/SchedulingConfig'
+      type: object
+    SchedulingTransport:
+      properties:
+        executeFile:
+          type: string
+        id:
+          type: string
+        lastNotebookExecutionId:
+          type: string
+        lastNotebookExecutionStatus:
+          $ref: '#/components/schemas/NotebookExecutionStatus'
+        maxRetries:
+          format: int32
+          type: integer
+        name:
+          type: string
+        notebookId:
+          type: string
+        notebookName:
+          type: string
+        notebookStopped:
+          type: boolean
+        objectId:
+          type: string
+        permissions:
+          items:
+            type: string
+          type: array
+          uniqueItems: true
+        schedulingConfig:
+          $ref: '#/components/schemas/SchedulingConfig'
+        timeUnit:
+          $ref: '#/components/schemas/TimeUnitTransport'
+        timeout:
+          format: int32
+          type: integer
+      type: object
+    TimeUnitTransport:
+      enum:
+      - MINUTES
+      - HOURS
+      type: string
+    TriggeredExecutionGroupTransport:
+      properties:
+        executionFileName:
+          type: string
+        id:
+          type: string
+        lastExecutionId:
+          type: string
+        lastExecutionStartedDate:
+          format: date-time
+          type: string
+        lastExecutionStatus:
+          $ref: '#/components/schemas/NotebookExecutionStatus'
+        notebookId:
+          type: string
+        notebookName:
+          type: string
+      type: object
+info:
+  description: Documentation for ML Workbench Executions External API. For accessing
+    the API a Bearer API Key and a Team Specific AppKey must be passed in header.
+  title: Celonis Machine Learning Service API
+  version: '1.0'
+openapi: 3.0.1
+paths:
+  /api/executions:
+    post:
+      operationId: execute_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotebookExecutionRequestApiModel'
+        required: true
+      responses:
+        '200':
+          content: {}
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Trigger an execution
+      tags:
+      - Execution
+  /api/executions/triggered-groups:
+    get:
+      operationId: getTriggeredExecutionGroups
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/TriggeredExecutionGroupTransport'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      tags:
+      - Execution
+  /api/executions/triggered-groups/{id}:
+    get:
+      operationId: getTriggeredExecutionGroup
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TriggeredExecutionGroupTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      tags:
+      - Execution
+  /api/executions/triggered/{id}:
+    get:
+      operationId: getTriggeredExecutions
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: pageIndex
+        required: false
+        schema:
+          default: 0
+          format: int32
+          minimum: 0
+          type: integer
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 1
+          format: int32
+          minimum: 1
+          type: integer
+      - in: query
+        name: startedOrder
+        required: false
+        schema:
+          default: DESC
+          type: string
+      - in: query
+        name: executionSources
+        required: false
+        schema:
+          default:
+          - DATA_MODEL_RELOAD
+          - KNOWLEDGE_MODEL
+          - API
+          items:
+            $ref: '#/components/schemas/NotebookExecutionSource'
+          type: array
+      responses:
+        '200':
+          content: {}
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      tags:
+      - Execution
+  /api/executions/{id}:
+    get:
+      operationId: find
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content: {}
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get an execution
+      tags:
+      - Execution
+  /api/executions/{id}/logs:
+    get:
+      operationId: getLogs
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: logLevels
+        required: false
+        schema:
+          default:
+          - INFO
+          - DEBUG
+          - WARNING
+          - ERROR
+          items:
+            $ref: '#/components/schemas/LogLevel'
+          type: array
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/NotebookExecutionLogTransport'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get execution logs
+      tags:
+      - Execution
+  /api/executions/{id}/stop:
+    put:
+      operationId: stop
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Stop a running execution
+      tags:
+      - Execution
+  /api/jobs/executions/groups:
+    get:
+      operationId: getExecutionGroups
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/JobExecutionGroup'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get execution groups
+      tags:
+      - Jobs
+  /api/jobs/executions/{id}:
+    get:
+      operationId: getExecution
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/JobExecution'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get an execution
+      tags:
+      - Jobs
+  /api/jobs/executions/{id}/stop:
+    post:
+      operationId: stop_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Stop a running execution.
+      tags:
+      - Jobs
+  /api/jobs/{jobId}/executions:
+    get:
+      operationId: getExecutions
+      parameters:
+      - in: path
+        name: jobId
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: pageIndex
+        required: false
+        schema:
+          default: 0
+          format: int32
+          minimum: 0
+          type: integer
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 1
+          format: int32
+          minimum: 1
+          type: integer
+      - in: query
+        name: startedOrder
+        required: false
+        schema:
+          default: DESC
+          type: string
+      - in: query
+        name: executionSources
+        required: false
+        schema:
+          default:
+          - DATA_MODEL_RELOAD
+          - KNOWLEDGE_MODEL
+          - API
+          - SKILL_UPDATE
+          items:
+            $ref: '#/components/schemas/JobExecutionSource'
+          type: array
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageJobExecutionTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get all executions
+      tags:
+      - Jobs
+    post:
+      operationId: execute
+      parameters:
+      - in: path
+        name: jobId
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonNode'
+        description: Job input data (dictionary)
+        required: true
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/JobExecution'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Trigger an execution
+      tags:
+      - Jobs
+  /api/notebooks:
+    get:
+      operationId: findAll_1
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/NotebookTransport'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: List all apps
+      tags:
+      - Apps
+    post:
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotebookRequestApiModel'
+        description: notebookTransport
+        required: true
+      responses:
+        '201':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookTransport'
+          description: Created
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Create an app
+      tags:
+      - Apps
+  /api/notebooks/limit/reached:
+    get:
+      operationId: limitReached
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: boolean
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Check if the team has reached the limit number of apps
+      tags:
+      - Apps
+  /api/notebooks/machine-learning-images:
+    get:
+      operationId: getMachineLearningImages
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/ImageTransport'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: List all Machine Learning Images
+      tags:
+      - Apps
+  /api/notebooks/memory-sizes:
+    get:
+      operationId: getMemorySizes
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  type: string
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      tags:
+      - Apps
+  /api/notebooks/node:
+    get:
+      operationId: hasDedicatedService
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: boolean
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Check if team has dedicated service
+      tags:
+      - Apps
+  /api/notebooks/node/{machineId}:
+    get:
+      operationId: isDedicatedNode
+      parameters:
+      - in: path
+        name: machineId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: boolean
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Check if the node is dedicated
+      tags:
+      - Apps
+  /api/notebooks/versions:
+    get:
+      operationId: getAllVersions
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/NotebookVersionTransport'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get a list of all the versions of the app
+      tags:
+      - Apps
+  /api/notebooks/{id}:
+    delete:
+      operationId: delete_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Delete an app
+      tags:
+      - Apps
+    get:
+      operationId: findOne_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get an app
+      tags:
+      - Apps
+    put:
+      operationId: update_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotebookRequestApiModel'
+        description: notebookTransport
+        required: true
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Update an app
+      tags:
+      - Apps
+  /api/notebooks/{id}/access-info:
+    get:
+      operationId: getAccessInformation
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookAccessInformationTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get app's access information
+      tags:
+      - Apps
+  /api/notebooks/{id}/app-key:
+    get:
+      operationId: getApplicationKey
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApplicationKeyTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get the application key of the app
+      tags:
+      - Apps
+    put:
+      operationId: setApplicationKey
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: appKey
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Set an application key to the app
+      tags:
+      - Apps
+  /api/notebooks/{id}/assign-mlflow:
+    put:
+      operationId: assignMlflow
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: mlflowId
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      tags:
+      - Apps
+  /api/notebooks/{id}/content:
+    get:
+      operationId: getContents
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: path
+        required: false
+        schema:
+          default: ''
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookTreeItem'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get a list of all the files inside the app
+      tags:
+      - Apps
+  /api/notebooks/{id}/move:
+    put:
+      operationId: moveToWorkspace
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: workspaceId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Move one app from one workspace to another
+      tags:
+      - Apps
+  /api/notebooks/{id}/probe:
+    put:
+      operationId: activeProbe
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      tags:
+      - Apps
+  /api/notebooks/{id}/resources:
+    get:
+      operationId: getResources
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookResourcesTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get Notebook Resources
+      tags:
+      - Resources
+    put:
+      operationId: updateResources
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotebookResourcesRequestApiModel'
+        required: true
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotebookResourcesTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Update Notebook Resources
+      tags:
+      - Resources
+  /api/notebooks/{id}/upgrade:
+    put:
+      operationId: upgrade
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Upgrade app to the latest version
+      tags:
+      - Apps
+  /api/notebooks/{id}/versions/latest:
+    get:
+      operationId: getAllNewVersions
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/NotebookVersionTransport'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get a list of all the versions, newer than the Notebook id version
+        that is provided in the parameter
+      tags:
+      - Apps
+  /api/scheduling:
+    get:
+      operationId: findAll
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                items:
+                  $ref: '#/components/schemas/SchedulingTransport'
+                type: array
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: List all schedules
+      tags:
+      - Schedule
+    post:
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchedulingRequestApiModel'
+        required: true
+      responses:
+        '201':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SchedulingTransport'
+          description: Created
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Create a schedule
+      tags:
+      - Schedule
+  /api/scheduling/{id}:
+    delete:
+      operationId: delete
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Delete a schedule
+      tags:
+      - Schedule
+    get:
+      operationId: findOne
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SchedulingTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get a schedule
+      tags:
+      - Schedule
+    put:
+      operationId: update
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchedulingRequestApiModel'
+        required: true
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SchedulingTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Update a schedule
+      tags:
+      - Schedule
+  /api/scheduling/{id}/change-status:
+    put:
+      operationId: changeStatus
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: status
+        required: true
+        schema:
+          type: boolean
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SchedulingTransport'
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Enable or Disable a schedule
+      tags:
+      - Schedule
+  /api/scheduling/{id}/executions:
+    get:
+      operationId: findAllExecutions
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: pageIndex
+        required: false
+        schema:
+          default: 0
+          format: int32
+          minimum: 0
+          type: integer
+      - in: query
+        name: limit
+        required: false
+        schema:
+          default: 1
+          format: int32
+          minimum: 1
+          type: integer
+      - in: query
+        name: startedOrder
+        required: false
+        schema:
+          default: DESC
+          type: string
+      responses:
+        '200':
+          content: {}
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: List all executions of a schedule
+      tags:
+      - Schedule
+  /api/scheduling/{id}/run:
+    post:
+      operationId: runSchedule
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+        '204':
+          description: No Content
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Run a schedule
+      tags:
+      - Schedule
+  /api/internal/jobs/{id}:
+    get:
+      operationId: getJobConfig
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: enableJob
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobConfigTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get job config
+      tags:
+        - JobConfig
+  /api/internal/jobs/{id}/application-key:
+    post:
+      operationId: updateApplicationKey
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationKeyTransport'
+        required: true
+      responses:
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Update job application key
+      tags:
+        - JobConfig
+servers:
+- description: Generated server url
+  url: https://localhost:8888/app
+tags:
+- description: Endpoints allowing you to trigger, stop and track job executions
+  name: Jobs
+- description: Endpoints allowing you to trigger, stop and track executions
+  name: Execution
+- description: Notebook Resources Controller
+  name: Resources
+- description: Endpoints allowing you to perform CRUD operations on Scheduling
+  name: Schedule
+- description: Endpoints allowing you to perform CRUD operations on Apps
+  name: Apps

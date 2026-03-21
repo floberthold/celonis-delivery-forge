@@ -47,10 +47,11 @@ class ProjectService:
         *,
         project_id: UUID,
         actor_id: UUID,
+        organization_id: UUID | None = None,
         payload: ProjectStatusUpdate,
     ) -> Project:
         project = session.get(Project, project_id)
-        if not project:
+        if not project or project.organization_id != organization_id:
             raise HTTPException(status_code=404, detail="Project not found")
 
         if payload.status == ProjectStatus.active:
@@ -70,6 +71,7 @@ class ProjectService:
             entity_id=project.id,
             actor_id=actor_id,
             action="project.updated",
+            organization_id=organization_id,
             metadata={"old_status": previous_status.value, "new_status": payload.status.value},
         )
 

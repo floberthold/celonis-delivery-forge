@@ -4,11 +4,17 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from foundry.models import SQLModel
+from foundry.settings import get_settings
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Override sqlalchemy.url with application settings so the migration always
+# targets the same database the application uses.
+_settings_url = get_settings().database_url
+config.set_main_option("sqlalchemy.url", _settings_url)
 
 target_metadata = SQLModel.metadata
 

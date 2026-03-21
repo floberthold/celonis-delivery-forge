@@ -19,6 +19,21 @@
         "/^python -m compileall src/foundry$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "Rename-Item": true,
+        "ForEach-Object": true,
+        "&": true,
+        "/^python -m compileall src/foundry/api/routes/use_cases\\.py src/foundry/services/use_case_views\\.py src/foundry/schemas\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "Test-Path": true,
+        ".venv\\Scripts\\python.exe": true,
+        ".\\scripts\\list_agent_runs.ps1": true,
+        ".\\scripts\\run_forum_weekly_intake.ps1": true,
+        "/^\\$env:FORGE_DATABASE_URL='sqlite:///\\./tmp_quests_api_test\\.db'; python -m pytest tests/test_quests_api\\.py -q$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

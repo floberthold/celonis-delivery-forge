@@ -27,12 +27,16 @@ class TemplateService:
     def list_templates(
         session: Session,
         *,
+        organization_id: UUID | None = None,
         client_id: UUID | None = None,
         category: str | None = None,
     ) -> list[Template]:
         global_library_ids = list(
             session.exec(
-                select(TemplateLibrary.id).where(TemplateLibrary.scope == TemplateScope.global_scope)
+                select(TemplateLibrary.id).where(
+                    TemplateLibrary.scope == TemplateScope.global_scope,
+                    TemplateLibrary.organization_id == organization_id,
+                )
             ).all()
         )
         allowed_library_ids = set(global_library_ids)
@@ -43,6 +47,7 @@ class TemplateService:
                     select(TemplateLibrary.id).where(
                         TemplateLibrary.scope == TemplateScope.client_scope,
                         TemplateLibrary.client_id == client_id,
+                        TemplateLibrary.organization_id == organization_id,
                     )
                 ).all()
             )
@@ -51,7 +56,14 @@ class TemplateService:
         if not allowed_library_ids:
             return []
 
-        templates = list(session.exec(select(Template).where(Template.is_active == True)).all())
+        templates = list(
+            session.exec(
+                select(Template).where(
+                    Template.is_active == True,
+                    Template.organization_id == organization_id,
+                )
+            ).all()
+        )
         filtered = [template for template in templates if template.library_id in allowed_library_ids]
 
         if category:
@@ -65,15 +77,16 @@ class TemplateService:
         *,
         template: Template,
         payload: TemplateInstantiateCreate,
+        organization_id: UUID | None = None,
     ) -> TemplateInstantiation:
         project = session.get(Project, payload.project_id)
-        if not project:
+        if not project or project.organization_id != organization_id:
             raise HTTPException(status_code=404, detail="Project not found")
         if project.client_id != payload.client_id:
             raise HTTPException(status_code=400, detail="Project does not belong to the specified client")
 
         client = session.get(Client, payload.client_id)
-        if not client:
+        if not client or client.organization_id != organization_id:
             raise HTTPException(status_code=404, detail="Client not found")
 
         author = session.get(Person, payload.author_id)
@@ -103,6 +116,7 @@ class TemplateService:
 
         if template.requires_review:
             asset = Asset(
+                organization_id=organization_id,
                 type=AssetType.other,
                 name=f"Template Output: {template.title}",
                 project_id=payload.project_id,
@@ -122,11 +136,13 @@ class TemplateService:
                     reviewer_id=payload.reviewer_id,
                     change_summary=f"Template instantiation for {template.title}",
                 ),
+                organization_id=organization_id,
             )
             asset_id = asset.id
             review_request_id = review.id
 
         instantiation = TemplateInstantiation(
+            organization_id=organization_id,
             template_id=template.id,
             project_id=payload.project_id,
             client_id=payload.client_id,
@@ -147,6 +163,7 @@ class TemplateService:
             entity_id=instantiation.id,
             actor_id=payload.author_id,
             action="template.instantiated",
+            organization_id=organization_id,
             metadata={
                 "template_id": str(template.id),
                 "project_id": str(payload.project_id),

@@ -1,0 +1,542 @@
+openapi: 3.0.1
+info:
+  description: API group containing F&C Module internal api specs
+  title: F&C Module Internal API Group
+  version: 1.124.0-SNAPSHOT
+servers:
+  - description: Generated server url
+    url: http://localhost:8888/app
+paths:
+  /fc/api/internal/features:
+    get:
+      description: "Lists the features available in the current realm. The optional\
+        \ query parameter `prefix` is to filter the result starting with the prefix,\
+        \ which is recommended when only concerns features for a given service. For\
+        \ example, in Content Store service, it's almost certain that service only\
+        \ needs features starting with 'content-store'."
+      operationId: findAllFeatures
+      parameters:
+        - allowEmptyValue: true
+          description: "Optional and nullable query parameter to filter features with\
+          \ the given prefix. For example, given `prefix='content-store'`, the result\
+          \ will only contains features starting with 'content-store.', i.e. 'content-store.aaa','content-store.bbb','content-store.aaa.zzz'"
+          example: content-store
+          in: query
+          name: prefix
+          required: false
+          schema:
+            type: string
+            default: ""
+        - allowEmptyValue: true
+          description: "Optional and nullable query parameter to change whether response\
+          \ is built in tree or flat hierarchy. Please notice that {@link SlimFeatureTransport#childFeatures()}\
+          \ will always be empty for flat (formTree=false) hierarchy"
+          in: query
+          name: formTree
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SlimFeatureTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Lists features available in the realm.
+      tags:
+        - feature-internal
+  /fc/api/internal/my-team/celonis-services:
+    get:
+      operationId: findCelonisServicesForCurrentTeam
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CelonisServiceTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Find CelonisServices for the current team
+      tags:
+        - feature-internal
+  /fc/api/internal/my-team/features:
+    get:
+      description: Find features for current team. Notice in the result list it could
+        contains some `active=false` features.
+      operationId: findFeaturesForCurrentTeam
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeatureActiveResponseTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Find features for current team
+      tags:
+        - feature-internal
+  /fc/api/internal/my-team/features/filters:
+    get:
+      description: "Find features for the current team with optional filters. Notice\
+        \ in the result list it could contains some `active=false` features. The optional\
+        \ query parameter `prefix` is to filter the result starting with the prefix,\
+        \ which is highly recommended to used when only concerns features for a given\
+        \ service. For example, in Content Store service, it's definitely sure that\
+        \ the service only needs features starting with 'content-store'."
+      operationId: findFeaturesForCurrentTeamWithFilters
+      parameters:
+        - allowEmptyValue: true
+          description: "Optional and nullable query parameter to filter features with\
+          \ the given prefix. For example, given `prefix='content-store'`, the result\
+          \ will only contains features starting with 'content-store', i.e. 'content-store.aaa','content-store.bbb','content-store.aaa.zzz'"
+          example: content-store
+          in: query
+          name: prefix
+          required: false
+          schema:
+            type: string
+            default: ""
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeatureActiveResponseTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Find features for the current team with optional filters.
+      tags:
+        - feature-internal
+  /fc/api/internal/my-team/features/{key}/status:
+    get:
+      operationId: featureStatusForCurrentTeam
+      parameters:
+        - description: Feature Key
+          example: integration.concur
+          in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureActiveResponseTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get the Feature Status for current team
+      tags:
+        - feature-internal
+  /fc/api/internal/teams/{id}/celonis-services:
+    get:
+      deprecated: true
+      operationId: findCelonisServicesForTeam
+      parameters:
+        - description: teamId
+          example: e300bf9f-3f9d-4401-82f4-84261e32fabf
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CelonisServiceTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Deprecated! Use 'findCelonisServicesForCurrentTeam'. Find CelonisServices
+        for the given team
+      tags:
+        - feature-internal
+  /fc/api/internal/teams/{id}/features:
+    get:
+      deprecated: true
+      description: Find features for the given team. Notice in the result list it
+        could contains some `active=false` features.
+      operationId: findFeaturesForTeam
+      parameters:
+        - description: teamId
+          example: e300bf9f-3f9d-4401-82f4-84261e32fabf
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeatureActiveResponseTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Deprecated! Use 'findFeaturesForCurrentTeam'. Find features for the
+        given team
+      tags:
+        - feature-internal
+  /fc/api/internal/teams/{id}/features/filters:
+    get:
+      deprecated: true
+      description: "Find features for the given team with optional filters. Notice\
+        \ in the result list it could contains some `active=false` features. The optional\
+        \ query parameter `prefix` is to filter the result starting with the prefix,\
+        \ which is highly recommended to used when only concerns features for a given\
+        \ service. For example, in Content Store service, it's definitely sure that\
+        \ the service only needs features starting with 'content-store'."
+      operationId: findFeaturesForTeamWithFilters
+      parameters:
+        - description: teamId
+          example: e300bf9f-3f9d-4401-82f4-84261e32fabf
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - allowEmptyValue: true
+          description: "Optional and nullable query parameter to filter features with\
+          \ the given prefix. For example, given `prefix='content-store'`, the result\
+          \ will only contains features starting with 'content-store', i.e. 'content-store.aaa','content-store.bbb','content-store.aaa.zzz'"
+          example: content-store
+          in: query
+          name: prefix
+          required: false
+          schema:
+            type: string
+            default: ""
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeatureActiveResponseTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Deprecated! use Find features for the given team with optional filters.
+      tags:
+        - feature-internal
+  /fc/api/internal/teams/{id}/features/{key}/status:
+    get:
+      deprecated: true
+      operationId: featureStatus
+      parameters:
+        - description: teamId
+          example: e300bf9f-3f9d-4401-82f4-84261e32fabf
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - description: Feature Key
+          example: integration.concur
+          in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureActiveResponseTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Deprecated! Use 'featureStatusForCurrentTeam'. Get the Feature Status
+        for given team and feature key
+      tags:
+        - feature-internal
+  /fc/api/internal/v2/my-team/features/{key}/status:
+    get:
+      operationId: featureStatusForCurrentTeamV2
+      parameters:
+        - description: Feature Key
+          example: integration.concur
+          in: path
+          name: key
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: option
+          required: true
+          schema:
+            $ref: '#/components/schemas/FeatureStatusOption'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureActiveResponseTransport'
+          description: OK
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+          description: Internal Server Error
+      summary: Get the Feature Status for current team with options
+      tags:
+        - feature-internal
+components:
+  schemas:
+    CelonisServiceTransport:
+      type: object
+      properties:
+        featureKey:
+          type: string
+          pattern: "^\\w[-\\w]{0,254}(?:\\.[-\\w]{1,254})?\\w$"
+        frontendApp:
+          type: boolean
+        frontendName:
+          type: string
+        icon:
+          type: string
+        minRole:
+          type: integer
+          format: int32
+        order:
+          type: integer
+          format: int32
+        path:
+          type: string
+        pinnedByDefault:
+          type: boolean
+      required:
+        - featureKey
+        - frontendName
+    ConfigValue:
+      type: object
+      properties:
+        value:
+          type: string
+    ExceptionReference:
+      type: object
+      properties:
+        message:
+          type: string
+        reference:
+          type: string
+        shortMessage:
+          type: string
+    FeatureActiveResponseTransport:
+      type: object
+      properties:
+        active:
+          type: boolean
+        effectiveConfiguration:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ConfigValue'
+        featureKey:
+          type: string
+    FeatureStatusOption:
+      type: object
+      properties:
+        withConfig:
+          type: boolean
+          description: Optional boolean value to tell if Configurations needs to be
+            included in the result; Only set to true if you need the Configurations
+            because it requires more DB queries to fetch it.
+    FrontendHandledBackendError:
+      type: object
+      properties:
+        errorInformation:
+          type: object
+        frontendErrorKey:
+          type: string
+    SlimFeatureTransport:
+      type: object
+      properties:
+        childFeatures:
+          type: array
+          items:
+            $ref: '#/components/schemas/SlimFeatureTransport'
+        featureKey:
+          type: string
+        featureName:
+          type: string
+    SsoProtocol:
+      type: string
+      enum:
+        - CELONIS_LOGIN
+        - IDP
+        - OIDC
+        - SAML
+    ValidationError:
+      type: object
+      properties:
+        additionalInfo:
+          type: string
+        attribute:
+          type: string
+        error:
+          type: string
+        errorCode:
+          type: string

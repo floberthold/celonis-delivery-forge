@@ -74,7 +74,10 @@
     </tbody>
 </table>
 
-<h3>Todo List</h3>
+<div class="section-header">
+    <h3>Todo List</h3>
+    <a class="link-button" href="/todos-ui">Open Todo Workspace</a>
+</div>
 <table>
     <thead><tr><th>Title</th><th>Description</th><th>Status</th><th>Priority</th><th>Due</th><th>Assignee</th><th>Actions</th></tr></thead>
     <tbody>
@@ -148,6 +151,7 @@
             <td>{{ row.due_at or '-' }}</td>
             <td>{{ row.assignee_name }}</td>
             <td class="actions-cell">
+                <a class="link-button" href="/todos-ui?selected={{ row.id }}">Open</a>
                 <a class="link-button" href="/people-ui/{{ person.id }}/overview?edit_todo={{ row.id }}">Edit</a>
                 <form method="post" action="/todos-ui/delete" class="inline-form">
                     <input type="hidden" name="todo_id" value="{{ row.id }}">

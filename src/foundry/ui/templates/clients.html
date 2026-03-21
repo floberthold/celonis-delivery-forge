@@ -16,6 +16,7 @@
             <th>Name</th>
             <th>Tenant URL</th>
             <th>Sensitivity</th>
+            <th>Salesforce</th>
             <th>Created</th>
             <th>Actions</th>
         </tr>
@@ -32,6 +33,7 @@
                         {% endfor %}
                     </select>
                 </td>
+                <td><input type="text" name="salesforce_url" placeholder="https://...salesforce.com/..."></td>
                 <td>-</td>
                 <td><button type="submit">Create</button></td>
             </form>
@@ -50,6 +52,7 @@
                         {% endfor %}
                     </select>
                 </td>
+                <td><input type="text" name="salesforce_url" value="{{ row.salesforce_url or '' }}" placeholder="https://...salesforce.com/..."></td>
                 <td>{{ row.created_at }}</td>
                 <td class="actions-cell">
                     <button type="submit">Save</button>
@@ -62,6 +65,7 @@
             <td>{{ row.name }}</td>
             <td>{{ row.tenant_url | clickable_url }}</td>
             <td>{{ row.sensitivity_level }}</td>
+            <td>{{ row.salesforce_url | clickable_url }}</td>
             <td>{{ row.created_at }}</td>
             <td class="actions-cell">
                 <a class="link-button" href="/clients-ui/{{ row.id }}/overview">Overview</a>
@@ -75,7 +79,7 @@
         {% endif %}
         {% else %}
         <tr>
-            <td colspan="5">No clients found.</td>
+            <td colspan="6">No clients found.</td>
         </tr>
         {% endfor %}
     </tbody>
