@@ -15,6 +15,8 @@ This document captures idea discovery, evaluation plans, and adoption status for
 - Operating model: `docs/agent-orchestration-operating-model.md`
 - Run card template: `docs/templates/agent-run-card.md`
 - Run bootstrap script: `scripts/new_agent_run.ps1`
+- Consultant support playbook: `docs/consultant-agent-pack.md`
+- Consultant preset run bootstrap: `scripts/new_consultant_agent_run.ps1`
 
 These artifacts implement the common spirit as a repository-native workflow: isolated parallel runs, explicit status, evidence capture, and human-gated merge.
 
@@ -300,7 +302,7 @@ Use this table to track implementation cadence.
 | Week | Focus | Planned | Done | Risks | Decision Needed |
 |---|---|---|---|---|---|
 | 2026-W12 | Roadmap setup | O1-O12 scope, rubric draft | Roadmap created | Tool landscape churn | Finalize scoring weights |
-| 2026-W13 | Discovery | Scorecards for O1-O6 | Scorecards completed; O4/O5/O6 pilots bootstrapped with active run cards, worktrees, pre-assigned reviewers, and evidence deadline set to 2026-03-25 (owner: Delivery Forge core team) | Baseline metrics still need capture | Confirm baseline metric extraction method for cycle time and review latency |
+| 2026-W13 | Discovery | Scorecards for O1-O6 | Scorecards completed; O4/O5/O6 pilots bootstrapped with active run cards, worktrees, pre-assigned reviewers, and evidence deadline set to 2026-03-25 (owner: Delivery Forge core team). Consultant support preset generator and playbook added for day-to-day workflows. | Baseline metrics still need capture | Confirm baseline metric extraction method for cycle time and review latency |
 | 2026-W14 | Discovery | Scorecards for O7-O12 |  |  |  |
 | 2026-W15 | Pilot | Pilot shortlist execution |  |  |  |
 | 2026-W16 | Rollout decision | Adoption memo and controls |  |  |  |

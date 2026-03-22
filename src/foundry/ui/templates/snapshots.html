@@ -13,10 +13,16 @@
 <div class="alert error">{{ error_message }}</div>
 {% endif %}
 
+{% if not has_active_connection %}
+<div class="alert error">
+    No active Celonis connection is configured for this client. Open <a href="/dashboard">Dashboard</a> to add or reactivate it.
+</div>
+{% endif %}
+
 <div class="section-header">
     <h3>Snapshot History</h3>
     <form method="post" action="/snapshots-ui/{{ client.id }}/trigger">
-        <button type="submit" class="btn-primary">Run New Snapshot</button>
+        <button type="submit" class="btn-primary" {% if not has_active_connection %}disabled title="Create an active Celonis connection on Dashboard first"{% endif %}>Run New Snapshot</button>
     </form>
 </div>
 

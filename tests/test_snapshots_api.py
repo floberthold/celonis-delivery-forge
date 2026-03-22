@@ -2,6 +2,8 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import UUID
+import subprocess
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
@@ -246,6 +248,7 @@ def _seed_snapshot_data() -> dict[str, str]:
             "org_a_id": str(org_a.id),
             "person_b_id": str(person_b.id),
             "org_b_id": str(org_b.id),
+            "client_a_id": str(client_a.id),
             "current_snapshot_id": str(current_snapshot.id),
             "prev_snapshot_id": str(prev_snapshot.id),
         }
@@ -360,6 +363,33 @@ def test_snapshot_export_download_returns_zip_response(tmp_path, monkeypatch) ->
         assert response.content.startswith(b"PK")
 
 
+def test_snapshot_git_history_endpoint_materializes_commit(tmp_path, monkeypatch) -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    monkeypatch.setattr(
+        "foundry.api.routes.snapshots.get_settings",
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+    )
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+
+        response = api_client.post(f"/snapshots/{seed['current_snapshot_id']}/git-history")
+        assert response.status_code == 200, response.text
+        payload = response.json()
+
+        repo_path = Path(payload["repo_path"])
+        assert payload["snapshot_id"] == seed["current_snapshot_id"]
+        assert payload["target_type"] == "celonis_client"
+        assert repo_path.exists()
+        assert (repo_path / ".git").exists()
+        assert (repo_path / ".forge" / "snapshot.json").exists()
+        assert (repo_path / "reports" / "delta.json").exists()
+        assert payload["commit_sha"]
+
+
 def test_snapshot_delta_and_replay_plan_org_scope_enforced() -> None:
     _reset_db()
     seed = _seed_snapshot_data()
@@ -375,3 +405,46 @@ def test_snapshot_delta_and_replay_plan_org_scope_enforced() -> None:
         replay_response = api_client.get(f"/snapshots/{seed['current_snapshot_id']}/replay-plan")
         assert replay_response.status_code == 404
         assert "Snapshot not found" in replay_response.text
+
+
+def test_trigger_snapshot_returns_400_without_active_connection() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+
+        response = api_client.post(
+            "/snapshots/trigger",
+            json={"client_id": seed["client_a_id"]},
+        )
+        assert response.status_code == 400
+        assert "No active Celonis connection" in response.text
+
+
+def test_trigger_snapshot_passes_organization_scope_to_service(monkeypatch) -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+    captured: dict[str, str] = {}
+
+    def _patched_run_snapshot(session, *, client_id, triggered_by, organization_id=None):
+        captured["client_id"] = str(client_id)
+        captured["triggered_by"] = str(triggered_by)
+        captured["organization_id"] = str(organization_id) if organization_id else ""
+        return session.get(CelonisSnapshot, UUID(seed["current_snapshot_id"]))
+
+    monkeypatch.setattr("foundry.api.routes.snapshots.run_snapshot", _patched_run_snapshot)
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.post(
+            "/snapshots/trigger",
+            json={"client_id": seed["client_a_id"]},
+        )
+        assert response.status_code == 202, response.text
+
+    assert captured["client_id"] == seed["client_a_id"]
+    assert captured["triggered_by"] == seed["person_a_id"]
+    assert captured["organization_id"] == seed["org_a_id"]

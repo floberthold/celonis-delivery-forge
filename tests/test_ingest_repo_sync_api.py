@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import subprocess
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
@@ -108,6 +109,10 @@ def test_repo_sync_execute_persists_provenance(tmp_path: Path) -> None:
         assert snapshot["summary_json"]["provenance"]["commit_sha"] == "abc123def4567890"
         assert snapshot["summary_json"]["provenance"]["provider"] == "github"
         assert snapshot["summary_json"]["provenance"]["repo_url"] == "https://github.com/example/sample-repo"
+        assert Path(snapshot["summary_json"]["archived_payload_path"]).exists()
+        assert snapshot["summary_json"]["git_history"]["target_type"] == "asset_source"
+        assert Path(snapshot["summary_json"]["git_history"]["repo_path"]).joinpath(".git").exists()
+        assert snapshot["summary_json"]["git_history"]["commit_sha"]
 
         assert run["asset_source_id"] == source_id
         assert run["asset_snapshot_id"] == snapshot["id"]
@@ -125,3 +130,52 @@ def test_repo_sync_execute_persists_provenance(tmp_path: Path) -> None:
         assert "README.md" in manifest_payload["files"]
         assert "src/module.py" in manifest_payload["files"]
         assert manifest_payload["summary"]["ingest_mode"] == "repo_sync"
+
+
+def test_ingest_snapshot_git_history_endpoint_rebuilds_repo(tmp_path: Path) -> None:
+    _reset_db()
+
+    person_id, organization_id = _seed_person()
+    auth_token = create_access_token(person_id, organization_id)
+
+    repo_root = tmp_path / "sample-repo"
+    repo_root.mkdir(parents=True, exist_ok=True)
+    (repo_root / "README.md").write_text("# Sample Repo\n", encoding="utf-8")
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+
+        source_response = api_client.post(
+            "/ingest/sources",
+            json={
+                "name": "Snapshot Repo",
+                "kind": "pullable_repo",
+                "provider": "github",
+                "repo_url": "https://github.com/example/sample-repo",
+                "default_branch": "main",
+                "is_active": True,
+            },
+        )
+        assert source_response.status_code == 200, source_response.text
+        source_id = source_response.json()["id"]
+
+        execute_response = api_client.post(
+            "/ingest/repo-sync/execute",
+            json={
+                "asset_source_id": source_id,
+                "local_repo_path": str(repo_root),
+                "version_label": "sync-2026-03-22",
+            },
+        )
+        assert execute_response.status_code == 200, execute_response.text
+        snapshot_id = execute_response.json()["snapshot"]["id"]
+
+        rebuild_response = api_client.post(f"/ingest/snapshots/{snapshot_id}/git-history")
+        assert rebuild_response.status_code == 200, rebuild_response.text
+        payload = rebuild_response.json()
+
+        repo_path = Path(payload["repo_path"])
+        assert repo_path.exists()
+        assert (repo_path / ".git").exists()
+        assert payload["commit_sha"]
+        assert (repo_path / "README.md").exists()

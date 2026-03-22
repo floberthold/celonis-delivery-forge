@@ -63,6 +63,14 @@ The script creates:
 - Run card in `.orchestration/runs/`
 - Dedicated branch with deterministic naming
 
+Use consultant workflow presets for day-to-day delivery support:
+
+```powershell
+.\scripts\new_consultant_agent_run.ps1 -TaskId C-W13-001 -Preset Discovery -Owner "Delivery Forge core team" -Agent codex -BaseBranch main
+```
+
+Preset coverage: `Discovery`, `WorkshopPrep`, `KPIDesign`, `IssueTriage`, `SteeringPack`, `RiskReview`, `ClientComms`, `FollowUp`.
+
 Close runs with gate enforcement:
 
 ```powershell

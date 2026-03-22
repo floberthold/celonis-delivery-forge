@@ -18,6 +18,7 @@ from foundry.models import (
 from foundry.schemas import (
     CelonisSnapshotOut,
     SnapshotExportOut,
+    SnapshotGitHistoryOut,
     SnapshotReplayPlanOut,
     CelonisSnapshotTriggerRequest,
     SnapshotDataModelOut,
@@ -31,6 +32,7 @@ from foundry.services.snapshot_export_service import (
     build_snapshot_export,
     build_snapshot_replay_plan,
 )
+from foundry.services.snapshot_git_service import materialize_celonis_snapshot_git_history
 from foundry.services.snapshot_service import run_snapshot
 from foundry.settings import get_settings
 
@@ -63,7 +65,15 @@ def trigger_snapshot(
 ):
     if _get_org_client(session, body.client_id, current_actor.organization.id) is None:
         raise HTTPException(status_code=404, detail="Client not found")
-    snap = run_snapshot(session, client_id=body.client_id, triggered_by=current_actor.person.id)
+    try:
+        snap = run_snapshot(
+            session,
+            client_id=body.client_id,
+            triggered_by=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return snap
 
 
@@ -225,3 +235,24 @@ def download_snapshot_bundle(
         filename=f"snapshot_{snapshot_id}.zip",
         media_type="application/zip",
     )
+
+
+@router.post("/{snapshot_id}/git-history", response_model=SnapshotGitHistoryOut)
+def materialize_snapshot_git_history(
+    snapshot_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
+    if snap is None:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    result = materialize_celonis_snapshot_git_history(
+        session,
+        snapshot_id=snapshot_id,
+        base_output_dir=Path(get_settings().uploads_dir) / "git_history",
+    )
+    snap.summary_json = {**snap.summary_json, "git_history": result}
+    session.add(snap)
+    session.commit()
+    session.refresh(snap)
+    return result

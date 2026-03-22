@@ -1023,6 +1023,41 @@ tbody tr:last-child td {
     font-size: 0.9rem;
 }
 
+.command-map-canvas-wrap {
+    border: 1px solid #d8e0ef;
+    border-radius: 10px;
+    padding: 0.45rem;
+    background: linear-gradient(180deg, #f7faff 0%, #eef3ff 100%);
+    overflow-x: auto;
+}
+
+#orchestration-map-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-width: 420px;
+    border: 1px solid #cdd7ec;
+    border-radius: 8px;
+    background: #f3f7ff;
+}
+
+.command-map-detail {
+    margin-top: 0.55rem;
+    border: 1px solid #d8e0ef;
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+    background: #f8faff;
+}
+
+.command-map-detail h4 {
+    margin: 0 0 0.3rem;
+    font-size: 0.95rem;
+}
+
+.command-map-fallback {
+    margin-top: 0.55rem;
+}
+
 .region-list,
 .quest-list,
 .unit-list {

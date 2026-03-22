@@ -176,6 +176,24 @@ Docker forces the API container to use the bundled Postgres service even if `.en
 
 - See `docs/adr/0001-mvp-architecture.md`
 
+## Open-Source Integration Workflow
+
+Use git submodules to vendor upstream open-source repos while keeping Forge customizations in first-party code.
+
+Bootstrap a new upstream dependency:
+
+```powershell
+.\scripts\add_upstream_submodule.ps1 -UpstreamUrl "https://github.com/<owner>/<repo>.git" -Name "<alias>" -Branch "main"
+```
+
+The script creates:
+
+- Submodule path under `vendor/<alias>`
+- Metadata record in `.upstreams/<alias>.json`
+- Patch queue directory at `patches/<alias>/`
+
+Detailed guidance: `docs/open-source-submodule-workflow.md`
+
 ## Roadmaps
 
 - Master roadmap: `docs/master-roadmap.md`
@@ -184,6 +202,7 @@ Docker forces the API container to use the bundled Postgres service even if `.en
 - Celonis support forum insights roadmap: `docs/celonis-forum-insights-roadmap.md`
 - Agent orchestrators adoption roadmap: `docs/agent-orchestrators-roadmap.md`
 - Agent orchestration operating model: `docs/agent-orchestration-operating-model.md`
+- Consultant support agent pack: `docs/consultant-agent-pack.md`
 
 ## Agent Run Bootstrap
 
@@ -213,6 +232,14 @@ List run cards for standup or triage:
 .\scripts\list_agent_runs.ps1 -Status "IN REVIEW"
 .\scripts\list_agent_runs.ps1 -Detailed
 ```
+
+Create consultant support runs with workflow presets:
+
+```powershell
+.\scripts\new_consultant_agent_run.ps1 -TaskId C-W13-001 -Preset Discovery -Owner "Delivery Forge core team" -Agent codex -BaseBranch main
+```
+
+Supported presets: `Discovery`, `WorkshopPrep`, `KPIDesign`, `IssueTriage`, `SteeringPack`, `RiskReview`, `ClientComms`, `FollowUp`.
 
 ## Celonis Asset Intelligence
 

@@ -11,7 +11,9 @@
     <p>
         <a class="link-button" href="#architecture">Architecture</a>
         <a class="link-button" href="#routes">Routes</a>
+        <a class="link-button" href="#authscope">Auth Scope</a>
         <a class="link-button" href="#dev">Dev Loop</a>
+        <a class="link-button" href="#integrations">Integrations</a>
         <a class="link-button" href="#docsystem">Doc System</a>
         <a class="link-button" href="#packaging">Packaging</a>
         <a class="link-button" href="#quality">Quality</a>
@@ -33,6 +35,7 @@
                 <li><code>foundry.api.main</code> mounts static files and includes all route modules.</li>
                 <li><code>foundry.api.routes.ui</code> serves dashboard/topic pages and docs routes.</li>
                 <li>REST APIs stay in dedicated modules under <code>src/foundry/api/routes/</code>.</li>
+                <li>Recent route areas include quests, todos, files, KPIs, snapshots, KPI Book, GitLab, ingest, forum insights, and use cases.</li>
             </ul>
         </div>
         <div class="panel">
@@ -41,6 +44,7 @@
                 <li>Core UI templates: <code>src/foundry/ui/templates/</code>.</li>
                 <li>Documentation source: root <code>docu/</code>.</li>
                 <li>Shared shell and nav: <code>base.html</code>.</li>
+                <li>Specialized UI templates now include orchestration, todos, files, KPIs, snapshots, KPI Book, and client health pages.</li>
             </ul>
         </div>
     </div>
@@ -58,8 +62,30 @@
     </svg>
 </section>
 
+<section class="panel" id="authscope">
+    <h3>3) Auth, Session, and Organization Scope</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>Browser Session Flow</h3>
+            <ul>
+                <li><code>/login</code> authenticates by email/password and sets the auth cookie.</li>
+                <li>UI browser GET requests that hit a 401 are redirected back to login with <code>next_path</code>.</li>
+                <li><code>/logout</code> clears the auth cookie and redirects to login.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Organization Selection</h3>
+            <ul>
+                <li>UI login auto-selects an organization from memberships, preferring owner/admin roles.</li>
+                <li>Most route handlers now depend on <code>get_current_actor_with_org</code>.</li>
+                <li>Missing data in UI often indicates org scoping, not absent records.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
 <section class="panel" id="dev">
-    <h3>3) Daily Development Loop</h3>
+    <h3>4) Daily Development Loop</h3>
     <table>
         <thead>
             <tr>
@@ -85,6 +111,11 @@
                 <td>Layout, diagrams, links, and content checks</td>
             </tr>
             <tr>
+                <td>Smoke runtime</td>
+                <td>Check <code>/health</code> for env, backend, and startup mode details</td>
+                <td>Confirms startup behavior and database mode</td>
+            </tr>
+            <tr>
                 <td>Package test</td>
                 <td><code>.\scripts\build_standalone.ps1</code></td>
                 <td>Desktop executable with bundled doc source</td>
@@ -93,8 +124,48 @@
     </table>
 </section>
 
+<section class="panel" id="integrations">
+    <h3>5) Integration and Feature Modules</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Module Area</th>
+                <th>Purpose</th>
+                <th>Key Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Quests / Orchestration</td>
+                <td>Quest lifecycle, objectives, assignments, reprioritization, pause/replace flows</td>
+                <td>Primary UI surface is <code>/orchestration-ui</code>.</td>
+            </tr>
+            <tr>
+                <td>Todos / Files / KPIs</td>
+                <td>Execution tracking, artifact handling, KPI lifecycle and formula management</td>
+                <td>UI pages exist and should be documented alongside API changes.</td>
+            </tr>
+            <tr>
+                <td>Snapshots / KPI Book</td>
+                <td>Client-state capture, export/delta/replay plans, reusable KPI knowledge assets</td>
+                <td>Client-scoped routes and download endpoints require careful access and packaging checks.</td>
+            </tr>
+            <tr>
+                <td>Celonis / GitLab / Ingest</td>
+                <td>External integration workflows, diagnostics, pipeline hooks, sync tracking</td>
+                <td>Treat these as side-effecting integration boundaries with additional validation needs.</td>
+            </tr>
+            <tr>
+                <td>Forum Insights / Use Cases</td>
+                <td>Knowledge capture, lifecycle tracking, and reusable delivery patterns</td>
+                <td>These are part of the domain surface even when not central to the top nav.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
 <section class="panel" id="docsystem">
-    <h3>4) Documentation System</h3>
+    <h3>6) Documentation System</h3>
     <div class="cards">
         <div class="card">
             <h3>Source of truth</h3>
@@ -108,34 +179,45 @@
             <h3>Navigation</h3>
             <p>Expose docs in top navigation to reduce onboarding friction for users and contributors.</p>
         </div>
+        <div class="card">
+            <h3>Shared filters</h3>
+            <p>Preserve Jinja filters such as <code>clickable_url</code> and <code>normalized_url</code> because multiple legacy and current templates depend on them.</p>
+        </div>
     </div>
 </section>
 
 <section class="panel" id="packaging">
-    <h3>5) Packaging Expectations</h3>
+    <h3>7) Packaging and Runtime Expectations</h3>
     <ul>
         <li>Docker copies <code>src/</code> and root <code>docu/</code> into container runtime.</li>
         <li>Standalone script includes <code>docu</code> via PyInstaller <code>--add-data</code>.</li>
         <li>Spec file mirrors this through <code>datas=[('docu', 'docu')]</code>.</li>
+        <li><code>/health</code> exposes environment, database backend, and startup mode.</li>
+        <li>Database startup can fall back from configured Postgres to local SQLite in local/dev environments.</li>
+        <li>Desktop mode defaults to a LocalAppData SQLite database and writes logs to <code>%LOCALAPPDATA%/CelonisDeliveryForge/desktop.log</code>.</li>
     </ul>
     <div class="alert success">When adding new docs pages, use the same pattern and route them explicitly in <code>ui.py</code>.</div>
 </section>
 
 <section class="panel" id="quality">
-    <h3>6) Quality Checklist</h3>
+    <h3>8) Quality Checklist</h3>
     <ul>
         <li>Routes return 200 for docs pages in local and packaged runs.</li>
         <li>Graphics render without external dependencies.</li>
         <li>Links in docs target valid routes only.</li>
         <li>No regressions in existing topic pages and dashboard flows.</li>
+        <li>Verify login redirect behavior and authenticated UI access after auth/session changes.</li>
+        <li>Recheck health output and startup mode after database or deployment changes.</li>
     </ul>
 </section>
 
 <section class="panel">
-    <h3>7) Fast Links</h3>
+    <h3>9) Fast Links</h3>
     <p>
         <a class="link-button" href="/docs">Open Swagger</a>
         <a class="link-button" href="/dashboard">Open Dashboard</a>
+        <a class="link-button" href="/orchestration-ui">Open Orchestration</a>
+        <a class="link-button" href="/todos-ui">Open Todos</a>
         <a class="link-button" href="/templates-ui">Open Templates</a>
     </p>
 </section>

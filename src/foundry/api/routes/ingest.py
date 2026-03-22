@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,6 +19,7 @@ from foundry.models import (
 )
 from foundry.schemas import (
     AssetSnapshotCreate,
+    SnapshotGitHistoryOut,
     AssetSnapshotOut,
     AssetSourceCreate,
     AssetSourceOut,
@@ -33,6 +35,7 @@ from foundry.schemas import (
 )
 from foundry.services.activity_log import log_created, log_updated
 from foundry.services.ingest_service import execute_code_drop_ingest, execute_repo_sync_ingest
+from foundry.services.snapshot_git_service import materialize_asset_snapshot_git_history
 from foundry.settings import get_settings
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])
@@ -433,3 +436,25 @@ def execute_repo_sync(
     )
 
     return CodeDropIngestResult(snapshot=snapshot, run=run, findings=findings)
+
+
+@router.post("/snapshots/{snapshot_id}/git-history", response_model=SnapshotGitHistoryOut)
+def materialize_ingest_snapshot_git_history(
+    snapshot_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    snapshot = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="Asset snapshot not found")
+
+    result = materialize_asset_snapshot_git_history(
+        session,
+        snapshot_id=snapshot_id,
+        base_output_dir=Path(settings.uploads_dir).resolve() / "git_history",
+    )
+    snapshot.summary_json = {**snapshot.summary_json, "git_history": result}
+    session.add(snapshot)
+    session.commit()
+    session.refresh(snapshot)
+    return result

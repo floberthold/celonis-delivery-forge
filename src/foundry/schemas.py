@@ -351,6 +351,18 @@ class AssetSnapshotOut(BaseModel):
         from_attributes = True
 
 
+class SnapshotGitHistoryOut(BaseModel):
+    snapshot_id: UUID
+    target_type: str
+    target_id: UUID
+    repo_path: str
+    branch: str
+    commit_sha: str
+    created_commit: bool
+    commit_message: str
+    committed_at: datetime
+
+
 class IngestRunCreate(BaseModel):
     asset_source_id: UUID
     asset_snapshot_id: Optional[UUID] = None

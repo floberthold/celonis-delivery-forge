@@ -1,14 +1,16 @@
 import os
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
 
 # Ensure this test uses an isolated SQLite database.
 os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_use_case_api_test.db")
 
+import foundry.db as db_module
+
 from foundry.api.main import app
-from foundry.db import engine
 from foundry.models import Client, Organization, OrganizationMembership, OrganizationRole, Person, Project
 from foundry.security import create_access_token, hash_password
 
@@ -16,13 +18,21 @@ from foundry.security import create_access_token, hash_password
 DB_FILE = Path("tmp_use_case_api_test.db")
 
 
+@pytest.fixture(autouse=True)
+def _isolate_engine_for_use_case_tests() -> None:
+    previous_url = db_module._active_database_url
+    db_module._set_engine("sqlite:///./tmp_use_case_api_test.db")
+    yield
+    db_module._set_engine(previous_url)
+
+
 def _reset_db() -> None:
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.drop_all(db_module.engine)
+    SQLModel.metadata.create_all(db_module.engine)
 
 
 def _seed_person_client_project() -> tuple[str, str, str]:
-    with Session(engine) as session:
+    with Session(db_module.engine) as session:
         person = Person(
             email="usecase-tester@example.com",
             name="Use Case Tester",

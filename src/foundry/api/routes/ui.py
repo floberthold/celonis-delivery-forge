@@ -2,7 +2,7 @@ import json
 import re
 import shutil
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlsplit, urlunsplit
 from uuid import UUID, uuid4
@@ -21,7 +21,8 @@ from foundry.api.deps import (
     get_current_person,
     get_current_person_optional,
 )
-from foundry.db import engine, get_session
+from foundry import db as db_module
+from foundry.db import get_session
 from foundry.integrations.celonis_import import CelonisGateway
 from foundry.integrations.gitlab_gateway import GitLabGateway
 from foundry.models import (
@@ -48,6 +49,7 @@ from foundry.models import (
     MembershipRole,
     OrganizationMembership,
     OrganizationRole,
+    Organization,
     Person,
     Quest,
     QuestAssignment,
@@ -92,10 +94,18 @@ from foundry.schemas import (
     TemplateInstantiateCreate,
 )
 from foundry.settings import get_settings
-from foundry.security import create_access_token, hash_password, verify_password
+from foundry.security import (
+    create_access_token,
+    create_action_token,
+    decode_action_token,
+    hash_password,
+    verify_password,
+)
 from foundry.services.project_service import ProjectService
 from foundry.services.review_service import ReviewService
 from foundry.services.activity_log import log_activity, log_created, log_updated
+from foundry.services.email_service import send_email
+from foundry.services.template_seed import seed_default_templates
 from foundry.services.template_service import TemplateService
 from foundry.services.todo_service import (
     delete_todo_with_children,
@@ -146,9 +156,19 @@ def _docu_dir() -> Path | None:
 
 
 def _template_auth_context(request: Request) -> dict:
-    with Session(engine) as session:
+    # Use the active runtime engine so auth context stays aligned after DB fallback.
+    with Session(db_module.engine) as session:
         person = get_current_person_optional(request=request, token=None, session=session)
     return {"current_person": person}
+
+
+def _enum_or_value(value: object, default: str = "") -> str:
+    if value is None:
+        return default
+    enum_value = getattr(value, "value", None)
+    if isinstance(enum_value, str):
+        return enum_value
+    return str(value)
 
 
 templates = Jinja2Templates(
@@ -251,6 +271,16 @@ def _parse_optional_datetime(value: str | None, field_name: str) -> datetime | N
         raise ValueError(f"Invalid datetime for {field_name}") from exc
 
 
+def _sort_datetime_key(value: datetime | None) -> float:
+    if value is None:
+        return float("-inf")
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    else:
+        value = value.astimezone(timezone.utc)
+    return value.timestamp()
+
+
 def _parse_json_object(value: str, *, field_name: str) -> dict:
     if not value.strip():
         return {}
@@ -319,7 +349,12 @@ def _store_uploaded_delivery_file(upload_file: UploadFile) -> tuple[str, int]:
     return stored_filename, destination.stat().st_size
 
 
-def _redirect_login(*, err: str | None = None, next_path: str | None = None) -> RedirectResponse:
+def _redirect_login(
+    *,
+    err: str | None = None,
+    ok: str | None = None,
+    next_path: str | None = None,
+) -> RedirectResponse:
     next_query = ""
     normalized_next_path = _normalize_redirect_path(next_path, "/dashboard") if next_path else None
     if normalized_next_path:
@@ -331,7 +366,70 @@ def _redirect_login(*, err: str | None = None, next_path: str | None = None) -> 
             url=f"/login?{next_query}{separator}err={quote_plus(err)}" if next_query else f"/login?err={quote_plus(err)}",
             status_code=303,
         )
+    if ok:
+        separator = "&" if next_query else ""
+        return RedirectResponse(
+            url=f"/login?{next_query}{separator}ok={quote_plus(ok)}" if next_query else f"/login?ok={quote_plus(ok)}",
+            status_code=303,
+        )
     return RedirectResponse(url=f"/login?{next_query}" if next_query else "/login", status_code=303)
+
+
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
+    return slug or "workspace"
+
+
+def _build_unique_org_slug(session: Session, base_name: str) -> str:
+    base_slug = _slugify(base_name)
+    candidate = base_slug
+    counter = 2
+    while session.exec(select(Organization).where(Organization.slug == candidate)).first():
+        candidate = f"{base_slug}-{counter}"
+        counter += 1
+    return candidate
+
+
+def _validate_registration_password(password: str, confirm_password: str) -> None:
+    if password != confirm_password:
+        raise ValueError("Passwords do not match")
+    if len(password) < 10:
+        raise ValueError("Password must be at least 10 characters")
+
+
+def _app_public_base_url(request: Request) -> str:
+    configured = get_settings().public_base_url.strip()
+    if configured:
+        return configured.rstrip("/")
+    return str(request.base_url).rstrip("/")
+
+
+def _send_registration_email(*, request: Request, email: str, token: str) -> None:
+    verify_url = f"{_app_public_base_url(request)}/register/verify?token={quote_plus(token)}"
+    send_email(
+        to_email=email,
+        subject="Confirm your Celonis Delivery Forge account",
+        body_text=(
+            "Welcome to Celonis Delivery Forge.\n\n"
+            "Use this link to activate your account:\n"
+            f"{verify_url}\n\n"
+            "The link expires automatically. If you did not request this, ignore this email."
+        ),
+    )
+
+
+def _send_password_reset_email(*, request: Request, email: str, token: str) -> None:
+    reset_url = f"{_app_public_base_url(request)}/reset-password?token={quote_plus(token)}"
+    send_email(
+        to_email=email,
+        subject="Reset your Celonis Delivery Forge password",
+        body_text=(
+            "A password reset was requested for your account.\n\n"
+            "Use this link to set a new password:\n"
+            f"{reset_url}\n\n"
+            "The link expires automatically. If you did not request this, ignore this email."
+        ),
+    )
 
 
 def _validate_todo_scope(*, person_id: UUID | None, client_id: UUID | None, project_id: UUID | None) -> None:
@@ -457,6 +555,20 @@ def _org_celonis_connections(session: Session, organization_id: UUID) -> list[Ce
             select(CelonisConnection).where(CelonisConnection.organization_id == organization_id)
         ).all()
     )
+
+
+def _get_org_active_celonis_connection(
+    session: Session,
+    client_id: UUID,
+    organization_id: UUID,
+) -> CelonisConnection | None:
+    return session.exec(
+        select(CelonisConnection).where(
+            CelonisConnection.client_id == client_id,
+            CelonisConnection.organization_id == organization_id,
+            CelonisConnection.is_active == True,  # noqa: E712
+        )
+    ).first()
 
 
 def _org_template_libraries(session: Session, organization_id: UUID) -> list[TemplateLibrary]:
@@ -637,7 +749,7 @@ def _timeline_by_entity_keys(
         if (row.entity_type, row.entity_id) in key_set
         and (organization_id is None or row.organization_id == organization_id)
     ]
-    rows.sort(key=lambda row: row.timestamp, reverse=True)
+    rows.sort(key=lambda row: _sort_datetime_key(row.timestamp), reverse=True)
 
     people = list(session.exec(select(Person)).all())
     person_name_by_id = {person.id: person.name for person in people}
@@ -660,34 +772,38 @@ def _timeline_by_entity_keys(
 def _dashboard_context(request: Request, session: Session, current_actor: CurrentActor) -> dict:
     clients = sorted(
         _org_clients(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     projects = sorted(
         _org_projects(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     assets = sorted(
         _org_assets(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     reviews = sorted(
         _org_reviews(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     timeline = sorted(
         _org_activity_logs(session, current_actor.organization.id),
-        key=lambda row: row.timestamp,
+        key=lambda row: _sort_datetime_key(row.timestamp),
         reverse=True,
     )
-    people = sorted(session.exec(select(Person)).all(), key=lambda row: row.created_at, reverse=True)
+    people = sorted(
+        session.exec(select(Person)).all(),
+        key=lambda row: _sort_datetime_key(row.created_at),
+        reverse=True,
+    )
     memberships = session.exec(select(ProjectMembership)).all()
     celonis_connections = sorted(
         _org_celonis_connections(session, current_actor.organization.id),
-        key=lambda row: row.updated_at,
+        key=lambda row: _sort_datetime_key(row.updated_at),
         reverse=True,
     )
     connection_by_client = {row.client_id: row for row in celonis_connections}
@@ -778,6 +894,7 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
         project_pressure = pressure_by_project.setdefault(
             row.project_id,
             {
+                "project_id": str(row.project_id),
                 "project_name": project.name,
                 "open_count": 0,
                 "high_count": 0,
@@ -854,12 +971,101 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
         )
 
     units = []
+    preferred_project_by_person: dict[UUID, UUID] = {}
+    for row in sorted(open_quests, key=lambda item: item.created_at, reverse=True):
+        if row.owner_person_id is None or row.project_id is None:
+            continue
+        preferred_project_by_person.setdefault(row.owner_person_id, row.project_id)
+
     for row in sorted(people, key=lambda item: item.name.lower())[:8]:
         if row.role_global == GlobalRole.admin:
             unit_type = "guardian"
         else:
             unit_type = "builder"
-        units.append({"name": row.name, "unit_type": unit_type, "role": row.role_global.value})
+        preferred_project_id = preferred_project_by_person.get(row.id)
+        units.append(
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "unit_type": unit_type,
+                "role": _enum_or_value(row.role_global, "member"),
+                "preferred_project_id": str(preferred_project_id) if preferred_project_id else None,
+            }
+        )
+
+    project_open_counts: dict[UUID, int] = {}
+    project_high_counts: dict[UUID, int] = {}
+    for row in open_quests:
+        if row.project_id is None:
+            continue
+        project_open_counts[row.project_id] = project_open_counts.get(row.project_id, 0) + 1
+        if row.priority in {QuestPriority.high, QuestPriority.critical}:
+            project_high_counts[row.project_id] = project_high_counts.get(row.project_id, 0) + 1
+
+    map_width = 960
+    map_height = 560
+    area_width = 190
+    area_height = 150
+    area_gap_x = 28
+    area_gap_y = 24
+    grid_cols = 4
+    offset_x = 42
+    offset_y = 52
+
+    map_areas: list[dict[str, object]] = []
+    area_by_project_id: dict[str, dict[str, object]] = {}
+    for idx, project in enumerate(sorted(projects, key=lambda row: row.name.lower())[:8]):
+        grid_x = idx % grid_cols
+        grid_y = idx // grid_cols
+        area = {
+            "id": f"area-{project.id}",
+            "project_id": str(project.id),
+            "project_name": project.name,
+            "x": offset_x + (grid_x * (area_width + area_gap_x)),
+            "y": offset_y + (grid_y * (area_height + area_gap_y)),
+            "width": area_width,
+            "height": area_height,
+            "open_count": project_open_counts.get(project.id, 0),
+            "high_count": project_high_counts.get(project.id, 0),
+        }
+        map_areas.append(area)
+        area_by_project_id[str(project.id)] = area
+
+    map_units: list[dict[str, object]] = []
+    for idx, row in enumerate(units):
+        target_project_id = row.get("preferred_project_id")
+        target_area = area_by_project_id.get(str(target_project_id)) if target_project_id else None
+        if target_area:
+            base_x = int(target_area["x"]) + 28 + ((idx % 4) * 26)
+            base_y = int(target_area["y"]) + 34 + ((idx % 3) * 24)
+            target_area_id = str(target_area["id"])
+        else:
+            base_x = 80 + ((idx % 9) * 92)
+            base_y = 430 + ((idx % 2) * 58)
+            target_area_id = None
+
+        map_units.append(
+            {
+                "id": str(row["id"]),
+                "name": str(row["name"]),
+                "unit_type": str(row["unit_type"]),
+                "role": str(row["role"]),
+                "sprite_key": str(row["unit_type"]),
+                "x": base_x,
+                "y": base_y,
+                "speed": 30 + (idx % 3) * 7,
+                "target_area_id": target_area_id,
+                "target_project_id": str(target_project_id) if target_project_id else None,
+            }
+        )
+
+    orchestration_map_payload = {
+        "width": map_width,
+        "height": map_height,
+        "areas": map_areas,
+        "agents": map_units,
+        "sprite_base_path": "/static/sprites/agents",
+    }
 
     selected_quest_action = (request.query_params.get("quest_action") or "").strip()
     selected_quest_actor_id = (request.query_params.get("quest_actor_id") or "").strip()
@@ -935,6 +1141,7 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
         "selected_quest_action": selected_quest_action,
         "selected_quest_actor_id": selected_quest_actor_id,
         "units": units,
+        "orchestration_map_payload": orchestration_map_payload,
         "form_projects": sorted(projects, key=lambda row: row.name.lower()),
         "form_people": sorted(people, key=lambda row: row.name.lower()),
         "form_agents": sorted(agents, key=lambda row: row.name.lower()),
@@ -1225,6 +1432,7 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
         "projects_count": len(projects),
         "critical_pm_count": critical_pm_count,
         "critical_dev_count": critical_dev_count,
+        "sensitivity_options": [row.value for row in SensitivityLevel],
     }
 
 
@@ -1257,7 +1465,27 @@ def login_submit(
     if not person or not verify_password(password, person.hashed_password):
         return _redirect_login(err="Invalid credentials", next_path=next_path)
 
-    token = create_access_token(str(person.id))
+    memberships = list(
+        session.exec(
+            select(OrganizationMembership).where(OrganizationMembership.person_id == person.id)
+        ).all()
+    )
+    if not memberships:
+        return _redirect_login(
+            err="No organization membership found. Ask your admin for access.",
+            next_path=next_path,
+        )
+
+    # UI login does not ask users to choose an organization, so prefer owner/admin memberships first.
+    memberships.sort(
+        key=lambda row: (
+            0 if row.role in {OrganizationRole.owner, OrganizationRole.admin} else 1,
+            row.joined_at,
+        )
+    )
+    selected_org_id = memberships[0].organization_id
+
+    token = create_access_token(str(person.id), organization_id=str(selected_org_id))
     target_path = _normalize_redirect_path(next_path, "/dashboard")
     response = RedirectResponse(url=target_path, status_code=303)
     response.set_cookie(
@@ -1644,6 +1872,38 @@ def client_health_ui(
     )
 
 
+@router.post("/client-health-ui/create-client", include_in_schema=False)
+def client_health_create_client(
+    name: str = Form(...),
+    tenant_url: str = Form(...),
+    sensitivity_level: str = Form("medium"),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        client = Client(
+            organization_id=current_actor.organization.id,
+            name=name.strip(),
+            tenant_url=tenant_url.strip(),
+            sensitivity_level=SensitivityLevel(sensitivity_level),
+        )
+        session.add(client)
+        session.commit()
+        session.refresh(client)
+        log_created(
+            session,
+            entity_type=EntityType.client,
+            entity_id=client.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            metadata={"sensitivity_level": client.sensitivity_level.value},
+        )
+        return _redirect_ui("/client-health-ui", ok=f"Client '{client.name}' created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/client-health-ui", err=f"Create client failed: {exc}")
+
+
 @router.post("/dashboard/create-client", include_in_schema=False)
 def dashboard_create_client(
     name: str = Form(...),
@@ -1717,7 +1977,7 @@ def dashboard_create_person(
             entity_id=person.id,
             actor_id=current_actor.person.id,
             organization_id=current_actor.organization.id,
-            metadata={"email": person.email, "role_global": person.role_global.value},
+            metadata={"email": person.email, "role_global": _enum_or_value(person.role_global, "member")},
         )
         if created:
             return _redirect_dashboard(ok=f"Person '{person.name}' created")
@@ -1793,7 +2053,7 @@ def dashboard_create_membership(
             metadata={
                 "project_id": str(membership.project_id),
                 "person_id": str(membership.person_id),
-                "role": membership.role.value,
+                "role": _enum_or_value(membership.role, "member"),
             },
         )
         return _redirect_dashboard(ok="Project membership created")
@@ -2800,8 +3060,8 @@ def people_ui(
             "id": person.id,
             "name": person.name,
             "email": person.email,
-            "role_global": person.role_global.value,
-            "role_org": membership_by_person_id[person.id].role.value
+            "role_global": _enum_or_value(person.role_global, "member"),
+            "role_org": _enum_or_value(membership_by_person_id[person.id].role, "member")
             if person.id in membership_by_person_id
             else "member",
             "created_at": person.created_at,
@@ -2862,7 +3122,7 @@ def people_ui_create(
             entity_id=person.id,
             actor_id=current_actor.person.id,
             organization_id=current_actor.organization.id,
-            metadata={"email": person.email, "role_global": person.role_global.value},
+            metadata={"email": person.email, "role_global": _enum_or_value(person.role_global, "member")},
         )
         if created:
             return _redirect_ui("/people-ui", ok=f"Person '{person.name}' created")
@@ -2905,7 +3165,7 @@ def people_ui_update(
             entity_id=person.id,
             actor_id=current_actor.person.id,
             organization_id=current_actor.organization.id,
-            metadata={"email": person.email, "role_global": person.role_global.value},
+            metadata={"email": person.email, "role_global": _enum_or_value(person.role_global, "member")},
         )
         return _redirect_ui("/people-ui", ok="Person updated")
     except Exception as exc:
@@ -4038,7 +4298,7 @@ def person_overview_ui(
             if membership.project_id in project_client_id_by_project_id
             else "-",
             "status": project_status_by_id.get(membership.project_id, "-"),
-            "role": membership.role.value,
+            "role": _enum_or_value(membership.role, "member"),
             "start_date": membership.start_date,
         }
         for membership in memberships
@@ -5523,6 +5783,11 @@ def snapshots_client_ui(
         .where(CelonisSnapshot.client_id == client_id)
         .order_by(CelonisSnapshot.created_at.desc())
     ).all()
+    active_connection = _get_org_active_celonis_connection(
+        session,
+        client_id,
+        current_actor.organization.id,
+    )
     ok_message = request.query_params.get("ok")
     error_message = request.query_params.get("err")
     return templates.TemplateResponse(
@@ -5531,6 +5796,7 @@ def snapshots_client_ui(
             "request": request,
             "client": client,
             "snapshots": snapshots,
+            "has_active_connection": active_connection is not None,
             "ok_message": ok_message,
             "error_message": error_message,
         },
@@ -5548,7 +5814,17 @@ def trigger_snapshot_ui(
         client = _get_org_client(session, client_id, current_actor.organization.id)
         if client is None:
             return _redirect_ui("/clients-ui", err="Client not found")
-        snap = run_snapshot(session, client_id=client_id, triggered_by=current_actor.person.id)
+        if _get_org_active_celonis_connection(session, client_id, current_actor.organization.id) is None:
+            return _redirect_ui(
+                f"/snapshots-ui/{client_id}",
+                err="No active Celonis connection configured. Open Dashboard and save a Celonis connection for this client.",
+            )
+        snap = run_snapshot(
+            session,
+            client_id=client_id,
+            triggered_by=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+        )
         return _redirect_ui(f"/snapshots-ui/{client_id}", ok=f"Snapshot {snap.id} completed")
     except Exception as exc:
         session.rollback()

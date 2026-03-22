@@ -101,6 +101,10 @@ def test_client_health_ui_renders_tabs_and_toggle_controls() -> None:
         assert "Global Client Health" in html
         assert "PM View" in html
         assert "Dev View" in html
+        assert "/client-health-ui/create-client" in html
+        assert "Create Client" in html
+        assert "name=\"tenant_url\"" in html
+        assert "name=\"sensitivity_level\"" in html
 
         # New smoke-test controls for grouped rows
         assert "Collapse all" in html
@@ -147,6 +151,32 @@ def test_client_health_ui_groups_project_rows_under_each_client_summary() -> Non
 
         assert "(2 projects)" in pm_html
         assert "(1 projects)" in pm_html
+
+
+def test_client_health_ui_create_client_form_creates_client_and_redirects() -> None:
+    _reset_db()
+    person_id, organization_id, _, _ = _seed_client_health_data()
+    auth_token = create_access_token(person_id, organization_id)
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+
+        response = api_client.post(
+            "/client-health-ui/create-client",
+            data={
+                "name": "Gamma Health UI Client",
+                "tenant_url": "https://gamma-health-ui-client.celonis.cloud",
+                "sensitivity_level": "high",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert response.headers.get("location", "").startswith("/client-health-ui?ok=")
+
+        dashboard_response = api_client.get("/client-health-ui")
+        assert dashboard_response.status_code == 200
+        assert "Gamma Health UI Client" in dashboard_response.text
 
 
 if __name__ == "__main__":

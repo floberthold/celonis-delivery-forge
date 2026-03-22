@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     local_database_url: str = _default_local_database_url()
     database_fallback_to_local: bool = True
     database_connect_timeout_seconds: int = 5
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_starttls: bool = True
+    smtp_use_ssl: bool = False
+    registration_token_expire_minutes: int = 60
+    password_reset_token_expire_minutes: int = 30
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="FORGE_", extra="ignore")
 

@@ -16,6 +16,10 @@ from foundry.models import (
     IngestRun,
     IngestRunStatus,
 )
+from foundry.services.snapshot_git_service import (
+    archive_asset_snapshot_payload,
+    materialize_asset_snapshot_git_history,
+)
 
 _TEXT_EXTENSIONS = {
     ".py",
@@ -170,6 +174,24 @@ def execute_code_drop_ingest(
     manifest_path.write_text(json.dumps(manifest_payload, indent=2), encoding="utf-8")
 
     snapshot.manifest_path = str(manifest_path)
+    updated_summary = dict(snapshot.summary_json)
+    updated_summary["archived_payload_path"] = archive_asset_snapshot_payload(
+        snapshot_id=snapshot.id,
+        drop_path=str(root),
+        uploads_dir=uploads_dir,
+    )
+
+    try:
+        updated_summary["git_history"] = materialize_asset_snapshot_git_history(
+            session,
+            snapshot_id=snapshot.id,
+            base_output_dir=Path(uploads_dir).resolve() / "git_history",
+        )
+    except Exception as exc:
+        updated_summary["git_history_error"] = str(exc)
+
+    snapshot.summary_json = updated_summary
+
     session.add(snapshot)
     session.commit()
     session.refresh(snapshot)

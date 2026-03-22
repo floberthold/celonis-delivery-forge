@@ -78,10 +78,18 @@
 <section class="orchestration-grid">
     <article class="panel command-map">
         <div class="section-header">
-            <h3>Command Map (Preview)</h3>
+            <h3>Command Map (Sprite Town)</h3>
         </div>
-        <p class="map-hint">Regions represent projects. Intensity indicates task pressure.</p>
-        <div class="region-list">
+        <p class="map-hint">Agents patrol project districts. Click an agent to inspect assignment context.</p>
+        <div class="command-map-canvas-wrap">
+            <canvas id="orchestration-map-canvas" width="960" height="560" aria-label="Agent town map"></canvas>
+        </div>
+        <div class="command-map-detail" id="orchestration-map-detail">
+            <h4 id="map-detail-name">Select an agent</h4>
+            <p id="map-detail-role" class="region-meta">Click an agent sprite on the map.</p>
+            <p id="map-detail-target" class="region-meta">Assignment area will appear here.</p>
+        </div>
+        <div class="region-list command-map-fallback">
             {% for row in hotspots %}
             <div class="region-row">
                 <div>
@@ -96,6 +104,11 @@
             <p>No active pressure hotspots.</p>
             {% endfor %}
         </div>
+
+        <script>
+            window.__ORCHESTRATION_MAP_PAYLOAD__ = {{ orchestration_map_payload | tojson }};
+        </script>
+        <script src="/static/orchestration_map.js"></script>
     </article>
 
     <article class="panel">

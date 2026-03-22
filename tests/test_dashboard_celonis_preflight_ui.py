@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -8,6 +9,7 @@ from sqlmodel import SQLModel, Session
 os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_dashboard_celonis_preflight_ui_test.db")
 
 from foundry.api.main import app
+from foundry.api.routes.ui import _sort_datetime_key
 from foundry.db import engine
 from foundry.models import (
     ActivityLog,
@@ -126,3 +128,13 @@ def test_dashboard_shows_celonis_preflight_history_badges() -> None:
         assert "celonis-status-authorized" in response.text
         assert "celonis-status-missing-token" in response.text
         assert "run run-abc" in response.text
+
+
+def test_sort_datetime_key_handles_mixed_timezone_values() -> None:
+    naive = datetime(2026, 3, 22, 10, 0, 0)
+    aware = datetime(2026, 3, 22, 10, 0, 1, tzinfo=timezone.utc)
+
+    values = [aware, naive]
+    sorted_values = sorted(values, key=_sort_datetime_key, reverse=True)
+
+    assert sorted_values[0] == aware

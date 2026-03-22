@@ -23,6 +23,7 @@ from foundry.models import (
     SnapshotTask,
 )
 from foundry.settings import get_settings
+from foundry.services.snapshot_git_service import materialize_celonis_snapshot_git_history
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -39,11 +40,19 @@ def _content_hash(raw: dict) -> str:
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
-def _get_connection(session: Session, client_id: UUID) -> CelonisConnection | None:
-    stmt = select(CelonisConnection).where(
+def _get_connection(
+    session: Session,
+    client_id: UUID,
+    *,
+    organization_id: UUID | None = None,
+) -> CelonisConnection | None:
+    filters = [
         CelonisConnection.client_id == client_id,
         CelonisConnection.is_active == True,  # noqa: E712
-    )
+    ]
+    if organization_id is not None:
+        filters.append(CelonisConnection.organization_id == organization_id)
+    stmt = select(CelonisConnection).where(*filters)
     return session.exec(stmt).first()
 
 
@@ -170,9 +179,15 @@ def _extract_knowledge_models(gw: CelonisGateway, base_url: str) -> list[dict]:
 # Public API
 # ---------------------------------------------------------------------------
 
-def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> CelonisSnapshot:
+def run_snapshot(
+    session: Session,
+    *,
+    client_id: UUID,
+    triggered_by: UUID,
+    organization_id: UUID | None = None,
+) -> CelonisSnapshot:
     """Trigger a full snapshot for a client and persist results."""
-    conn = _get_connection(session, client_id)
+    conn = _get_connection(session, client_id, organization_id=organization_id)
     if conn is None:
         raise ValueError(f"No active Celonis connection for client {client_id}")
 
@@ -300,12 +315,13 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
         # ---- finalize ----
         snap.status = SnapshotRunStatus.completed
         snap.finished_at = datetime.utcnow()
-        snap.summary_json = {
+        updated_summary = {
             "packages": len(raw_packages),
             "data_models": len(raw_data_models),
             "jobs": len(raw_jobs),
             "knowledge_models": len(raw_knowledge_models),
         }
+        snap.summary_json = updated_summary
 
         # Auto-generate a local export bundle + docs for every completed snapshot.
         try:
@@ -316,7 +332,7 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
                 snapshot_id=snap.id,
                 base_output_dir=Path(get_settings().uploads_dir) / "snapshot_exports",
             )
-            snap.summary_json["export_bundle"] = {
+            updated_summary["export_bundle"] = {
                 "bundle_path": export_result["bundle_path"],
                 "docs_path": export_result["docs_path"],
                 "generated_at": str(export_result["generated_at"]),
@@ -324,7 +340,18 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
                 "relationship_graph": export_result.get("relationship_graph"),
             }
         except Exception as export_exc:
-            snap.summary_json["export_bundle_error"] = str(export_exc)
+            updated_summary["export_bundle_error"] = str(export_exc)
+
+        try:
+            updated_summary["git_history"] = materialize_celonis_snapshot_git_history(
+                session,
+                snapshot_id=snap.id,
+                base_output_dir=Path(get_settings().uploads_dir) / "git_history",
+            )
+        except Exception as git_exc:
+            updated_summary["git_history_error"] = str(git_exc)
+
+        snap.summary_json = updated_summary
 
         session.add(snap)
         session.commit()
