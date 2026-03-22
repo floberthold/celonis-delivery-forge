@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import os
 from pathlib import Path
 from uuid import UUID
@@ -6,12 +8,17 @@ from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, select
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_account_ui_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_account_ui_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
-from foundry.db import engine
 from foundry.models import Organization, OrganizationMembership, OrganizationRole, Person
 from foundry.security import create_access_token, hash_password
+
+engine = db_module.engine
 
 
 DB_FILE = Path("tmp_account_ui_test.db")
@@ -142,7 +149,10 @@ def test_account_ui_rejects_duplicate_email() -> None:
 
 if __name__ == "__main__":
     if DB_FILE.exists():
-        DB_FILE.unlink()
+        try:
+            DB_FILE.unlink()
+        except PermissionError:
+            pass
     test_account_ui_renders_current_user_details()
     test_account_ui_updates_profile_and_password()
     test_account_ui_rejects_duplicate_email()

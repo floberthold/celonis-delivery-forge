@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -6,11 +8,14 @@ from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_dashboard_celonis_preflight_ui_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_dashboard_celonis_preflight_ui_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
 from foundry.api.routes.ui import _sort_datetime_key
-from foundry.db import engine
 from foundry.models import (
     ActivityLog,
     CelonisConnection,
@@ -18,6 +23,7 @@ from foundry.models import (
     EntityType,
     Organization,
     OrganizationMembership,
+    OrganizationRole,
     Person,
 )
 from foundry.security import create_access_token, hash_password
@@ -27,12 +33,12 @@ DB_FILE = Path("tmp_dashboard_celonis_preflight_ui_test.db")
 
 
 def _reset_db() -> None:
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.drop_all(db_module.engine)
+    SQLModel.metadata.create_all(db_module.engine)
 
 
 def _seed_dashboard_preflight_data() -> tuple[str, str, str, str]:
-    with Session(engine) as session:
+    with Session(db_module.engine) as session:
         person = Person(
             email="dashboard-preflight-ui@example.com",
             name="Dashboard Preflight UI Tester",
@@ -50,7 +56,7 @@ def _seed_dashboard_preflight_data() -> tuple[str, str, str, str]:
         membership = OrganizationMembership(
             organization_id=organization.id,
             person_id=person.id,
-            role="owner",
+            role=OrganizationRole.owner,
         )
         session.add(membership)
 

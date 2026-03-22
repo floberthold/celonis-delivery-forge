@@ -4,6 +4,7 @@ import shutil
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any, Sequence
 from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlsplit, urlunsplit
 from uuid import UUID, uuid4
 
@@ -73,7 +74,7 @@ from foundry.models import (
     SnapshotJob,
     SnapshotKnowledgeModel,
     SnapshotPackage,
-    SnapshotRunStatus,
+    SnapshotSpace,
     SnapshotTask,
     Template,
     TemplateInstantiation,
@@ -91,7 +92,6 @@ from foundry.models import (
     TemplateStorageType,
 )
 from foundry.schemas import (
-    KpiBookEntryCreate,
     ReviewDecisionCreate,
     ReviewRequestCreate,
     TemplateInstantiateCreate,
@@ -316,6 +316,334 @@ def _normalize_redirect_path(path: str | None, fallback: str) -> str:
     if not candidate.startswith("/"):
         return fallback
     return candidate
+
+
+def _snapshot_component_rows(payload: object, *, limit: int = 80) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    stack: list[tuple[str, object]] = [("$", payload)]
+    while stack and len(rows) < limit:
+        path, node = stack.pop()
+        if isinstance(node, dict):
+            rows.append({"path": path, "kind": "object", "preview": f"{len(node)} fields"})
+            for key, value in reversed(list(node.items())[:12]):
+                stack.append((f"{path}.{key}", value))
+            continue
+        if isinstance(node, list):
+            rows.append({"path": path, "kind": "array", "preview": f"{len(node)} items"})
+            for index in range(min(len(node), 8) - 1, -1, -1):
+                stack.append((f"{path}[{index}]", node[index]))
+            continue
+        preview = "null" if node is None else str(node)
+        if len(preview) > 120:
+            preview = f"{preview[:117]}..."
+        rows.append({"path": path, "kind": "value", "preview": preview})
+    return rows
+
+
+def _snapshot_reference_ids(payload: object, *, max_refs: int = 120) -> list[str]:
+    refs: set[str] = set()
+    stack: list[object] = [payload]
+
+    def _add_ref(value: object) -> None:
+        if isinstance(value, (str, int, float)):
+            candidate = str(value).strip()
+            if 0 < len(candidate) <= 120:
+                refs.add(candidate)
+
+    while stack and len(refs) < max_refs:
+        node = stack.pop()
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if isinstance(value, (dict, list)):
+                    stack.append(value)
+                key_lower = key.lower()
+                if key_lower == "id" or key_lower.endswith("id") or key_lower.endswith("_id") or key_lower.endswith("key"):
+                    if isinstance(value, list):
+                        for item in value:
+                            _add_ref(item)
+                    else:
+                        _add_ref(value)
+        elif isinstance(node, list):
+            for item in node:
+                if isinstance(item, (dict, list)):
+                    stack.append(item)
+    return sorted(refs)
+
+
+def _snapshot_entity_maps(
+    *,
+    packages: Sequence[SnapshotPackage],
+    tasks: Sequence[SnapshotTask],
+    data_models: Sequence[SnapshotDataModel],
+    jobs: Sequence[SnapshotJob],
+    knowledge_models: Sequence[SnapshotKnowledgeModel],
+) -> dict[str, dict[str, dict[str, object]]]:
+    return {
+        "packages": {
+            row.package_id: {
+                "id": row.package_id,
+                "name": row.name,
+                "raw_json": row.raw_json or {},
+                "change_type": _enum_or_value(row.change_type, "unchanged"),
+                "family": "package",
+            }
+            for row in packages
+        },
+        "tasks": {
+            row.task_id: {
+                "id": row.task_id,
+                "name": row.name,
+                "raw_json": row.raw_json or {},
+                "change_type": _enum_or_value(row.change_type, "unchanged"),
+                "family": "task",
+                "task_type": row.task_type or "unknown",
+            }
+            for row in tasks
+        },
+        "data_models": {
+            row.data_model_id: {
+                "id": row.data_model_id,
+                "name": row.name,
+                "raw_json": row.raw_json or {},
+                "change_type": _enum_or_value(row.change_type, "unchanged"),
+                "family": "data_model",
+            }
+            for row in data_models
+        },
+        "jobs": {
+            row.job_id: {
+                "id": row.job_id,
+                "name": row.name,
+                "raw_json": row.raw_json or {},
+                "change_type": _enum_or_value(row.change_type, "unchanged"),
+                "family": "job",
+            }
+            for row in jobs
+        },
+        "knowledge_models": {
+            row.km_id: {
+                "id": row.km_id,
+                "name": row.name,
+                "raw_json": row.raw_json or {},
+                "change_type": _enum_or_value(row.change_type, "unchanged"),
+                "family": "knowledge_model",
+            }
+            for row in knowledge_models
+        },
+    }
+
+
+def _snapshot_family_diff(
+    current_rows: dict[str, dict[str, object]],
+    baseline_rows: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    entries: list[dict[str, str]] = []
+    counts = {"added": 0, "removed": 0, "modified": 0, "unchanged": 0}
+    all_ids = sorted(set(current_rows.keys()) | set(baseline_rows.keys()))
+
+    for asset_id in all_ids:
+        current = current_rows.get(asset_id)
+        baseline = baseline_rows.get(asset_id)
+        if current is None:
+            status = "removed"
+            name = str((baseline or {}).get("name") or asset_id)
+        elif baseline is None:
+            status = "added"
+            name = str(current.get("name") or asset_id)
+        else:
+            current_raw = json.dumps(current.get("raw_json", {}), sort_keys=True, default=str)
+            baseline_raw = json.dumps(baseline.get("raw_json", {}), sort_keys=True, default=str)
+            status = "modified" if current_raw != baseline_raw else "unchanged"
+            name = str(current.get("name") or baseline.get("name") or asset_id)
+        counts[status] += 1
+        entries.append({"id": asset_id, "name": name, "status": status})
+
+    return {"counts": counts, "entries": entries}
+
+
+def _snapshot_dependency_index(
+    *,
+    packages: Sequence[SnapshotPackage],
+    tasks: Sequence[SnapshotTask],
+    data_models: Sequence[SnapshotDataModel],
+    jobs: Sequence[SnapshotJob],
+    knowledge_models: Sequence[SnapshotKnowledgeModel],
+) -> dict[str, dict[str, object]]:
+    index: dict[str, dict[str, object]] = {}
+
+    def _upsert(entity_id: str, family: str, name: str, raw_json: dict) -> None:
+        if not entity_id:
+            return
+        if entity_id in index:
+            return
+        index[entity_id] = {
+            "id": entity_id,
+            "family": family,
+            "name": name,
+            "raw_json": raw_json or {},
+        }
+
+    for row in packages:
+        _upsert(row.package_id, "package", row.name, row.raw_json or {})
+    for row in tasks:
+        _upsert(row.task_id, "task", row.name, row.raw_json or {})
+    for row in data_models:
+        _upsert(row.data_model_id, "data_model", row.name, row.raw_json or {})
+    for row in jobs:
+        _upsert(row.job_id, "job", row.name, row.raw_json or {})
+    for row in knowledge_models:
+        _upsert(row.km_id, "knowledge_model", row.name, row.raw_json or {})
+    return index
+
+
+def _snapshot_hierarchy_spaces(
+    *,
+    spaces: Sequence[SnapshotSpace],
+    packages: Sequence[SnapshotPackage],
+    package_tasks: dict[str, list[SnapshotTask]],
+    dependency_index: dict[str, dict[str, object]],
+) -> tuple[list[dict[str, object]], list[str]]:
+    hierarchy_spaces: dict[str, dict[str, Any]] = {}
+
+    for row in spaces:
+        hierarchy_spaces[row.space_id] = {
+            "space_id": row.space_id,
+            "space_name": row.name,
+            "packages": [],
+            "package_count": 0,
+            "asset_count": 0,
+        }
+
+    asset_types: set[str] = set()
+
+    def _ensure_space(space_id: str | None, space_name: str | None) -> dict[str, Any]:
+        normalized_id = (space_id or "").strip() or "__unassigned__"
+        if normalized_id not in hierarchy_spaces:
+            hierarchy_spaces[normalized_id] = {
+                "space_id": normalized_id,
+                "space_name": (space_name or "").strip() or "Unassigned Space",
+                "packages": [],
+                "package_count": 0,
+                "asset_count": 0,
+            }
+        return hierarchy_spaces[normalized_id]
+
+    for pkg in sorted(packages, key=lambda row: (row.name or "").lower()):
+        container = _ensure_space(pkg.space_id, pkg.space_name)
+        container_packages: list[dict[str, Any]] = container["packages"]
+        asset_rows: list[dict[str, object]] = []
+        pkg_tasks = sorted(package_tasks.get(pkg.package_id, []), key=lambda row: (row.name or "").lower())
+        for task in pkg_tasks:
+            asset_type = (task.task_type or "unknown").strip() or "unknown"
+            asset_types.add(asset_type)
+            refs = _snapshot_reference_ids(task.raw_json or {}, max_refs=24)
+            linked_dependencies = [
+                dependency_index[ref]
+                for ref in refs
+                if ref in dependency_index and ref not in {pkg.package_id, task.task_id}
+            ][:10]
+            asset_rows.append(
+                {
+                    "task": task,
+                    "asset_type": asset_type,
+                    "refs": refs,
+                    "linked_dependencies": linked_dependencies,
+                    "component_rows": _snapshot_component_rows(task.raw_json or {}, limit=16),
+                }
+            )
+
+        container_packages.append(
+            {
+                "package": pkg,
+                "assets": asset_rows,
+                "asset_count": len(asset_rows),
+                "component_rows": _snapshot_component_rows(pkg.raw_json or {}, limit=12),
+            }
+        )
+        container["package_count"] = container["package_count"] + 1
+        container["asset_count"] = container["asset_count"] + len(asset_rows)
+
+    hierarchy_rows = sorted(
+        hierarchy_spaces.values(),
+        key=lambda row: str(row.get("space_name") or "").lower(),
+    )
+    return hierarchy_rows, sorted(asset_types, key=lambda row: row.lower())
+
+
+def _crawl_snapshot_dependencies(
+    *,
+    seed_refs: list[str],
+    index: dict[str, dict[str, object]],
+    skip_ids: set[str] | None = None,
+    max_nodes: int = 60,
+) -> list[dict[str, object]]:
+    queue = [row for row in seed_refs if row]
+    visited: set[str] = set(skip_ids or set())
+    dependencies: list[dict[str, object]] = []
+
+    while queue and len(dependencies) < max_nodes:
+        ref = queue.pop(0)
+        if ref in visited:
+            continue
+        visited.add(ref)
+        entity = index.get(ref)
+        if entity is None:
+            continue
+        dependencies.append(entity)
+        nested_refs = _snapshot_reference_ids(entity.get("raw_json", {}), max_refs=40)
+        for nested in nested_refs:
+            if nested not in visited:
+                queue.append(nested)
+    return dependencies
+
+
+def _asset_type_for_task(task_type: str | None) -> AssetType:
+    token = (task_type or "").strip().lower()
+    if "kpi" in token:
+        return AssetType.kpi
+    if "action" in token:
+        return AssetType.action_flow
+    if "job" in token or "extract" in token:
+        return AssetType.extractor
+    if "ml" in token:
+        return AssetType.ml_job
+    if "view" in token or "analysis" in token:
+        return AssetType.view
+    return AssetType.other
+
+
+def _asset_type_for_family(family: str, *, task_type: str | None = None) -> AssetType:
+    if family == "task":
+        return _asset_type_for_task(task_type)
+    if family == "data_model":
+        return AssetType.data_model
+    if family == "job":
+        return AssetType.extractor
+    if family == "package":
+        return AssetType.view
+    return AssetType.other
+
+
+def _snapshot_path_lookup(payload: object, path: str) -> object | None:
+    if not path.startswith("$"):
+        return None
+    cursor = payload
+    token_pattern = re.compile(r"\.?([A-Za-z0-9_]+)|\[(\d+)\]")
+    for match in token_pattern.finditer(path[1:]):
+        key, index = match.groups()
+        if key is not None:
+            if not isinstance(cursor, dict):
+                return None
+            cursor = cursor.get(key)
+            continue
+        if index is not None:
+            if not isinstance(cursor, list):
+                return None
+            idx = int(index)
+            if idx < 0 or idx >= len(cursor):
+                return None
+            cursor = cursor[idx]
+    return cursor
 
 
 def _store_uploaded_delivery_file(upload_file: UploadFile) -> tuple[str, int]:
@@ -626,6 +954,101 @@ def _upsert_org_person_celonis_token(
     return row
 
 
+def _mask_token_value(token_value: str) -> str:
+    cleaned = (token_value or "").strip()
+    if not cleaned:
+        return "not set"
+    if len(cleaned) <= 8:
+        return "*" * len(cleaned)
+    return f"{cleaned[:4]}...{cleaned[-4:]}"
+
+
+def _latest_celonis_system_access_by_person(
+    session: Session,
+    organization_id: UUID,
+) -> dict[UUID, dict]:
+    logs = sorted(
+        [
+            row
+            for row in _org_activity_logs(session, organization_id)
+            if row.action == "celonis_connection.preflight"
+        ],
+        key=lambda r: _sort_datetime_key(r.timestamp),
+        reverse=True,
+    )
+    access_by_person: dict[UUID, dict] = {}
+    for row in logs:
+        person_id = row.actor_id
+        if person_id is None:
+            continue
+        metadata = row.metadata_json or {}
+        service = str(metadata.get("service") or "").strip()
+        if not service:
+            continue
+        permission_status = str(metadata.get("permission_status") or "unknown").strip().lower()
+        if not permission_status:
+            permission_status = "unknown"
+
+        person_access = access_by_person.setdefault(
+            person_id,
+            {
+                "service_status": {},
+                "last_preflight_at": None,
+            },
+        )
+        service_status = person_access["service_status"]
+        if service in service_status:
+            continue
+        service_status[service] = permission_status
+        if person_access["last_preflight_at"] is None:
+            person_access["last_preflight_at"] = row.timestamp
+
+    return access_by_person
+
+
+def _active_project_token_scopes_by_person(
+    session: Session,
+    organization_id: UUID,
+) -> dict[UUID, list[dict[str, object]]]:
+    project_name_by_id = {
+        row.id: row.name for row in _org_projects(session, organization_id)
+    }
+    logs = sorted(
+        [
+            row
+            for row in _org_activity_logs(session, organization_id)
+            if row.action == "project.celonis_token.updated" and row.entity_type == EntityType.project
+        ],
+        key=lambda r: _sort_datetime_key(r.timestamp),
+        reverse=True,
+    )
+    active_by_person: dict[UUID, list[dict[str, object]]] = {}
+    seen_keys: set[tuple[UUID, UUID]] = set()
+    for row in logs:
+        if row.actor_id is None:
+            continue
+        project_id = row.entity_id
+        person_id = row.actor_id
+        lookup_key = (person_id, project_id)
+        if lookup_key in seen_keys:
+            continue
+        seen_keys.add(lookup_key)
+
+        metadata = row.metadata_json or {}
+        if not metadata.get("token_present"):
+            continue
+
+        active_by_person.setdefault(person_id, []).append(
+            {
+                "project_id": project_id,
+                "project_name": project_name_by_id.get(project_id, "Unknown project"),
+                "updated_at": row.timestamp,
+            }
+        )
+
+    return active_by_person
+
+
 def _org_template_libraries(session: Session, organization_id: UUID) -> list[TemplateLibrary]:
     return list(
         session.exec(
@@ -841,6 +1264,33 @@ def _dashboard_context(request: Request, session: Session, current_actor: Curren
     ).all()
     team_member_count = len(memberships)
 
+    logs = sorted(
+        _org_activity_logs(session, current_actor.organization.id),
+        key=lambda row: _sort_datetime_key(row.timestamp),
+        reverse=True,
+    )
+    target_run_id: str | None = None
+    celonis_preflight_rows: list[dict[str, str | int | None]] = []
+    for row in logs:
+        if row.action != "celonis_connection.preflight":
+            continue
+        metadata = row.metadata_json or {}
+        run_id = str(metadata.get("run_id", "")).strip() or None
+        if target_run_id is None:
+            target_run_id = run_id
+        if target_run_id and run_id != target_run_id:
+            continue
+        permission_status = str(metadata.get("permission_status", "unknown")).strip().lower() or "unknown"
+        celonis_preflight_rows.append(
+            {
+                "service": str(metadata.get("service", "core")),
+                "permission_status": permission_status,
+                "status_code": metadata.get("status_code") if isinstance(metadata.get("status_code"), int) else None,
+                "run_id": run_id,
+            }
+        )
+    celonis_preflight_rows.sort(key=lambda item: str(item["service"]).lower())
+
     return {
         "request": request,
         "active_organization": current_actor.organization,
@@ -852,6 +1302,8 @@ def _dashboard_context(request: Request, session: Session, current_actor: Curren
         "reviews_count": reviews_count,
         "timeline_count": timeline_count,
         "team_member_count": team_member_count,
+        "celonis_preflight_rows": celonis_preflight_rows,
+        "latest_preflight_run_id": target_run_id,
     }
 
 
@@ -2095,6 +2547,40 @@ def _latest_preflight_rows_for_client(
     organization_id: UUID,
     client_id: UUID,
 ) -> list[dict]:
+    def _normalize_preflight_status(raw_status: str, status_code: int | None) -> str:
+        status = (raw_status or "unknown").strip().lower()
+        if status == "unknown" and status_code in {301, 302, 303, 307, 308}:
+            return "redirect-to-login"
+        return status
+
+    def _preflight_remediation(service: str, status: str) -> str:
+        service_key = (service or "").strip().lower()
+        rights_hint = {
+            "core": "Grant Core platform/API access for app keys.",
+            "process-mining": "Grant Process Mining API read rights (teams and data models).",
+            "data-integration": "Grant Data Integration API read rights (pools, jobs, transformations).",
+            "studio": (
+                "Grant Studio API list/read rights for spaces. "
+                "Package-level Use/Edit/Delete/Manage permissions alone may not allow "
+                "tenant-wide /studio/api/spaces listing."
+            ),
+            "apps": "Grant Apps API read rights (apps/packages listing).",
+        }.get(service_key, "Grant the API read rights required by this service.")
+
+        if status == "authorized":
+            return "OK"
+        if status == "missing-token":
+            return "Save a per-user token in Step 3 or configure FORGE_CELONIS_API_TOKEN."
+        if status in {"unauthorized", "forbidden", "redirect-to-login"}:
+            return f"App key is valid but missing service scope. {rights_hint}"
+        if status == "not-found":
+            return "Endpoint unavailable for this tenant. Confirm service availability and endpoint version."
+        if status == "unreachable":
+            return "Tenant URL or network connectivity issue. Verify base URL, DNS, proxy, and firewall."
+        if status == "server-error":
+            return "Celonis service returned 5xx. Retry later and inspect tenant service health."
+        return f"Check endpoint availability and rights. {rights_hint}"
+
     logs = sorted(
         _org_activity_logs(session, organization_id),
         key=lambda row: _sort_datetime_key(row.timestamp),
@@ -2114,12 +2600,19 @@ def _latest_preflight_rows_for_client(
             target_run_id = run_id
         if target_run_id and run_id != target_run_id:
             continue
+        raw_status = str(metadata.get("permission_status", "unknown"))
+        status_code = metadata.get("status_code")
+        normalized_status = _normalize_preflight_status(raw_status, status_code)
         preflight_rows.append(
             {
                 "service": metadata.get("service", "core"),
-                "permission_status": metadata.get("permission_status", "unknown"),
-                "status_code": metadata.get("status_code"),
+                "permission_status": normalized_status,
+                "status_code": status_code,
                 "probe_url": metadata.get("probe_url") or "-",
+                "remediation": _preflight_remediation(
+                    str(metadata.get("service", "core")),
+                    normalized_status,
+                ),
                 "run_id": run_id,
                 "timestamp": row.timestamp,
             }
@@ -2162,14 +2655,18 @@ def _celonis_setup_context(
         if selected_client
         else []
     )
+    authorized_count = sum(1 for row in preflight_rows if row["permission_status"] == "authorized")
     all_authorized = bool(preflight_rows) and all(
         row["permission_status"] == "authorized" for row in preflight_rows
     )
+    has_any_authorized = authorized_count > 0
+    limited_scope = bool(preflight_rows) and has_any_authorized and not all_authorized
 
     step_client_ready = selected_client is not None
     step_connection_ready = connection is not None
     step_token_ready = bool(user_token and user_token.token_value) or env_token_configured
-    step_validation_ready = all_authorized
+    # Partial preflight success is considered usable; unresolved services stay visible in summary.
+    step_validation_ready = bool(preflight_rows) and has_any_authorized
     if not step_client_ready:
         next_step = 1
     elif not step_connection_ready:
@@ -2193,6 +2690,9 @@ def _celonis_setup_context(
         "env_token_configured": env_token_configured,
         "preflight_rows": preflight_rows,
         "preflight_all_authorized": all_authorized,
+        "preflight_limited_scope": limited_scope,
+        "preflight_authorized_count": authorized_count,
+        "preflight_total": len(preflight_rows),
         "latest_run_id": preflight_rows[0]["run_id"] if preflight_rows else None,
         "step_client_ready": step_client_ready,
         "step_connection_ready": step_connection_ready,
@@ -2420,6 +2920,14 @@ def celonis_setup_run_preflight(
             return _redirect_ui(
                 f"/onboarding/celonis-setup?client_id={parsed_client_id}",
                 ok=f"Preflight complete: all {total} services authorized (run {run_id})",
+            )
+        if authorized_count > 0:
+            return _redirect_ui(
+                f"/onboarding/celonis-setup?client_id={parsed_client_id}",
+                ok=(
+                    "Preflight complete with limited scope: "
+                    f"{authorized_count}/{total} services authorized (run {run_id})"
+                ),
             )
         return _redirect_ui(
             f"/onboarding/celonis-setup?client_id={parsed_client_id}",
@@ -6676,6 +7184,229 @@ def docu_guide_delivery_walkthrough(request: Request):
 
 
 # ---------------------------------------------------------------------------
+# Celonis Token Admin page
+# ---------------------------------------------------------------------------
+
+@router.get("/celonis-token-admin-ui", include_in_schema=False)
+def celonis_token_admin_ui(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    people = _org_people(session, current_actor.organization.id)
+    person_by_id = {person.id: person for person in people}
+    token_rows = sorted(
+        list(
+            session.exec(
+                select(CelonisUserToken).where(
+                    CelonisUserToken.organization_id == current_actor.organization.id
+                )
+            ).all()
+        ),
+        key=lambda row: _sort_datetime_key(getattr(row, "updated_at", None)),
+        reverse=True,
+    )
+    access_by_person = _latest_celonis_system_access_by_person(
+        session,
+        current_actor.organization.id,
+    )
+    project_scopes_by_person = _active_project_token_scopes_by_person(
+        session,
+        current_actor.organization.id,
+    )
+
+    rows = []
+    for token_row in token_rows:
+        person = person_by_id.get(token_row.person_id)
+        access = access_by_person.get(token_row.person_id, {})
+        service_status = access.get("service_status", {})
+        authorized_services = sorted(
+            service for service, status in service_status.items() if status == "authorized"
+        )
+        restricted_services = sorted(
+            f"{service} ({status})"
+            for service, status in service_status.items()
+            if status != "authorized"
+        )
+        rows.append(
+            {
+                "row_kind": "person",
+                "id": token_row.id,
+                "person_id": token_row.person_id,
+                "person_name": person.name if person else "Unknown",
+                "person_email": person.email if person else "Unknown",
+                "target_name": person.name if person else "Unknown",
+                "scope": "person+organization",
+                "token_preview": _mask_token_value(token_row.token_value),
+                "updated_at": token_row.updated_at,
+                "authorized_services": authorized_services,
+                "restricted_services": restricted_services,
+                "last_preflight_at": access.get("last_preflight_at"),
+            }
+        )
+        for project_scope in sorted(
+            project_scopes_by_person.get(token_row.person_id, []),
+            key=lambda item: _sort_datetime_key(item.get("updated_at")),
+            reverse=True,
+        ):
+            rows.append(
+                {
+                    "row_kind": "project",
+                    "id": token_row.id,
+                    "person_id": token_row.person_id,
+                    "person_name": person.name if person else "Unknown",
+                    "person_email": person.email if person else "Unknown",
+                    "target_name": str(project_scope.get("project_name") or "Unknown project"),
+                    "scope": "project",
+                    "token_preview": _mask_token_value(token_row.token_value),
+                    "updated_at": project_scope.get("updated_at") or token_row.updated_at,
+                    "authorized_services": authorized_services,
+                    "restricted_services": restricted_services,
+                    "last_preflight_at": access.get("last_preflight_at"),
+                }
+            )
+
+    return templates.TemplateResponse(
+        "celonis_token_admin.html",
+        {
+            "request": request,
+            "active_organization": current_actor.organization,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "edit_id": request.query_params.get("edit"),
+            "rows": rows,
+            "people_options": sorted(
+                [
+                    {"id": person.id, "name": person.name, "email": person.email}
+                    for person in people
+                ],
+                key=lambda row: (row["name"] or "").lower(),
+            ),
+        },
+    )
+
+
+@router.post("/celonis-token-admin-ui/create", include_in_schema=False)
+def celonis_token_admin_create(
+    person_id: str = Form(...),
+    token_value: str = Form(...),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_person_id = _parse_uuid(person_id, "person_id")
+        membership = _get_org_membership(session, parsed_person_id, current_actor.organization.id)
+        if membership is None:
+            return _redirect_ui("/celonis-token-admin-ui", err="Selected user is not in the organization")
+
+        cleaned = token_value.strip()
+        if not cleaned:
+            return _redirect_ui("/celonis-token-admin-ui", err="Token value cannot be blank")
+
+        _upsert_org_person_celonis_token(
+            session,
+            current_actor.organization.id,
+            parsed_person_id,
+            cleaned,
+        )
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.person,
+            entity_id=parsed_person_id,
+            actor_id=current_actor.person.id,
+            action="celonis_user_token.admin_saved",
+            organization_id=current_actor.organization.id,
+            metadata={
+                "person_id": str(parsed_person_id),
+                "scope": "person+organization",
+                "token_present": True,
+            },
+        )
+        return _redirect_ui("/celonis-token-admin-ui", ok="Token saved")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-token-admin-ui", err=f"Save token failed: {exc}")
+
+
+@router.post("/celonis-token-admin-ui/update", include_in_schema=False)
+def celonis_token_admin_update(
+    token_id: str = Form(...),
+    token_value: str = Form(...),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_token_id = _parse_uuid(token_id, "token_id")
+        row = session.get(CelonisUserToken, parsed_token_id)
+        if row is None or row.organization_id != current_actor.organization.id:
+            return _redirect_ui("/celonis-token-admin-ui", err="Token entry not found")
+
+        cleaned = token_value.strip()
+        if not cleaned:
+            return _redirect_ui(
+                f"/celonis-token-admin-ui?edit={token_id}",
+                err="Token value cannot be blank",
+            )
+
+        row.token_value = cleaned
+        row.updated_at = datetime.utcnow()
+        session.add(row)
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.person,
+            entity_id=row.person_id,
+            actor_id=current_actor.person.id,
+            action="celonis_user_token.admin_saved",
+            organization_id=current_actor.organization.id,
+            metadata={
+                "person_id": str(row.person_id),
+                "scope": "person+organization",
+                "token_present": True,
+            },
+        )
+        return _redirect_ui("/celonis-token-admin-ui", ok="Token updated")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-token-admin-ui", err=f"Update token failed: {exc}")
+
+
+@router.post("/celonis-token-admin-ui/delete", include_in_schema=False)
+def celonis_token_admin_delete(
+    token_id: str = Form(...),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_token_id = _parse_uuid(token_id, "token_id")
+        row = session.get(CelonisUserToken, parsed_token_id)
+        if row is None or row.organization_id != current_actor.organization.id:
+            return _redirect_ui("/celonis-token-admin-ui", err="Token entry not found")
+
+        person_id = row.person_id
+        session.delete(row)
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.person,
+            entity_id=person_id,
+            actor_id=current_actor.person.id,
+            action="celonis_user_token.admin_cleared",
+            organization_id=current_actor.organization.id,
+            metadata={
+                "person_id": str(person_id),
+                "scope": "person+organization",
+                "token_present": False,
+            },
+        )
+        return _redirect_ui("/celonis-token-admin-ui", ok="Token removed")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-token-admin-ui", err=f"Delete token failed: {exc}")
+
+
+# ---------------------------------------------------------------------------
 # Celonis Credentials page
 # ---------------------------------------------------------------------------
 
@@ -7275,9 +8006,19 @@ def celonis_deployments_cancel(
 
 @router.get("/tenant-ui")
 def tenant_ui(request: Request):
-    tenant_url = request.query_params.get("url") or "https://id.celonis.cloud/user/ui/login"
     return templates.TemplateResponse(
         "tenant.html",
+        {
+            "request": request,
+        },
+    )
+
+
+@router.get("/workspace-ui")
+def workspace_ui(request: Request):
+    tenant_url = request.query_params.get("url") or "https://id.celonis.cloud/user/ui/login"
+    return templates.TemplateResponse(
+        "workspace.html",
         {
             "request": request,
             "tenant_url": tenant_url,
@@ -7627,8 +8368,10 @@ def trigger_snapshot_ui(
 def snapshot_detail_ui(
     client_id: UUID,
     snapshot_id: UUID,
+    request: Request,
     tab: str = "tasks",
-    request: Request = None,
+    compare_to: str | None = None,
+    project_id: str | None = None,
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
@@ -7638,8 +8381,12 @@ def snapshot_detail_ui(
     snap = session.get(CelonisSnapshot, snapshot_id)
     if snap is None or snap.client_id != client_id:
         return _redirect_ui(f"/snapshots-ui/{client_id}", err="Snapshot not found")
+    active_tab = "hierarchy" if tab in {"deep_packages", "hierarchy"} else tab
     tasks = session.exec(
         select(SnapshotTask).where(SnapshotTask.snapshot_id == snapshot_id)
+    ).all()
+    spaces = session.exec(
+        select(SnapshotSpace).where(SnapshotSpace.snapshot_id == snapshot_id)
     ).all()
     packages = session.exec(
         select(SnapshotPackage).where(SnapshotPackage.snapshot_id == snapshot_id)
@@ -7653,6 +8400,159 @@ def snapshot_detail_ui(
     knowledge_models = session.exec(
         select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == snapshot_id)
     ).all()
+
+    baseline_snapshot: CelonisSnapshot | None = None
+    baseline_packages: Sequence[SnapshotPackage] = []
+    baseline_tasks: Sequence[SnapshotTask] = []
+    baseline_data_models: Sequence[SnapshotDataModel] = []
+    baseline_jobs: Sequence[SnapshotJob] = []
+    baseline_knowledge_models: Sequence[SnapshotKnowledgeModel] = []
+
+    if compare_to:
+        try:
+            baseline_snapshot_id = UUID(compare_to)
+            candidate = session.get(CelonisSnapshot, baseline_snapshot_id)
+            if candidate and candidate.client_id == client_id:
+                baseline_snapshot = candidate
+        except ValueError:
+            baseline_snapshot = None
+
+    if baseline_snapshot is None:
+        baseline_candidates = session.exec(
+            select(CelonisSnapshot).where(
+                CelonisSnapshot.client_id == client_id,
+                CelonisSnapshot.id != snapshot_id,
+            )
+        ).all()
+        baseline_snapshot = (
+            sorted(
+                baseline_candidates,
+                key=lambda row: _sort_datetime_key(row.created_at),
+                reverse=True,
+            )[0]
+            if baseline_candidates
+            else None
+        )
+
+    if baseline_snapshot is not None:
+        baseline_packages = session.exec(
+            select(SnapshotPackage).where(SnapshotPackage.snapshot_id == baseline_snapshot.id)
+        ).all()
+        baseline_tasks = session.exec(
+            select(SnapshotTask).where(SnapshotTask.snapshot_id == baseline_snapshot.id)
+        ).all()
+        baseline_data_models = session.exec(
+            select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == baseline_snapshot.id)
+        ).all()
+        baseline_jobs = session.exec(
+            select(SnapshotJob).where(SnapshotJob.snapshot_id == baseline_snapshot.id)
+        ).all()
+        baseline_knowledge_models = session.exec(
+            select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == baseline_snapshot.id)
+        ).all()
+
+    current_maps = _snapshot_entity_maps(
+        packages=packages,
+        tasks=tasks,
+        data_models=data_models,
+        jobs=jobs,
+        knowledge_models=knowledge_models,
+    )
+    baseline_maps = _snapshot_entity_maps(
+        packages=baseline_packages,
+        tasks=baseline_tasks,
+        data_models=baseline_data_models,
+        jobs=baseline_jobs,
+        knowledge_models=baseline_knowledge_models,
+    )
+    snapshot_diff = {
+        "packages": _snapshot_family_diff(current_maps["packages"], baseline_maps["packages"]),
+        "tasks": _snapshot_family_diff(current_maps["tasks"], baseline_maps["tasks"]),
+        "data_models": _snapshot_family_diff(current_maps["data_models"], baseline_maps["data_models"]),
+        "jobs": _snapshot_family_diff(current_maps["jobs"], baseline_maps["jobs"]),
+        "knowledge_models": _snapshot_family_diff(
+            current_maps["knowledge_models"], baseline_maps["knowledge_models"]
+        ),
+    }
+
+    dependency_index = _snapshot_dependency_index(
+        packages=packages,
+        tasks=tasks,
+        data_models=data_models,
+        jobs=jobs,
+        knowledge_models=knowledge_models,
+    )
+
+    package_tasks: dict[str, list[SnapshotTask]] = {}
+    for task in tasks:
+        package_tasks.setdefault(task.package_id or "", []).append(task)
+
+    hierarchy_spaces, hierarchy_asset_types = _snapshot_hierarchy_spaces(
+        spaces=spaces,
+        packages=packages,
+        package_tasks=package_tasks,
+        dependency_index=dependency_index,
+    )
+
+    deep_packages: list[dict[str, object]] = []
+    for pkg in sorted(packages, key=lambda row: (row.name or "").lower()):
+        pkg_task_rows = package_tasks.get(pkg.package_id, [])
+        task_rows: list[dict[str, object]] = []
+        for task in sorted(pkg_task_rows, key=lambda row: (row.name or "").lower()):
+            refs = _snapshot_reference_ids(task.raw_json or {}, max_refs=40)
+            linked_dependencies = [
+                dependency_index[ref]
+                for ref in refs
+                if ref in dependency_index and ref not in {task.task_id, pkg.package_id}
+            ]
+            task_rows.append(
+                {
+                    "task": task,
+                    "component_rows": _snapshot_component_rows(task.raw_json or {}, limit=30),
+                    "refs": refs,
+                    "linked_dependencies": linked_dependencies[:20],
+                }
+            )
+
+        pkg_refs = _snapshot_reference_ids(pkg.raw_json or {}, max_refs=30)
+        deep_packages.append(
+            {
+                "package": pkg,
+                "component_rows": _snapshot_component_rows(pkg.raw_json or {}, limit=25),
+                "refs": pkg_refs,
+                "linked_dependencies": [
+                    dependency_index[ref]
+                    for ref in pkg_refs
+                    if ref in dependency_index and ref != pkg.package_id
+                ][:20],
+                "tasks": task_rows,
+            }
+        )
+
+    all_snapshots = session.exec(
+        select(CelonisSnapshot).where(CelonisSnapshot.client_id == client_id)
+    ).all()
+    all_snapshots = sorted(
+        all_snapshots,
+        key=lambda row: _sort_datetime_key(row.created_at),
+        reverse=True,
+    )
+    compare_candidates = [row for row in all_snapshots if row.id != snapshot_id]
+
+    org_projects = _org_projects(session, current_actor.organization.id)
+    client_projects = [row for row in org_projects if row.client_id == client.id]
+    selected_project_id: UUID | None = None
+    if project_id:
+        try:
+            parsed_project_id = UUID(project_id)
+            selected_project = next((row for row in client_projects if row.id == parsed_project_id), None)
+            if selected_project is not None:
+                selected_project_id = selected_project.id
+        except ValueError:
+            selected_project_id = None
+    if selected_project_id is None and client_projects:
+        selected_project_id = client_projects[0].id
+
     ok_message = request.query_params.get("ok") if request else None
     error_message = request.query_params.get("err") if request else None
     return templates.TemplateResponse(
@@ -7661,16 +8561,221 @@ def snapshot_detail_ui(
             "request": request,
             "client": client,
             "snap": snap,
+            "spaces": spaces,
             "tasks": tasks,
             "packages": packages,
             "data_models": data_models,
             "jobs": jobs,
             "knowledge_models": knowledge_models,
-            "active_tab": tab,
+            "hierarchy_spaces": hierarchy_spaces,
+            "hierarchy_asset_types": hierarchy_asset_types,
+            "deep_packages": deep_packages,
+            "snapshot_diff": snapshot_diff,
+            "baseline_snapshot": baseline_snapshot,
+            "compare_candidates": compare_candidates,
+            "compare_to": str(baseline_snapshot.id) if baseline_snapshot else "",
+            "client_projects": client_projects,
+            "selected_project_id": str(selected_project_id) if selected_project_id else "",
+            "active_tab": active_tab,
             "ok_message": ok_message,
             "error_message": error_message,
         },
     )
+
+
+@router.post("/snapshots-ui/{client_id}/{snapshot_id}/create-app-asset", include_in_schema=False)
+def snapshot_create_app_asset_ui(
+    client_id: UUID,
+    snapshot_id: UUID,
+    source_kind: str = Form(...),
+    source_id: str = Form(...),
+    source_name: str = Form(...),
+    project_id: str = Form(...),
+    task_type: str = Form(""),
+    component_path: str = Form(""),
+    tab: str = Form("packages"),
+    compare_to: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    detail_path = _with_query_params(
+        f"/snapshots-ui/{client_id}/{snapshot_id}/detail",
+        tab=tab or "packages",
+        compare_to=compare_to or None,
+        project_id=project_id,
+    )
+
+    client = _get_org_client(session, client_id, current_actor.organization.id)
+    if client is None:
+        return _redirect_ui("/clients-ui", err="Client not found")
+
+    try:
+        parsed_project_id = _parse_uuid(project_id, "project_id")
+        project = _get_org_project(session, parsed_project_id, current_actor.organization.id)
+        if project is None:
+            return _redirect_ui(detail_path, err="Project not found")
+        if project.client_id != client.id:
+            return _redirect_ui(detail_path, err="Project does not belong to this client")
+
+        packages = session.exec(
+            select(SnapshotPackage).where(SnapshotPackage.snapshot_id == snapshot_id)
+        ).all()
+        tasks = session.exec(
+            select(SnapshotTask).where(SnapshotTask.snapshot_id == snapshot_id)
+        ).all()
+        data_models = session.exec(
+            select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == snapshot_id)
+        ).all()
+        jobs = session.exec(
+            select(SnapshotJob).where(SnapshotJob.snapshot_id == snapshot_id)
+        ).all()
+        knowledge_models = session.exec(
+            select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == snapshot_id)
+        ).all()
+        dependency_index = _snapshot_dependency_index(
+            packages=packages,
+            tasks=tasks,
+            data_models=data_models,
+            jobs=jobs,
+            knowledge_models=knowledge_models,
+        )
+
+        source_payload: dict[str, object] | None = None
+        normalized_kind = source_kind.strip().lower()
+        normalized_id = source_id.strip()
+        name_value = source_name.strip() or normalized_id
+
+        if normalized_kind == "package":
+            row = next((item for item in packages if item.package_id == normalized_id), None)
+            if row is None:
+                return _redirect_ui(detail_path, err="Package not found in snapshot")
+            source_payload = {
+                "id": row.package_id,
+                "family": "package",
+                "name": row.name,
+                "raw_json": row.raw_json or {},
+                "task_type": None,
+            }
+        elif normalized_kind == "task":
+            row = next((item for item in tasks if item.task_id == normalized_id), None)
+            if row is None:
+                return _redirect_ui(detail_path, err="Task not found in snapshot")
+            source_payload = {
+                "id": row.task_id,
+                "family": "task",
+                "name": row.name,
+                "raw_json": row.raw_json or {},
+                "task_type": row.task_type,
+            }
+        elif normalized_kind == "component":
+            row = next((item for item in tasks if item.task_id == normalized_id), None)
+            if row is None:
+                return _redirect_ui(detail_path, err="Task not found for component source")
+            if not component_path:
+                return _redirect_ui(detail_path, err="Component path is missing")
+            component_value = _snapshot_path_lookup(row.raw_json or {}, component_path)
+            source_payload = {
+                "id": f"{row.task_id}:{component_path}",
+                "family": "component",
+                "name": f"{row.name} :: {component_path}",
+                "raw_json": component_value,
+                "task_type": row.task_type,
+            }
+            if component_value is None:
+                return _redirect_ui(detail_path, err="Component path no longer exists")
+        else:
+            return _redirect_ui(detail_path, err="Unsupported source type")
+
+        primary_asset_type = _asset_type_for_family(
+            str(source_payload["family"]),
+            task_type=(task_type or str(source_payload.get("task_type") or "")),
+        )
+        source_entity_id = str(source_payload["id"])
+        identifier = f"snapshot:{snapshot_id}:{normalized_kind}:{source_entity_id}"
+
+        existing_assets = [
+            row
+            for row in _org_assets(session, current_actor.organization.id)
+            if row.project_id == parsed_project_id
+        ]
+        existing_identifiers = {row.asset_identifier: row for row in existing_assets if row.asset_identifier}
+
+        created_asset: Asset
+        if identifier in existing_identifiers:
+            created_asset = existing_identifiers[identifier]
+        else:
+            created_asset = Asset(
+                organization_id=current_actor.organization.id,
+                project_id=parsed_project_id,
+                client_id=client.id,
+                type=primary_asset_type,
+                name=name_value,
+                status=AssetStatus.draft,
+                asset_identifier=identifier,
+            )
+            session.add(created_asset)
+            session.flush()
+
+        source_refs = _snapshot_reference_ids(source_payload.get("raw_json", {}), max_refs=80)
+        dependencies = _crawl_snapshot_dependencies(
+            seed_refs=source_refs,
+            index=dependency_index,
+            skip_ids={source_entity_id},
+            max_nodes=40,
+        )
+
+        dependency_created = 0
+        for dependency in dependencies:
+            dep_id = str(dependency["id"])
+            dep_identifier = f"snapshot:{snapshot_id}:{dependency['family']}:{dep_id}"
+            if dep_identifier in existing_identifiers:
+                continue
+            dep_type = _asset_type_for_family(
+                str(dependency.get("family") or "other"),
+                task_type=str(dependency.get("task_type") or ""),
+            )
+            dep_asset = Asset(
+                organization_id=current_actor.organization.id,
+                project_id=parsed_project_id,
+                client_id=client.id,
+                type=dep_type,
+                name=f"Dependency: {dependency.get('name') or dep_id}",
+                status=AssetStatus.draft,
+                asset_identifier=dep_identifier,
+            )
+            session.add(dep_asset)
+            existing_identifiers[dep_identifier] = dep_asset
+            dependency_created += 1
+
+        session.commit()
+
+        log_created(
+            session,
+            entity_type=EntityType.asset,
+            entity_id=created_asset.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            metadata={
+                "type": created_asset.type.value,
+                "project_id": str(created_asset.project_id),
+                "client_id": str(created_asset.client_id),
+                "snapshot_id": str(snapshot_id),
+                "source_kind": normalized_kind,
+                "source_id": source_entity_id,
+                "dependency_count": len(dependencies),
+                "dependency_assets_created": dependency_created,
+            },
+        )
+
+        created_msg = (
+            f"App asset '{created_asset.name}' created with {dependency_created} dependency assets"
+            if identifier not in {row.asset_identifier for row in existing_assets if row.asset_identifier}
+            else f"App asset '{created_asset.name}' already exists; linked {dependency_created} new dependency assets"
+        )
+        return _redirect_ui(detail_path, ok=created_msg)
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(detail_path, err=f"Create app asset failed: {exc}")
 
 
 @router.post("/snapshots-ui/{client_id}/{snapshot_id}/export")

@@ -23,9 +23,19 @@
 
 <div class="section-header">
     <h3>Snapshot History</h3>
-    <form method="post" action="/snapshots-ui/{{ client.id }}/trigger">
-        <button type="submit" class="btn-primary" {% if not has_active_connection %}disabled title="Create an active Celonis connection on Dashboard first"{% endif %}>Run New Snapshot</button>
+    <form id="snapshot-trigger-form" method="post" action="/snapshots-ui/{{ client.id }}/trigger">
+        <button id="snapshot-trigger-btn" type="submit" class="btn-primary" {% if not has_active_connection %}disabled title="Create an active Celonis connection on Dashboard first"{% endif %}>Run New Snapshot</button>
     </form>
+</div>
+
+<div id="snapshot-trigger-progress" class="snapshot-progress" aria-live="polite" hidden>
+    <div class="snapshot-progress-header">
+        <strong>Starting snapshot...</strong>
+        <span class="muted-note">This can take a while depending on tenant size.</span>
+    </div>
+    <div class="snapshot-progress-track" role="progressbar" aria-label="Snapshot trigger in progress" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Loading">
+        <div class="snapshot-progress-bar"></div>
+    </div>
 </div>
 
 <table>
@@ -67,4 +77,20 @@
 </table>
 
 <p><a href="/clients-ui/{{ client.id }}/overview">← Back to Client Overview</a></p>
+
+<script>
+(() => {
+    const form = document.getElementById("snapshot-trigger-form");
+    const button = document.getElementById("snapshot-trigger-btn");
+    const progress = document.getElementById("snapshot-trigger-progress");
+    if (!form || !button || !progress) {
+        return;
+    }
+    form.addEventListener("submit", () => {
+        button.disabled = true;
+        button.textContent = "Starting...";
+        progress.hidden = false;
+    });
+})();
+</script>
 {% endblock %}

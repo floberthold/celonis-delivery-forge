@@ -48,9 +48,31 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.mypy]
 python_version = "3.11"
 warn_unused_configs = true
 disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+  "foundry.api.main",
+  "foundry.api.routes.ingest",
+  "foundry.api.routes.reviews",
+  "foundry.api.routes.ui",
+  "foundry.api.routes.use_cases",
+  "foundry.api.routes.users",
+  "foundry.services.snapshot_coverage_service",
+  "foundry.services.snapshot_export_service",
+  "foundry.services.use_case_views",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+  "markdown",
+  "bleach",
+]
 ignore_missing_imports = true

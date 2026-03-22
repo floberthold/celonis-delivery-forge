@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_use_case_api_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_use_case_api_test.db"
 
 import foundry.db as db_module
 

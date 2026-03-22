@@ -10,6 +10,8 @@ This section helps delivery users complete work safely and consistently.
 4. [KPI and Snapshots](kpi-and-snapshots.md)
 5. [Delivery Walkthrough](../guides/delivery-walkthrough.md)
 
+For Celonis credentials and permissions, use the "Celonis App Key Setup" section in [Account and Security](account-and-security.md).
+
 ## Daily Route Map
 
 - `/dashboard`: primary action hub and integration actions.

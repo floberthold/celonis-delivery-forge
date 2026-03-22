@@ -1,10 +1,16 @@
+# ruff: noqa: E402
+
 import os
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 # Keep this test isolated from any developer local DB.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_celonis_ui_route_presence_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_celonis_ui_route_presence_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
 
@@ -16,6 +22,7 @@ def test_celonis_ui_endpoints_are_registered() -> None:
     with TestClient(app) as api_client:
         for path in [
             "/celonis-credentials-ui",
+            "/celonis-token-admin-ui",
             "/celonis-discovery-ui",
             "/celonis-deployments-ui",
         ]:

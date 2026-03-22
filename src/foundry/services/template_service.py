@@ -59,7 +59,7 @@ class TemplateService:
         templates = list(
             session.exec(
                 select(Template).where(
-                    Template.is_active == True,
+                    Template.is_active,
                     Template.organization_id == organization_id,
                 )
             ).all()

@@ -17,11 +17,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 @dataclass
 class CurrentActor:
     person: Person
+    organization: Organization
+    membership: OrganizationMembership
+
+
+@dataclass
+class CurrentActorOptionalOrg:
+    person: Person
     organization: Organization | None
     membership: OrganizationMembership | None
 
 
-def _resolve_actor_from_token(*, token: str, session: Session) -> CurrentActor:
+def _resolve_actor_from_token(*, token: str, session: Session) -> CurrentActorOptionalOrg:
     settings = get_settings()
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
@@ -54,7 +61,7 @@ def _resolve_actor_from_token(*, token: str, session: Session) -> CurrentActor:
         )
 
     if token_org_id is None:
-        return CurrentActor(person=person, organization=None, membership=None)
+        return CurrentActorOptionalOrg(person=person, organization=None, membership=None)
 
     try:
         organization_id = UUID(token_org_id)
@@ -83,14 +90,14 @@ def _resolve_actor_from_token(*, token: str, session: Session) -> CurrentActor:
             detail="Authenticated membership not found",
         )
 
-    return CurrentActor(person=person, organization=organization, membership=membership)
+    return CurrentActorOptionalOrg(person=person, organization=organization, membership=membership)
 
 
 def get_current_actor(
     request: Request,
     token: str | None = Depends(oauth2_scheme),
     session: Session = Depends(get_session),
-) -> CurrentActor:
+) -> CurrentActorOptionalOrg:
     effective_token = token or request.cookies.get(AUTH_COOKIE_NAME)
     if not effective_token:
         raise HTTPException(
@@ -101,14 +108,18 @@ def get_current_actor(
 
 
 def get_current_actor_with_org(
-    current_actor: CurrentActor = Depends(get_current_actor),
+    current_actor: CurrentActorOptionalOrg = Depends(get_current_actor),
 ) -> CurrentActor:
     if current_actor.organization is None or current_actor.membership is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Active organization required for this operation",
         )
-    return current_actor
+    return CurrentActor(
+        person=current_actor.person,
+        organization=current_actor.organization,
+        membership=current_actor.membership,
+    )
 
 
 def get_current_person(

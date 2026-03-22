@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import os
 from pathlib import Path
 
@@ -5,12 +7,22 @@ from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_celonis_preflight_api_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_celonis_preflight_api_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
-from foundry.db import engine
-from foundry.integrations.celonis_import import CelonisPreflightHttpResult
-from foundry.models import CelonisConnection, Client, Organization, OrganizationMembership, Person
+from foundry.integrations.celonis_import import CelonisGateway, CelonisPreflightHttpResult
+from foundry.models import (
+    CelonisConnection,
+    Client,
+    Organization,
+    OrganizationMembership,
+    OrganizationRole,
+    Person,
+)
 from foundry.security import create_access_token, hash_password
 
 
@@ -18,12 +30,12 @@ DB_FILE = Path("tmp_celonis_preflight_api_test.db")
 
 
 def _reset_db() -> None:
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.drop_all(db_module.engine)
+    SQLModel.metadata.create_all(db_module.engine)
 
 
 def _seed_actor_org_client_connection() -> tuple[str, str, str]:
-    with Session(engine) as session:
+    with Session(db_module.engine) as session:
         person = Person(
             email="celonis-preflight-api@example.com",
             name="Celonis Preflight API Tester",
@@ -41,7 +53,7 @@ def _seed_actor_org_client_connection() -> tuple[str, str, str]:
         membership = OrganizationMembership(
             organization_id=organization.id,
             person_id=person.id,
-            role="owner",
+            role=OrganizationRole.owner,
         )
         session.add(membership)
 
@@ -173,3 +185,20 @@ def test_celonis_preflight_history_limit_bounds() -> None:
             params={"limit": 201},
         )
         assert high.status_code == 400
+
+
+def test_gateway_permission_status_maps_redirect_codes() -> None:
+    assert CelonisGateway._permission_status(301) == "redirect-to-login"
+    assert CelonisGateway._permission_status(302) == "redirect-to-login"
+
+
+def test_gateway_classifies_login_html_as_redirect_to_login() -> None:
+    class _FakeResponse:
+        def __init__(self):
+            self.status_code = 200
+            self.headers = {"content-type": "text/html"}
+            self.url = "https://team.eu-1.celonis.cloud/login"
+            self.text = "<html><body>Sign in</body></html>"
+
+    status = CelonisGateway._classify_preflight_response(_FakeResponse())
+    assert status == "redirect-to-login"

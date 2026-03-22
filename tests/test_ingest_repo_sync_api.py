@@ -1,18 +1,24 @@
+# ruff: noqa: E402
+
 import json
 import os
 from pathlib import Path
-import subprocess
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_ingest_repo_sync_api_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_ingest_repo_sync_api_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
-from foundry.db import engine
 from foundry.models import Organization, OrganizationMembership, OrganizationRole, Person
 from foundry.security import create_access_token, hash_password
+
+engine = db_module.engine
 
 
 DB_FILE = Path("tmp_ingest_repo_sync_api_test.db")

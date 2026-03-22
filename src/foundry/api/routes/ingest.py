@@ -15,7 +15,6 @@ from foundry.models import (
     IngestFindingSeverity,
     IngestRun,
     IngestRunStatus,
-    Person,
 )
 from foundry.schemas import (
     AssetSnapshotCreate,

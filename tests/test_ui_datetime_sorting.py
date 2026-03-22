@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import os
 from collections.abc import Generator
 from datetime import datetime, timezone
@@ -94,5 +96,8 @@ def test_ui_pages_handle_mixed_datetime_kinds_without_500() -> None:
 
 if __name__ == "__main__":
     if DB_FILE.exists():
-        DB_FILE.unlink()
+        try:
+            DB_FILE.unlink()
+        except PermissionError:
+            pass
     test_ui_pages_handle_mixed_datetime_kinds_without_500()

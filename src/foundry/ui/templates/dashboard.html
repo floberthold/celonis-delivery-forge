@@ -98,6 +98,33 @@
     </div>
 </section>
 
+{% if celonis_preflight_rows %}
+<section class="panel" style="margin-top: 1.5rem;">
+    <h3>Celonis Preflight History</h3>
+    <p class="muted-note">Most recent preflight batch{% if latest_preflight_run_id %}: run {{ latest_preflight_run_id }}{% endif %}</p>
+    <table class="table compact-table">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Status</th>
+                <th>HTTP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in celonis_preflight_rows %}
+            <tr>
+                <td>{{ row.service }}</td>
+                <td>
+                    <span class="celonis-status-badge celonis-status-{{ row.permission_status }}">{{ row.permission_status }}</span>
+                </td>
+                <td>{{ row.status_code if row.status_code is not none else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
 <style>
 .quicknav-grid a:hover {
     background-color: #f5f5f5;

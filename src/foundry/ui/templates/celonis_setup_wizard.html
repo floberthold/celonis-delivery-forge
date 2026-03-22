@@ -101,9 +101,10 @@
     <p>Token source: {% if user_token_present %}user token{% elif env_token_configured %}env fallback{% else %}missing{% endif %}</p>
 
     {% if preflight_rows %}
+    <p class="muted-note">Authorized services: {{ preflight_authorized_count }}/{{ preflight_total }}</p>
     <table>
         <thead>
-            <tr><th>Service</th><th>Status</th><th>HTTP</th><th>Probe URL</th></tr>
+            <tr><th>Service</th><th>Status</th><th>HTTP</th><th>Probe URL</th><th>Remediation</th></tr>
         </thead>
         <tbody>
             {% for row in preflight_rows %}
@@ -112,6 +113,7 @@
                 <td><span class="badge badge-{{ row.permission_status }}">{{ row.permission_status }}</span></td>
                 <td>{{ row.status_code or '-' }}</td>
                 <td class="monospace small">{{ row.probe_url }}</td>
+                <td class="muted-note">{{ row.remediation }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -120,8 +122,10 @@
     <p class="muted-note">No preflight run yet.</p>
     {% endif %}
 
-    {% if step_validation_ready %}
+    {% if preflight_all_authorized %}
     <div class="alert success">Setup complete. You can start extractions now.</div>
+    {% elif preflight_limited_scope %}
+    <div class="alert success">Setup usable with limited scope. Snapshot extraction will run, but uncovered services may return partial results.</div>
     {% else %}
     <div class="alert error">Setup not complete yet. Follow the pending step shown above.</div>
     {% endif %}

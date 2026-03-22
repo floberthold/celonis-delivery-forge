@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import os
 import re
 from pathlib import Path
@@ -7,10 +9,13 @@ from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, select
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_client_health_ui_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_client_health_ui_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
-from foundry.db import engine
 from foundry.models import (
     CelonisConnection,
     CelonisUserToken,
@@ -22,6 +27,8 @@ from foundry.models import (
     Project,
 )
 from foundry.security import create_access_token, hash_password
+
+engine = db_module.engine
 
 
 DB_FILE = Path("tmp_client_health_ui_test.db")
@@ -344,5 +351,8 @@ def test_client_health_ui_metrics_download_returns_attachment(monkeypatch) -> No
 
 if __name__ == "__main__":
     if DB_FILE.exists():
-        DB_FILE.unlink()
+        try:
+            DB_FILE.unlink()
+        except PermissionError:
+            pass
     test_client_health_ui_renders_tabs_and_toggle_controls()

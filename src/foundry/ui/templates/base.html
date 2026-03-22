@@ -10,7 +10,7 @@
     <header class="site-header">
         {% set current_path = request.url.path if request and request.url else "" %}
         {% set operations_active = current_path.startswith('/orchestration-ui') or current_path.startswith('/client-health-ui') or current_path.startswith('/timeline-ui') or current_path.startswith('/kpis-ui') or current_path.startswith('/celonis-credentials-ui') or current_path.startswith('/celonis-discovery-ui') or current_path.startswith('/celonis-deployments-ui') %}
-        {% set admin_active = current_path.startswith('/people-ui') or current_path.startswith('/clients-ui') or current_path.startswith('/templates-ui') or current_path.startswith('/files-ui') or current_path.startswith('/tenant-ui') %}
+        {% set admin_active = current_path.startswith('/people-ui') or current_path.startswith('/clients-ui') or current_path.startswith('/templates-ui') or current_path.startswith('/files-ui') or current_path.startswith('/tenant-ui') or current_path.startswith('/workspace-ui') or current_path.startswith('/celonis-token-admin-ui') %}
         {% set utility_active = current_path.startswith('/account-ui') or current_path.startswith('/docs-site/user') or current_path.startswith('/docs-site/developer') %}
         <div class="container site-header-shell">
             <div class="header-main">
@@ -69,7 +69,9 @@
                                 <a href="/clients-ui" class="secondary-nav-link{% if current_path.startswith('/clients-ui') %} is-active{% endif %}"{% if current_path.startswith('/clients-ui') %} aria-current="page"{% endif %}>Clients</a>
                                 <a href="/templates-ui" class="secondary-nav-link{% if current_path.startswith('/templates-ui') %} is-active{% endif %}"{% if current_path.startswith('/templates-ui') %} aria-current="page"{% endif %}>Templates</a>
                                 <a href="/files-ui" class="secondary-nav-link{% if current_path.startswith('/files-ui') %} is-active{% endif %}"{% if current_path.startswith('/files-ui') %} aria-current="page"{% endif %}>Files</a>
+                                <a href="/celonis-token-admin-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-token-admin-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-token-admin-ui') %} aria-current="page"{% endif %}>Celonis Tokens</a>
                                 <a href="/tenant-ui" class="secondary-nav-link{% if current_path.startswith('/tenant-ui') %} is-active{% endif %}"{% if current_path.startswith('/tenant-ui') %} aria-current="page"{% endif %}>Tenant</a>
+                                <a href="/workspace-ui" class="secondary-nav-link{% if current_path.startswith('/workspace-ui') %} is-active{% endif %}"{% if current_path.startswith('/workspace-ui') %} aria-current="page"{% endif %}>Workspace IDE</a>
                             </div>
                         </div>
                         <div class="nav-dropdown" data-dropdown>

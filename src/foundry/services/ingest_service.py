@@ -126,7 +126,8 @@ def execute_code_drop_ingest(
     ingest_mode: str = "code_drop",
     extra_summary: dict | None = None,
 ) -> tuple[AssetSnapshot, IngestRun, list[IngestFinding]]:
-    now_utc = lambda: datetime.now(timezone.utc)
+    def now_utc() -> datetime:
+        return datetime.now(timezone.utc)
 
     root = Path(drop_path).expanduser().resolve()
     if not root.exists() or not root.is_dir():

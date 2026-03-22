@@ -44,6 +44,10 @@
         "/^\\.\\\\\\.venv\\\\Scripts\\\\Activate\\.ps1 ; python -m pytest tests/test_celonis_ui_route_presence\\.py -v --tb=short$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^\\.\\\\\\.venv\\\\Scripts\\\\Activate\\.ps1 ; python -m pytest tests/test_celonis_ui_route_presence\\.py -q$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

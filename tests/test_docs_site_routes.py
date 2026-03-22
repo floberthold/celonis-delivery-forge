@@ -1,10 +1,16 @@
+# ruff: noqa: E402
+
 import os
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_docs_site_routes_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_docs_site_routes_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
 
@@ -29,5 +35,8 @@ def test_legacy_docu_routes_redirect_to_docs_site() -> None:
 
 if __name__ == "__main__":
     if DB_FILE.exists():
-        DB_FILE.unlink()
+        try:
+            DB_FILE.unlink()
+        except PermissionError:
+            pass
     test_legacy_docu_routes_redirect_to_docs_site()

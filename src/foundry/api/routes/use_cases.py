@@ -11,7 +11,6 @@ from foundry.models import (
     Client,
     EntityType,
     OrganizationMembership,
-    Person,
     Project,
     RoadmapItemStatus,
     UseCase,

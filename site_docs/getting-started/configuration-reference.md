@@ -45,7 +45,7 @@ This is the operational reference for `FORGE_*` environment variables.
 
 | Variable | Default | Required | Notes |
 | --- | --- | --- | --- |
-| `FORGE_CELONIS_API_TOKEN` | empty | For Celonis features | Tenant-level token |
+| `FORGE_CELONIS_API_TOKEN` | empty | For Celonis features | System fallback token; per-user token saved in `/onboarding/celonis-setup` step 3 takes precedence |
 | `FORGE_CELONIS_TIMEOUT_SECONDS` | `20` | No | Request timeout |
 | `FORGE_GITLAB_BASE_URL` | empty | For GitLab features | Example: `https://gitlab.com` |
 | `FORGE_GITLAB_API_TOKEN` | empty | For GitLab features | Needs sufficient API scope |

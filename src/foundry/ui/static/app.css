@@ -596,6 +596,52 @@ tbody tr:last-child td {
     font-size: 0.92rem;
 }
 
+.snapshot-progress {
+    margin: 0.5rem 0 1rem;
+    padding: 0.75rem;
+    border: 1px solid #cbd7ee;
+    border-radius: 10px;
+    background: #f7faff;
+}
+
+.snapshot-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.45rem;
+}
+
+.snapshot-progress-track {
+    position: relative;
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: #dce6f7;
+    overflow: hidden;
+}
+
+.snapshot-progress-bar {
+    position: absolute;
+    inset: 0;
+    width: 32%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2e4a82 0%, #4267b0 100%);
+    animation: snapshot-progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes snapshot-progress-slide {
+    0% {
+        transform: translateX(-110%);
+    }
+    50% {
+        transform: translateX(90%);
+    }
+    100% {
+        transform: translateX(330%);
+    }
+}
+
 .muted-panel {
     color: #57627a;
     background: #f8f9fd;
@@ -1119,6 +1165,94 @@ tbody tr:last-child td {
 
 .table-toggle-all:hover {
     background: #e9eef9;
+}
+
+.snapshot-hierarchy-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+    border: 1px solid #d7dfef;
+    border-radius: 12px;
+    background: #f7faff;
+}
+
+.snapshot-hierarchy-filterbar label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #22324f;
+    font-weight: 600;
+}
+
+.snapshot-hierarchy-filterbar input[type="search"] {
+    min-width: 18rem;
+}
+
+.snapshot-toggle-chip {
+    border: 1px solid #c8d3e8;
+    border-radius: 999px;
+    background: #ffffff;
+    padding: 0.35rem 0.7rem;
+}
+
+.snapshot-hierarchy-space,
+.snapshot-hierarchy-package,
+.snapshot-hierarchy-asset {
+    margin-bottom: 0.85rem;
+    border: 1px solid #d8deea;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.snapshot-hierarchy-space {
+    padding: 0.75rem 0.9rem;
+    background: linear-gradient(180deg, #fbfcff 0%, #f6f8fd 100%);
+}
+
+.snapshot-hierarchy-package {
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.85rem;
+}
+
+.snapshot-hierarchy-asset {
+    margin-top: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    background: #fcfdff;
+}
+
+.snapshot-hierarchy-package-meta,
+.snapshot-hierarchy-asset-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 0.6rem 0;
+}
+
+.snapshot-hierarchy-assets {
+    margin-top: 0.65rem;
+}
+
+.snapshot-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.7rem;
+}
+
+.snapshot-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #edf3ff;
+    color: #29406b;
+    font-size: 0.88rem;
+    font-weight: 600;
 }
 
 .client-group-cell {

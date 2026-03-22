@@ -2,7 +2,7 @@ from sqlalchemy import func
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from foundry.api.deps import CurrentActor, get_current_actor, get_current_person
+from foundry.api.deps import CurrentActorOptionalOrg, get_current_actor, get_current_person
 from foundry.db import get_session
 from foundry.models import (
     EntityType,
@@ -83,7 +83,7 @@ def list_my_organizations(
 
 
 @router.get("/active", response_model=OrganizationOut)
-def get_active_organization(current_actor: CurrentActor = Depends(get_current_actor)):
+def get_active_organization(current_actor: CurrentActorOptionalOrg = Depends(get_current_actor)):
     if not current_actor.organization:
         raise HTTPException(status_code=404, detail="No active organization selected")
     return current_actor.organization

@@ -1,25 +1,33 @@
+# ruff: noqa: E402
+
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
-import subprocess
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, select
 
 # Ensure this test uses an isolated SQLite database.
-os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_snapshots_api_test.db")
+os.environ["FORGE_DATABASE_URL"] = "sqlite:///./tmp_snapshots_api_test.db"
+
+import foundry.db as db_module
+
+db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
-from foundry.db import engine
 from foundry.models import (
+    Asset,
+    CelonisConnection,
     CelonisSnapshot,
+    CelonisUserToken,
     Client,
     Organization,
     OrganizationMembership,
     OrganizationRole,
     Person,
+    Project,
     SnapshotApp,
     SnapshotChangeType,
     SnapshotDataModel,
@@ -32,6 +40,8 @@ from foundry.models import (
     SnapshotTransformation,
 )
 from foundry.security import create_access_token, hash_password
+
+engine = db_module.engine
 
 
 DB_FILE = Path("tmp_snapshots_api_test.db")
@@ -455,6 +465,70 @@ def test_snapshot_ui_export_returns_json_in_json_mode(tmp_path, monkeypatch) -> 
     assert payload["result"]["bundle_path"]
 
 
+def test_snapshot_detail_ui_shows_compare_and_drilldown_sections() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.get(
+            f"/snapshots-ui/{seed['client_a_id']}/{seed['current_snapshot_id']}/detail?tab=hierarchy"
+        )
+
+    assert response.status_code == 200, response.text
+    assert "Compare Snapshots" in response.text
+    assert "Hierarchy" in response.text
+    assert "Git-Style Diff" in response.text
+    assert "Filter spaces, packages, assets, or types" in response.text
+
+
+def test_snapshot_create_app_asset_from_task_creates_dependency_assets() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with Session(engine) as session:
+        project = Project(
+            organization_id=UUID(seed["org_a_id"]),
+            client_id=UUID(seed["client_a_id"]),
+            name="Snapshot Dependency Project",
+        )
+        session.add(project)
+        session.commit()
+        session.refresh(project)
+        project_id = str(project.id)
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.post(
+            f"/snapshots-ui/{seed['client_a_id']}/{seed['current_snapshot_id']}/create-app-asset",
+            data={
+                "source_kind": "task",
+                "source_id": "task-1",
+                "source_name": "Task One",
+                "project_id": project_id,
+                "task_type": "kpi",
+                "tab": "deep_packages",
+                "compare_to": seed["prev_snapshot_id"],
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 303, response.text
+    assert "ok=" in response.headers["location"]
+
+    with Session(engine) as session:
+        assets = session.exec(
+            select(Asset).where(Asset.project_id == UUID(project_id))
+        ).all()
+
+    identifiers = {row.asset_identifier for row in assets}
+    assert f"snapshot:{seed['current_snapshot_id']}:task:task-1" in identifiers
+    assert f"snapshot:{seed['current_snapshot_id']}:data_model:dm-1" in identifiers
+    assert f"snapshot:{seed['current_snapshot_id']}:knowledge_model:km-1" in identifiers
+
+
 def test_snapshot_git_history_endpoint_materializes_commit(tmp_path, monkeypatch) -> None:
     _reset_db()
     seed = _seed_snapshot_data()
@@ -540,6 +614,54 @@ def test_trigger_snapshot_passes_organization_scope_to_service(monkeypatch) -> N
     assert captured["client_id"] == seed["client_a_id"]
     assert captured["triggered_by"] == seed["person_a_id"]
     assert captured["organization_id"] == seed["org_a_id"]
+
+
+def test_trigger_snapshot_ui_uses_saved_user_token(monkeypatch) -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+    captured: dict[str, str] = {}
+
+    with Session(engine) as session:
+        session.add(
+            CelonisConnection(
+                organization_id=UUID(seed["org_a_id"]),
+                client_id=UUID(seed["client_a_id"]),
+                tenant_base_url="https://tenant.celonis.cloud",
+                is_active=True,
+            )
+        )
+        session.add(
+            CelonisUserToken(
+                organization_id=UUID(seed["org_a_id"]),
+                person_id=UUID(seed["person_a_id"]),
+                token_value="user-token-abc",
+            )
+        )
+        session.commit()
+
+    def _patched_run_snapshot(session, *, client_id, triggered_by, organization_id=None, token_override=None):
+        captured["client_id"] = str(client_id)
+        captured["triggered_by"] = str(triggered_by)
+        captured["organization_id"] = str(organization_id) if organization_id else ""
+        captured["token_override"] = token_override or ""
+        return session.get(CelonisSnapshot, UUID(seed["current_snapshot_id"]))
+
+    monkeypatch.setattr("foundry.services.snapshot_service.run_snapshot", _patched_run_snapshot)
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.post(
+            f"/snapshots-ui/{seed['client_a_id']}/trigger",
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 303, response.text
+    assert "ok=" in response.headers["location"]
+    assert captured["client_id"] == seed["client_a_id"]
+    assert captured["triggered_by"] == seed["person_a_id"]
+    assert captured["organization_id"] == seed["org_a_id"]
+    assert captured["token_override"] == "user-token-abc"
 
 
 # ---------------------------------------------------------------------------

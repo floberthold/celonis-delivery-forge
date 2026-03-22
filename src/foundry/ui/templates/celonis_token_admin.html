@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Celonis Token Admin | Foundry{% endblock %}
+
+{% block content %}
+<h2>Celonis Token Admin</h2>
+<p class="muted-note">View and manage delegated Celonis keys per user. System access is inferred from each user's latest Celonis preflight checks.</p>
+<p class="muted-note">Project scope rows represent project-bound usage contexts backed by the user's delegated token.</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="panel">
+    <div class="section-header">
+        <h3>Assign Token</h3>
+    </div>
+    <form method="post" action="/celonis-token-admin-ui/create" class="form-card">
+        <label>User
+            <select name="person_id" required>
+                <option value="">Select user...</option>
+                {% for person in people_options %}
+                <option value="{{ person.id }}">{{ person.name }} ({{ person.email }})</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Celonis API Token
+            <input type="password" name="token_value" placeholder="Paste token here..." required autocomplete="off">
+        </label>
+        <button type="submit">Save Token</button>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <h3>Tokens By User</h3>
+    </div>
+    {% if rows %}
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Target</th>
+                <th>Scope</th>
+                <th>Token</th>
+                <th>Authorized Systems</th>
+                <th>Restricted / Unknown Systems</th>
+                <th>Last Preflight</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            {% if row.row_kind == "person" and edit_id == row.id|string %}
+            <tr>
+                <form method="post" action="/celonis-token-admin-ui/update">
+                    <input type="hidden" name="token_id" value="{{ row.id }}">
+                    <td>{{ row.person_name }}<br><span class="muted-note">{{ row.person_email }}</span></td>
+                    <td>{{ row.target_name }}</td>
+                    <td>{{ row.scope }}</td>
+                    <td>
+                        <input type="password" name="token_value" placeholder="Paste replacement token..." required autocomplete="off">
+                        <div class="muted-note">Current: {{ row.token_preview }}</div>
+                    </td>
+                    <td>
+                        {% if row.authorized_services %}
+                        {{ row.authorized_services|join(", ") }}
+                        {% else %}
+                        <span class="muted-note">None recorded</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if row.restricted_services %}
+                        {{ row.restricted_services|join(", ") }}
+                        {% else %}
+                        <span class="muted-note">None recorded</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ row.last_preflight_at.strftime("%Y-%m-%d %H:%M") if row.last_preflight_at else "-" }}</td>
+                    <td class="actions-cell">
+                        <button type="submit">Save</button>
+                        <a class="link-button" href="/celonis-token-admin-ui">Cancel</a>
+                    </td>
+                </form>
+            </tr>
+            {% else %}
+            <tr>
+                <td>{{ row.person_name }}<br><span class="muted-note">{{ row.person_email }}</span></td>
+                <td>{{ row.target_name }}</td>
+                <td>{{ row.scope }}</td>
+                <td>{{ row.token_preview }}</td>
+                <td>
+                    {% if row.authorized_services %}
+                    {{ row.authorized_services|join(", ") }}
+                    {% else %}
+                    <span class="muted-note">None recorded</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if row.restricted_services %}
+                    {{ row.restricted_services|join(", ") }}
+                    {% else %}
+                    <span class="muted-note">None recorded</span>
+                    {% endif %}
+                </td>
+                <td>{{ row.last_preflight_at.strftime("%Y-%m-%d %H:%M") if row.last_preflight_at else "-" }}</td>
+                <td class="actions-cell">
+                    {% if row.row_kind == "person" %}
+                    <a class="link-button" href="/celonis-token-admin-ui?edit={{ row.id }}">Edit</a>
+                    <form method="post" action="/celonis-token-admin-ui/delete" class="inline-form">
+                        <input type="hidden" name="token_id" value="{{ row.id }}">
+                        <button type="submit" class="button-danger">Remove</button>
+                    </form>
+                    {% else %}
+                    <span class="muted-note">Inherited from user token</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted-note">No delegated user tokens are configured yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

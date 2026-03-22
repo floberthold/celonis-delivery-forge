@@ -147,7 +147,7 @@ class ReviewService:
                 session.exec(
                     select(GitLabRepo).where(
                         GitLabRepo.project_id == review.project_id,
-                        GitLabRepo.is_active == True,
+                        GitLabRepo.is_active,
                     )
                 ).all()
             )

@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 from pathlib import Path
@@ -123,7 +124,7 @@ def store_uploaded_document(upload_file) -> dict:
 def remove_document_file(storage_path: str | None) -> None:
     if not storage_path:
         return
-    candidate = STATIC_ROOT / storage_path.replace("/", Path.sep)
+    candidate = STATIC_ROOT / storage_path.replace("/", os.sep)
     try:
         if candidate.is_file():
             candidate.unlink()
@@ -139,14 +140,14 @@ def delete_todo_children(session: Session, todo: Todo) -> list[str]:
 
     storage_paths = [row.storage_path for row in document_rows if row.storage_path]
 
-    for row in comment_rows:
-        session.delete(row)
-    for row in tag_rows:
-        session.delete(row)
-    for row in link_rows:
-        session.delete(row)
-    for row in document_rows:
-        session.delete(row)
+    for comment_row in comment_rows:
+        session.delete(comment_row)
+    for tag_row in tag_rows:
+        session.delete(tag_row)
+    for link_row in link_rows:
+        session.delete(link_row)
+    for document_row in document_rows:
+        session.delete(document_row)
 
     return storage_paths
 

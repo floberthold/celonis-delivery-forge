@@ -113,7 +113,7 @@ def instantiate_template(
     template = session.exec(
         select(Template).where(
             Template.id == template_id,
-            Template.is_active == True,
+            Template.is_active,
             Template.organization_id == current_actor.organization.id,
         )
     ).first()
