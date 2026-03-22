@@ -128,6 +128,11 @@ def test_dashboard_shows_celonis_preflight_history_badges() -> None:
         assert "celonis-status-authorized" in response.text
         assert "celonis-status-missing-token" in response.text
         assert "run run-abc" in response.text
+        assert "Primary navigation" in response.text
+        assert "Operations" in response.text
+        assert "Admin" in response.text
+        assert "Utility" in response.text
+        assert 'href="/dashboard" class="primary-nav-link is-active"' in response.text
 
 
 def test_sort_datetime_key_handles_mixed_timezone_values() -> None:

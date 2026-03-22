@@ -113,12 +113,14 @@ class EntityType(str, Enum):
     quest_assignment = "quest_assignment"
     quest_feedback = "quest_feedback"
     task_dependency = "task_dependency"
+    celonis_deployment_request = "celonis_deployment_request"
 
 
 class AssetSourceKind(str, Enum):
     code_drop = "code_drop"
     pullable_repo = "pullable_repo"
     mirrored_repo = "mirrored_repo"
+    celonis_marketplace = "celonis_marketplace"
 
 
 class IngestRunStatus(str, Enum):
@@ -284,6 +286,8 @@ class Project(SQLModel, table=True):
     client_id: UUID = Field(index=True, foreign_key="client.id")
     status: ProjectStatus = Field(default=ProjectStatus.planned)
     salesforce_url: Optional[str] = None
+    celonis_package_url: Optional[str] = None
+    celonis_app_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -517,6 +521,44 @@ class CelonisConnection(SQLModel, table=True):
     client_id: UUID = Field(index=True, foreign_key="client.id", unique=True)
     tenant_base_url: str
     is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CelonisUserToken(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    organization_id: UUID = Field(index=True, foreign_key="organization.id")
+    person_id: UUID = Field(index=True, foreign_key="person.id")
+    token_value: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CelonisDeploymentStatus(str, Enum):
+    draft = "draft"
+    awaiting_approval = "awaiting_approval"
+    approved = "approved"
+    cancelled = "cancelled"
+
+
+class CelonisDeploymentRequest(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    organization_id: UUID = Field(index=True, foreign_key="organization.id")
+    project_id: UUID = Field(index=True, foreign_key="project.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    created_by: UUID = Field(index=True, foreign_key="person.id")
+    status: CelonisDeploymentStatus = Field(default=CelonisDeploymentStatus.draft, index=True)
+    target_space_name: Optional[str] = None
+    target_package_key: Optional[str] = None
+    target_package_name: Optional[str] = None
+    notes: Optional[str] = Field(default=None, sa_column=Column(Text))
+    preflight_run_id: Optional[str] = None
+    preflight_passed: bool = False
+    permission_diff_acknowledged: bool = False
+    permission_diff_acknowledged_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
+    reviewer_id: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
+    reviewer_decision: Optional[str] = None
+    reviewer_note: Optional[str] = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -828,6 +870,59 @@ class SnapshotKnowledgeModel(SQLModel, table=True):
     name: str
     space_id: Optional[str] = None
     space_name: Optional[str] = None
+    change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
+    raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SnapshotSpace(SQLModel, table=True):
+    """Celonis Studio space (container for packages and apps)."""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    snapshot_id: UUID = Field(index=True, foreign_key="celonissnapshot.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    space_id: str = Field(index=True)
+    name: str
+    change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
+    raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SnapshotApp(SQLModel, table=True):
+    """Celonis App Framework app."""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    snapshot_id: UUID = Field(index=True, foreign_key="celonissnapshot.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    app_id: str = Field(index=True)
+    name: str
+    space_id: Optional[str] = None
+    space_name: Optional[str] = None
+    package_key: Optional[str] = None
+    change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
+    raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SnapshotDataPool(SQLModel, table=True):
+    """Celonis Data Integration pool (groups connections and data jobs)."""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    snapshot_id: UUID = Field(index=True, foreign_key="celonissnapshot.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    pool_id: str = Field(index=True)
+    name: str
+    change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
+    raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SnapshotTransformation(SQLModel, table=True):
+    """Celonis Data Integration transformation (SQL/PQL transform inside a pool)."""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    snapshot_id: UUID = Field(index=True, foreign_key="celonissnapshot.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    transformation_id: str = Field(index=True)
+    name: str
+    pool_id: Optional[str] = Field(default=None, index=True)
+    pool_name: Optional[str] = None
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -11,6 +11,7 @@ from foundry.api.routes import (
     assets,
     auth,
     celonis,
+    celonis_marketplace,
     clients,
     forum_insights,
     gitlab,
@@ -35,6 +36,18 @@ from foundry.settings import get_settings
 
 settings = get_settings()
 
+
+def _docs_site_dir() -> Path | None:
+    candidates: list[Path] = [Path(__file__).resolve().parents[3] / "docs_site"]
+    meipass = getattr(__import__("sys"), "_MEIPASS", None)
+    if meipass:
+        candidates.append(Path(meipass) / "docs_site")
+    candidates.append(Path.cwd() / "docs_site")
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    return None
+
 _API_PATH_PREFIXES = (
     "/auth",
     "/people",
@@ -51,6 +64,7 @@ _API_PATH_PREFIXES = (
     "/forum-insights",
     "/kpis",
     "/celonis",
+    "/celonis-marketplace",
     "/gitlab",
     "/use-cases",
     "/ingest",
@@ -106,6 +120,13 @@ app.mount(
     StaticFiles(directory=Path(__file__).resolve().parents[1] / "ui" / "static"),
     name="static",
 )
+docs_site_dir = _docs_site_dir()
+if docs_site_dir:
+    app.mount(
+        "/docs-site",
+        StaticFiles(directory=docs_site_dir, html=True),
+        name="docs_site",
+    )
 
 
 @app.get("/health")
@@ -135,6 +156,7 @@ app.include_router(todos.router)
 app.include_router(forum_insights.router)
 app.include_router(kpis.router)
 app.include_router(celonis.router)
+app.include_router(celonis_marketplace.router)
 app.include_router(gitlab.router)
 app.include_router(use_cases.router)
 app.include_router(ingest.router)

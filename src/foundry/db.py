@@ -1,5 +1,6 @@
 import logging
 
+from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -33,10 +34,26 @@ def _set_engine(database_url: str):
 
 def _initialize_schema(target_engine) -> None:
     SQLModel.metadata.create_all(target_engine)
+    if _active_database_url.startswith("sqlite"):
+        _repair_legacy_sqlite_schema(target_engine)
     from foundry.services.template_seed import seed_default_templates
 
     with Session(target_engine) as session:
         seed_default_templates(session)
+
+
+def _repair_legacy_sqlite_schema(target_engine) -> None:
+    # Older local SQLite DBs may miss columns added after initial creation.
+    with target_engine.begin() as conn:
+        rows = conn.execute(text("PRAGMA table_info('project')")).fetchall()
+        if not rows:
+            return
+
+        existing = {str(row[1]) for row in rows}
+        if "celonis_package_url" not in existing:
+            conn.execute(text("ALTER TABLE project ADD COLUMN celonis_package_url TEXT"))
+        if "celonis_app_url" not in existing:
+            conn.execute(text("ALTER TABLE project ADD COLUMN celonis_app_url TEXT"))
 
 
 def _fallback_database_url() -> str | None:

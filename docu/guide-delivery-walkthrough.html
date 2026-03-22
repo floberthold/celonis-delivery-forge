@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery Walkthrough Guide | Foundry{% endblock %}
+
+{% block content %}
+<h2>Delivery Walkthrough (Step-by-Step)</h2>
+<p class="muted-note">Follow this sequence to execute a complete delivery cycle with governance checks.</p>
+
+<section class="panel">
+    <h3>1) Onboarding & Access</h3>
+    <ol>
+        <li>Sign in via <a href="/login">/login</a>.</li>
+        <li>Verify your account appears under <a href="/people-ui">People</a>.</li>
+        <li>Confirm project has at least two active members.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>2) Create Core Entities</h3>
+    <ol>
+        <li>Create client in <a href="/clients-ui">Clients</a>.</li>
+        <li>Create project in <a href="/projects-ui">Projects</a> and assign members.</li>
+        <li>Create asset in <a href="/assets-ui">Assets</a>.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>3) Run Companion Checks</h3>
+    <ol>
+        <li>Open <a href="/dashboard">Dashboard</a> Celonis section.</li>
+        <li>Save tenant connection for target client.</li>
+        <li>Run preflight checks and review status labels.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>4) Execute Delivery Work</h3>
+    <ol>
+        <li>Use <a href="/todos-ui">Todos</a> for implementation tasks.</li>
+        <li>Use <a href="/files-ui">Files</a> for artifacts.</li>
+        <li>Use <a href="/kpis-ui">KPIs</a> for metric definitions and updates.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>5) Governance Review</h3>
+    <ol>
+        <li>Open <a href="/reviews-ui">Reviews</a> and submit change request.</li>
+        <li>Ensure reviewer is different from author.</li>
+        <li>Record outcome and verify timeline entries in <a href="/timeline-ui">Timeline</a>.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>6) Closeout</h3>
+    <ol>
+        <li>Verify no blocking reviews remain.</li>
+        <li>Update project status and health indicators.</li>
+        <li>Capture snapshot/KPI knowledge for reuse where applicable.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>Fast Links</h3>
+    <p>
+        <a class="link-button" href="/docu/user.html">Back to User Docs</a>
+        <a class="link-button" href="/dashboard">Open Dashboard</a>
+        <a class="link-button" href="/reviews-ui">Open Reviews</a>
+    </p>
+</section>
+{% endblock %}

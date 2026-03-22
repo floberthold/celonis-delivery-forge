@@ -5,6 +5,7 @@
 {% block content %}
 <h2>Global Client Health</h2>
 <p class="muted-note">Project-level health grouped by client for PM and Dev perspectives.</p>
+<p class="muted-note">Celonis user token: {{ "configured" if has_user_celonis_token else "not configured" }}</p>
 
 {% if ok_message %}
 <div class="alert success">{{ ok_message }}</div>
@@ -79,12 +80,12 @@
                     <td>{{ row.pending_reviews }}</td>
                     <td>{{ (row.asset_approval_rate * 100) | round(0) | int }}% ({{ row.assets_approved }}/{{ row.asset_total }})</td>
                     <td>{{ row.last_activity or '-' }}</td>
-                    <td><span class="health-badge {{ row.pm_health }}">{{ row.pm_health }}</span></td>
+                    <td><span class="health-badge {{ row.pm_health }}" title="{{ row.pm_health_reason }}">{{ row.pm_health }}</span></td>
                 </tr>
                 {% else %}
                 <tr class="project-row" data-row-kind="project" data-client-id="{{ row.client_id }}">
                     <td class="client-group-cell"></td>
-                    <td><a class="link-button" href="/projects-ui/{{ row.project_id }}/overview">{{ row.project_name }}</a></td>
+                    <td><a class="link-button" href="/projects-ui/{{ row.project_id }}/overview">{{ row.project_overview_label }}</a></td>
                     <td>{{ row.project_status }}</td>
                     <td>{{ row.member_count }}</td>
                     <td>{{ row.open_todos }}</td>
@@ -92,7 +93,7 @@
                     <td>{{ row.pending_reviews }}</td>
                     <td>{{ (row.asset_approval_rate * 100) | round(0) | int }}% ({{ row.assets_approved }}/{{ row.asset_total }})</td>
                     <td>{{ row.last_activity or '-' }}</td>
-                    <td><span class="health-badge {{ row.pm_health }}">{{ row.pm_health }}</span></td>
+                    <td><span class="health-badge {{ row.pm_health }}" title="{{ row.pm_health_reason }}">{{ row.pm_health }}</span></td>
                 </tr>
                 {% endif %}
                 {% else %}
@@ -125,6 +126,7 @@
                     <th>Deprecated Assets</th>
                     <th>Stale Reviews</th>
                     <th>Health</th>
+                    <th>Celonis Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -149,12 +151,13 @@
                     <td>{{ row.ml_jobs_total }}</td>
                     <td>{{ row.deprecated_assets }}</td>
                     <td>{{ row.stale_reviews }}</td>
-                    <td><span class="health-badge {{ row.dev_health }}">{{ row.dev_health }}</span></td>
+                    <td><span class="health-badge {{ row.dev_health }}" title="{{ row.dev_health_reason }}">{{ row.dev_health }}</span></td>
+                    <td class="muted-note">Project-level controls available on rows below.</td>
                 </tr>
                 {% else %}
                 <tr class="project-row" data-row-kind="project" data-client-id="{{ row.client_id }}">
                     <td class="client-group-cell"></td>
-                    <td><a class="link-button" href="/projects-ui/{{ row.project_id }}/overview">{{ row.project_name }}</a></td>
+                    <td><a class="link-button" href="/projects-ui/{{ row.project_id }}/overview">{{ row.project_overview_label }}</a></td>
                     <td>{{ row.project_status }}</td>
                     <td>
                         <span class="health-badge {{ row.uptime_status }}">{{ "connected" if row.connection_active else "degraded" }}</span>
@@ -167,12 +170,47 @@
                     <td>{{ row.ml_jobs_total }}</td>
                     <td>{{ row.deprecated_assets }}</td>
                     <td>{{ row.stale_reviews }}</td>
-                    <td><span class="health-badge {{ row.dev_health }}">{{ row.dev_health }}</span></td>
+                    <td><span class="health-badge {{ row.dev_health }}" title="{{ row.dev_health_reason }}">{{ row.dev_health }}</span></td>
+                    <td>
+                        <div class="celonis-actions-cell">
+                            <form method="post" action="/client-health-ui/projects/{{ row.project_id }}/celonis-links" class="inline-control-form">
+                                <label>Package URL
+                                    <input type="url" name="celonis_package_url" value="{{ row.celonis_package_url or '' }}" placeholder="https://...">
+                                </label>
+                                <label>App URL
+                                    <input type="url" name="celonis_app_url" value="{{ row.celonis_app_url or '' }}" placeholder="https://...">
+                                </label>
+                                <button type="submit">Save Links</button>
+                            </form>
+                            <div class="action-links-inline">
+                                <span>Saved links:</span>
+                                {{ row.celonis_package_url | clickable_url }}
+                                {{ row.celonis_app_url | clickable_url }}
+                            </div>
+                            <form method="post" action="/client-health-ui/projects/{{ row.project_id }}/celonis-token" class="inline-control-form">
+                                <label>My Celonis Token
+                                    <input type="password" name="token_value" placeholder="Paste token to save, leave blank to clear">
+                                </label>
+                                <button type="submit">Save/Clear Token</button>
+                            </form>
+                            <div class="action-buttons-row">
+                                <form method="post" action="/client-health-ui/projects/{{ row.project_id }}/celonis-uptime" class="inline-form">
+                                    <button type="submit">Check Uptime</button>
+                                </form>
+                                <form method="post" action="/client-health-ui/projects/{{ row.project_id }}/celonis-metrics-download" class="inline-control-form compact">
+                                    <label>Metrics Path
+                                        <input type="text" name="metrics_path" value="/apps/api/packages" placeholder="/apps/api/packages">
+                                    </label>
+                                    <button type="submit">Download Metrics</button>
+                                </form>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
                 {% endif %}
                 {% else %}
                 <tr>
-                    <td colspan="13">No projects available.</td>
+                    <td colspan="14">No projects available.</td>
                 </tr>
                 {% endfor %}
             </tbody>

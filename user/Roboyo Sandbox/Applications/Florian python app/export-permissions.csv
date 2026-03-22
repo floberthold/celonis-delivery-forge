@@ -1,0 +1,9 @@
+Subject Name,Subject Type,Subject Id,Groups,Role,Service,Object Name,Object Type,Object ID,Actions
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Studio,'--,'--,'--,"[All spaces - Edit, Export]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Compute Live,'--,'--,'--,[All mutation APIs - Use]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Storage Manager,'--,'--,'--,[All buckets - Read]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Data Integration,'--,'--,'--,[All data pools - Read]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Machine Learning,'--,'--,'--,"[All apps - Read configuration, All apps - Use]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Admin & Settings,'--,'--,'--,"[Platform adoption - Use API, Audit logs - Use API, Users - Use API, Login history - Use API]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Admin & Settings,'--,'--,'--,[ANALYST]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Agent Service,'--,'--,'--,"[All agents - Read, All agents - Create]"

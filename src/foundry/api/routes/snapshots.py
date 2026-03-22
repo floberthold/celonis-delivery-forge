@@ -1,11 +1,13 @@
 from pathlib import Path
+import json
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlmodel import Session, select
 
 from foundry.api.deps import CurrentActor, get_current_actor_with_org, get_session
+from foundry.api.routes.celonis import _resolve_actor_token_override
 from foundry.models import (
     Client,
     CelonisSnapshot,
@@ -31,6 +33,10 @@ from foundry.services.snapshot_export_service import (
     build_snapshot_delta_report,
     build_snapshot_export,
     build_snapshot_replay_plan,
+)
+from foundry.services.snapshot_coverage_service import (
+    build_snapshot_coverage_filename,
+    build_snapshot_coverage_report,
 )
 from foundry.services.snapshot_git_service import materialize_celonis_snapshot_git_history
 from foundry.services.snapshot_service import run_snapshot
@@ -66,11 +72,16 @@ def trigger_snapshot(
     if _get_org_client(session, body.client_id, current_actor.organization.id) is None:
         raise HTTPException(status_code=404, detail="Client not found")
     try:
+        token_override = _resolve_actor_token_override(session, current_actor)
+        run_kwargs: dict = {}
+        if token_override:
+            run_kwargs["token_override"] = token_override
         snap = run_snapshot(
             session,
             client_id=body.client_id,
             triggered_by=current_actor.person.id,
             organization_id=current_actor.organization.id,
+            **run_kwargs,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -213,6 +224,38 @@ def get_snapshot_replay_plan(
     if snap is None:
         raise HTTPException(status_code=404, detail="Snapshot not found")
     return build_snapshot_replay_plan(session, snapshot_id=snapshot_id)
+
+
+@router.get("/{snapshot_id}/coverage")
+def get_snapshot_coverage_report(
+    snapshot_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
+    if snap is None:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    return build_snapshot_coverage_report(snap)
+
+
+@router.get("/{snapshot_id}/coverage/download")
+def download_snapshot_coverage_report(
+    snapshot_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
+    if snap is None:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    payload = build_snapshot_coverage_report(snap)
+    filename = build_snapshot_coverage_filename(snapshot_id)
+    return Response(
+        content=json.dumps(payload, indent=2, default=str),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
 
 
 @router.get("/{snapshot_id}/export/download")

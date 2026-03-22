@@ -86,7 +86,7 @@
                 </div>
                 <div class="todo-column-body">
                     {% for row in column.rows %}
-                    <a class="todo-card {% if selected_row and selected_row.id == row.id %}is-selected{% endif %}" href="{{ row.selected_url }}">
+                    <a class="todo-card {% if selected_row and selected_row.id == row.id %}is-selected{% endif %}" href="{{ row.selected_url }}" data-preserve-scroll-select="true">
                         <div class="todo-card-topline">
                             <span class="priority-badge {{ row.priority }}">{{ row.priority }}</span>
                             <span class="todo-meta-text">{{ row.comment_count }} comments</span>
@@ -139,7 +139,7 @@
                         <td>{{ row.assignee_name }}</td>
                         <td>{{ row.due_at or '-' }}</td>
                         <td>{{ row.tag_names|length }} tags · {{ row.link_count }} links · {{ row.document_count }} docs</td>
-                        <td><a class="link-button" href="{{ row.selected_url }}">Open</a></td>
+                        <td><a class="link-button" href="{{ row.selected_url }}" data-preserve-scroll-select="true">Open</a></td>
                     </tr>
                     {% else %}
                     <tr><td colspan="8">No todos found.</td></tr>

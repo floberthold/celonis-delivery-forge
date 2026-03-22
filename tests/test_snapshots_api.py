@@ -6,7 +6,7 @@ from uuid import UUID
 import subprocess
 
 from fastapi.testclient import TestClient
-from sqlmodel import SQLModel, Session
+from sqlmodel import SQLModel, Session, select
 
 # Ensure this test uses an isolated SQLite database.
 os.environ.setdefault("FORGE_DATABASE_URL", "sqlite:///./tmp_snapshots_api_test.db")
@@ -20,12 +20,16 @@ from foundry.models import (
     OrganizationMembership,
     OrganizationRole,
     Person,
+    SnapshotApp,
     SnapshotChangeType,
     SnapshotDataModel,
+    SnapshotDataPool,
     SnapshotKnowledgeModel,
     SnapshotPackage,
     SnapshotRunStatus,
+    SnapshotSpace,
     SnapshotTask,
+    SnapshotTransformation,
 )
 from foundry.security import create_access_token, hash_password
 
@@ -363,6 +367,94 @@ def test_snapshot_export_download_returns_zip_response(tmp_path, monkeypatch) ->
         assert response.content.startswith(b"PK")
 
 
+def test_snapshot_coverage_endpoint_returns_statuses() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    _seed_extended_snapshot_data(seed)
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.get(f"/snapshots/{seed['current_snapshot_id']}/coverage")
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["snapshot_id"] == seed["current_snapshot_id"]
+    assert "statuses" in payload
+    assert "families" in payload
+    family_keys = {row["key"] for row in payload["families"]}
+    assert "packages" in family_keys
+    assert "package_assets" in family_keys
+    assert "knowledge_models" in family_keys
+
+
+def test_snapshot_coverage_download_returns_json_attachment() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    _seed_extended_snapshot_data(seed)
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.get(f"/snapshots/{seed['current_snapshot_id']}/coverage/download")
+
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.headers["content-disposition"] == (
+        f'attachment; filename="snapshot_{seed["current_snapshot_id"]}_coverage.json"'
+    )
+    payload = response.json()
+    assert payload["snapshot_id"] == seed["current_snapshot_id"]
+
+
+def test_snapshot_ui_export_redirects_by_default(tmp_path, monkeypatch) -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    monkeypatch.setattr(
+        "foundry.api.routes.ui.get_settings",
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+    )
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.post(
+            f"/snapshots-ui/{seed['client_a_id']}/{seed['current_snapshot_id']}/export",
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 303
+    assert "/snapshots-ui/" in response.headers["location"]
+    assert "/detail" in response.headers["location"]
+    assert "ok=" in response.headers["location"]
+
+
+def test_snapshot_ui_export_returns_json_in_json_mode(tmp_path, monkeypatch) -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    monkeypatch.setattr(
+        "foundry.api.routes.ui.get_settings",
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+    )
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.post(
+            f"/snapshots-ui/{seed['client_a_id']}/{seed['current_snapshot_id']}/export?response_mode=json",
+            headers={"Accept": "application/json"},
+        )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["snapshot_id"] == seed["current_snapshot_id"]
+    assert "Export bundle created" in payload["message"]
+    assert payload["result"]["bundle_path"]
+
+
 def test_snapshot_git_history_endpoint_materializes_commit(tmp_path, monkeypatch) -> None:
     _reset_db()
     seed = _seed_snapshot_data()
@@ -448,3 +540,194 @@ def test_trigger_snapshot_passes_organization_scope_to_service(monkeypatch) -> N
     assert captured["client_id"] == seed["client_a_id"]
     assert captured["triggered_by"] == seed["person_a_id"]
     assert captured["organization_id"] == seed["org_a_id"]
+
+
+# ---------------------------------------------------------------------------
+# Extended artifact-type coverage tests
+# ---------------------------------------------------------------------------
+
+def _seed_extended_snapshot_data(seed: dict[str, str]) -> None:
+    """Add spaces, apps, data pools, and transformations to the current snapshot."""
+    with Session(engine) as session:
+        snapshot_id = UUID(seed["current_snapshot_id"])
+        client_id = UUID(seed["client_a_id"])
+
+        session.add(SnapshotSpace(
+            snapshot_id=snapshot_id, client_id=client_id,
+            space_id="space-1", name="Space One",
+            change_type=SnapshotChangeType.unchanged, raw_json={"id": "space-1"},
+        ))
+        session.add(SnapshotApp(
+            snapshot_id=snapshot_id, client_id=client_id,
+            app_id="app-1", name="App One",
+            space_id="space-1", space_name="Space One", package_key="pkg-1",
+            change_type=SnapshotChangeType.added, raw_json={"id": "app-1", "spaceId": "space-1"},
+        ))
+        session.add(SnapshotDataPool(
+            snapshot_id=snapshot_id, client_id=client_id,
+            pool_id="pool-1", name="Pool One",
+            change_type=SnapshotChangeType.unchanged, raw_json={"id": "pool-1"},
+        ))
+        session.add(SnapshotTransformation(
+            snapshot_id=snapshot_id, client_id=client_id,
+            transformation_id="tf-1", name="Transformation One",
+            pool_id="pool-1", pool_name="Pool One",
+            change_type=SnapshotChangeType.added, raw_json={"id": "tf-1", "poolId": "pool-1"},
+        ))
+        session.commit()
+
+
+def test_delta_includes_new_artifact_types() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    _seed_extended_snapshot_data(seed)
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        delta_response = api_client.get(f"/snapshots/{seed['current_snapshot_id']}/delta")
+        assert delta_response.status_code == 200, delta_response.text
+        assets = delta_response.json()["assets"]
+
+    assert "spaces" in assets, "delta must include spaces"
+    assert "apps" in assets, "delta must include apps"
+    assert "data_pools" in assets, "delta must include data_pools"
+    assert "transformations" in assets, "delta must include transformations"
+
+    # app-1 and tf-1 only appear in current snapshot → should be added
+    assert assets["apps"]["counts"]["added"] >= 1
+    assert assets["transformations"]["counts"]["added"] >= 1
+
+
+def test_export_includes_new_artifact_jsonl_files(tmp_path, monkeypatch) -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    _seed_extended_snapshot_data(seed)
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    monkeypatch.setattr(
+        "foundry.api.routes.snapshots.get_settings",
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+    )
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        export_response = api_client.post(f"/snapshots/{seed['current_snapshot_id']}/export")
+        assert export_response.status_code == 200, export_response.text
+        export_payload = export_response.json()
+
+    data_dir = Path(export_payload["export_dir"]) / "data"
+    assert (data_dir / "spaces.jsonl").exists(), "spaces.jsonl must be emitted"
+    assert (data_dir / "apps.jsonl").exists(), "apps.jsonl must be emitted"
+    assert (data_dir / "data_pools.jsonl").exists(), "data_pools.jsonl must be emitted"
+    assert (data_dir / "transformations.jsonl").exists(), "transformations.jsonl must be emitted"
+
+    # Verify counts in manifest
+    counts = export_payload["asset_counts"]
+    assert counts["spaces"] >= 1
+    assert counts["apps"] >= 1
+    assert counts["data_pools"] >= 1
+    assert counts["transformations"] >= 1
+
+
+def test_snapshot_run_captures_all_artifact_types(tmp_path, monkeypatch) -> None:
+    """Verify run_snapshot calls all extractor functions and stores new entity types."""
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    # Provide fake Celonis API responses for all artifact endpoints
+    from foundry.integrations.celonis_import import CelonisHttpFullResult
+
+    def _fake_extract_full(self, *, tenant_base_url: str, source_path: str) -> CelonisHttpFullResult:
+        responses: dict[str, list] = {
+            "/package-manager/api/spaces": [{"id": "s-1", "name": "Space 1"}],
+            "/package-manager/api/packages": [{"id": "p-1", "key": "p-1", "name": "Package 1"}],
+            "/package-manager/api/packages/p-1/assets": [
+                {"id": "t-1", "name": "KPI 1", "type": "KPI"},
+                {"id": "t-2", "name": "Action Flow 1", "type": "ACTION_FLOW"},
+                {"id": "t-3", "name": "View 1", "type": "ANALYSIS"},
+            ],
+            "/process-mining/api/data-models": [{"id": "dm-1", "name": "DM 1"}],
+            "/integration/api/v1/jobs": [{"id": "j-1", "name": "Job 1"}],
+            "/knowledge-model/api/knowledge-models": [{"id": "km-1", "name": "KM 1"}],
+            "/apps/api/packages": [{"id": "a-1", "name": "App 1", "key": "a-1"}],
+            "/integration/api/pools": [{"id": "pool-1", "name": "Pool 1"}],
+            "/integration/api/v1/transformations": [{"id": "tf-1", "name": "TF 1", "poolId": "pool-1"}],
+        }
+        body = responses.get(source_path)
+        if body is not None:
+            import json
+            return CelonisHttpFullResult(
+                action="extract_full", url=source_path, status_code=200, ok=True,
+                body=json.dumps(body),
+            )
+        return CelonisHttpFullResult(
+            action="extract_full", url=source_path, status_code=404, ok=False, body=None,
+        )
+
+    # Patch the gateway method and settings, then also add a live CelonisConnection
+    from foundry.models import CelonisConnection
+    with Session(engine) as session:
+        conn = CelonisConnection(
+            organization_id=UUID(seed["org_a_id"]),
+            client_id=UUID(seed["client_a_id"]),
+            tenant_base_url="https://fake.celonis.cloud",
+            is_active=True,
+        )
+        session.add(conn)
+        session.commit()
+
+    monkeypatch.setattr(
+        "foundry.services.snapshot_service.CelonisGateway.extract_full",
+        _fake_extract_full,
+    )
+    monkeypatch.setattr(
+        "foundry.services.snapshot_service.get_settings",
+        lambda: SimpleNamespace(
+            celonis_api_token="tok",
+            celonis_timeout_seconds=10,
+            uploads_dir=str(tmp_path),
+        ),
+    )
+    # stub export so it doesn't fail without a real ZipFile
+    monkeypatch.setattr(
+        "foundry.services.snapshot_export_service.build_snapshot_export",
+        lambda *a, **kw: {
+            "bundle_path": "", "docs_path": "", "generated_at": datetime.utcnow(),
+            "delta_counts": {}, "relationship_graph": {},
+        },
+    )
+    monkeypatch.setattr(
+        "foundry.services.snapshot_service.materialize_celonis_snapshot_git_history",
+        lambda *a, **kw: {},
+    )
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.post(
+            "/snapshots/trigger",
+            json={"client_id": seed["client_a_id"]},
+        )
+        assert response.status_code == 202, response.text
+        payload = response.json()
+        summary = payload["summary_json"]
+
+    assert summary.get("spaces", 0) >= 1, "spaces must be counted in summary"
+    assert summary.get("packages", 0) >= 1, "packages must be counted in summary"
+    assert summary.get("data_models", 0) >= 1, "data_models must be counted in summary"
+    assert summary.get("jobs", 0) >= 1, "jobs must be counted in summary"
+    assert summary.get("knowledge_models", 0) >= 1, "knowledge_models must be counted in summary"
+    assert summary.get("apps", 0) >= 1, "apps must be counted in summary"
+    assert summary.get("data_pools", 0) >= 1, "data_pools must be counted in summary"
+    assert summary.get("transformations", 0) >= 1, "transformations must be counted in summary"
+
+    # Verify package tasks with different asset types (KPI, ACTION_FLOW, ANALYSIS) are stored
+    with Session(engine) as session:
+        tasks = session.exec(
+            select(SnapshotTask).where(SnapshotTask.client_id == UUID(seed["client_a_id"]))
+        ).all()
+        task_types = {t.task_type for t in tasks}
+    assert "KPI" in task_types, "KPI task_type must be stored"
+    assert "ACTION_FLOW" in task_types, "ACTION_FLOW task_type must be stored"
+    assert "ANALYSIS" in task_types, "ANALYSIS task_type must be stored"

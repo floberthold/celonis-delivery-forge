@@ -25,12 +25,14 @@
 <div class="section-header">
     <h3>Clone Bundle</h3>
     <div>
-        <form method="post" action="/snapshots-ui/{{ client.id }}/{{ snap.id }}/export" style="display:inline">
+        <form id="snapshot-export-form" method="post" action="/snapshots-ui/{{ client.id }}/{{ snap.id }}/export" style="display:inline">
             <button type="submit" class="btn-primary">Generate Export + Docs</button>
         </form>
         <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/download">Download ZIP</a>
-        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/delta" target="_blank">Delta JSON</a>
-        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/replay-plan" target="_blank">Replay Plan</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/delta" data-snapshot-popup-json="true" data-popup-title="Delta JSON">Delta JSON</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/replay-plan" data-snapshot-popup-json="true" data-popup-title="Replay Plan">Replay Plan</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/coverage" data-snapshot-popup-json="true" data-popup-title="Coverage JSON">Coverage JSON</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/coverage/download">Download Coverage</a>
     </div>
 </div>
 
@@ -161,5 +163,154 @@
 </table>
 {% endif %}
 
+<div id="snapshot-result-modal" class="snapshot-result-modal is-hidden" aria-hidden="true">
+    <div class="snapshot-result-modal-backdrop" data-snapshot-modal-close="true"></div>
+    <div class="snapshot-result-modal-panel" role="dialog" aria-modal="true" aria-labelledby="snapshot-result-modal-title">
+        <div class="snapshot-result-modal-header">
+            <h4 id="snapshot-result-modal-title">Snapshot Result</h4>
+            <button type="button" class="snapshot-result-modal-close" data-snapshot-modal-close="true">Close</button>
+        </div>
+        <p id="snapshot-result-modal-hint" class="muted-note snapshot-result-modal-hint"></p>
+        <pre id="snapshot-result-modal-content" class="snapshot-result-modal-content"></pre>
+    </div>
+</div>
+
 <p><a href="/snapshots-ui/{{ client.id }}">← Back to Snapshot History</a></p>
+
+<script>
+(() => {
+    const modal = document.getElementById("snapshot-result-modal");
+    const modalTitle = document.getElementById("snapshot-result-modal-title");
+    const modalHint = document.getElementById("snapshot-result-modal-hint");
+    const modalContent = document.getElementById("snapshot-result-modal-content");
+    const exportForm = document.getElementById("snapshot-export-form");
+    const closeNodes = document.querySelectorAll("[data-snapshot-modal-close='true']");
+    const jsonActionLinks = document.querySelectorAll("[data-snapshot-popup-json='true']");
+    const bodyLockClass = "snapshot-result-modal-body-lock";
+
+    if (!modal || !modalTitle || !modalHint || !modalContent) {
+        return;
+    }
+
+    function openModal(title) {
+        modalTitle.textContent = title || "Snapshot Result";
+        modal.classList.remove("is-hidden");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add(bodyLockClass);
+    }
+
+    function closeModal() {
+        modal.classList.add("is-hidden");
+        modal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove(bodyLockClass);
+        modalHint.textContent = "";
+        modalHint.classList.remove("is-error", "is-success");
+    }
+
+    function setHint(text, tone) {
+        modalHint.textContent = text;
+        modalHint.classList.remove("is-error", "is-success");
+        if (tone === "error") {
+            modalHint.classList.add("is-error");
+        }
+        if (tone === "success") {
+            modalHint.classList.add("is-success");
+        }
+    }
+
+    function renderPayload(payload) {
+        modalContent.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    async function fetchJson(url, options = {}) {
+        const headers = new Headers(options.headers || {});
+        if (!headers.has("Accept")) {
+            headers.set("Accept", "application/json");
+        }
+        const response = await fetch(url, { ...options, headers });
+        const contentType = response.headers.get("content-type") || "";
+        let payload = null;
+
+        if (contentType.includes("application/json")) {
+            payload = await response.json();
+        } else {
+            const text = await response.text();
+            payload = {
+                error: "Unexpected non-JSON response",
+                status: response.status,
+                preview: text.slice(0, 800),
+            };
+        }
+
+        if (!response.ok) {
+            const error = new Error(`Request failed with status ${response.status}`);
+            error.payload = payload;
+            throw error;
+        }
+        return payload;
+    }
+
+    async function handleJsonAction(url, title) {
+        openModal(title);
+        setHint("Loading response...", "");
+        modalContent.textContent = "";
+        try {
+            const payload = await fetchJson(url);
+            renderPayload(payload);
+            setHint("Loaded successfully.", "success");
+        } catch (error) {
+            renderPayload(error.payload || { error: String(error) });
+            setHint("Unable to load response.", "error");
+        }
+    }
+
+    jsonActionLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            const title = link.getAttribute("data-popup-title") || link.textContent || "Snapshot Result";
+            handleJsonAction(link.getAttribute("href"), title.trim());
+        });
+    });
+
+    if (exportForm) {
+        exportForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            openModal("Generate Export + Docs");
+            setHint("Generating export bundle...", "");
+            modalContent.textContent = "";
+
+            try {
+                const payload = await fetchJson(`${exportForm.action}?response_mode=json`, {
+                    method: "POST",
+                    body: new FormData(exportForm),
+                    headers: {
+                        "X-Forge-Response-Mode": "json",
+                    },
+                });
+                renderPayload(payload);
+                if (payload.ok) {
+                    setHint(payload.message || "Export completed.", "success");
+                } else {
+                    setHint(payload.error || "Export failed.", "error");
+                }
+            } catch (error) {
+                renderPayload(error.payload || { error: String(error) });
+                setHint("Export failed.", "error");
+            }
+        });
+    }
+
+    closeNodes.forEach((node) => {
+        node.addEventListener("click", () => {
+            closeModal();
+        });
+    });
+
+    window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.classList.contains("is-hidden")) {
+            closeModal();
+        }
+    });
+})();
+</script>
 {% endblock %}

@@ -1,5 +1,6 @@
 import importlib
 import os
+import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -82,6 +83,43 @@ def test_health_reports_database_startup_mode(monkeypatch) -> None:
         "database_backend": "sqlite",
         "database_startup_mode": "local_fallback",
     }
+
+
+def test_init_db_repairs_legacy_sqlite_project_columns(monkeypatch, tmp_path: Path) -> None:
+    db_file = tmp_path / "legacy.db"
+    monkeypatch.setenv("FORGE_ENV", "dev")
+    monkeypatch.setenv("FORGE_DATABASE_URL", f"sqlite:///{db_file.as_posix()}")
+    monkeypatch.setenv("FORGE_DATABASE_FALLBACK_TO_LOCAL", "true")
+    _reset_settings_cache()
+
+    with sqlite3.connect(db_file) as raw_conn:
+        raw_conn.execute(
+            """
+            CREATE TABLE project (
+                id TEXT PRIMARY KEY,
+                organization_id TEXT,
+                name TEXT,
+                client_id TEXT,
+                status TEXT,
+                salesforce_url TEXT,
+                created_at TEXT
+            )
+            """
+        )
+        raw_conn.commit()
+
+    import foundry.db as db_module
+
+    db_module = importlib.reload(db_module)
+    db_module.init_db()
+
+    with sqlite3.connect(db_file) as raw_conn:
+        columns = {
+            row[1] for row in raw_conn.execute("PRAGMA table_info('project')").fetchall()
+        }
+
+    assert "celonis_package_url" in columns
+    assert "celonis_app_url" in columns
 
 
 @pytest.fixture(autouse=True)

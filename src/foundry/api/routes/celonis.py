@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
 from foundry.integrations.celonis_import import CelonisGateway
-from foundry.models import ActivityLog, CelonisConnection, Client, EntityType
+from foundry.models import ActivityLog, CelonisConnection, CelonisUserToken, Client, EntityType
 from foundry.schemas import (
     CelonisActionResult,
     CelonisPreflightBatchResult,
@@ -17,6 +17,8 @@ from foundry.schemas import (
     CelonisPreflightHistoryItem,
     CelonisImportRequest,
     CelonisPreflightResult,
+    CelonisUserTokenStatus,
+    CelonisUserTokenUpdate,
 )
 from foundry.settings import get_settings
 from foundry.services.activity_log import log_activity, log_created, log_updated
@@ -59,6 +61,38 @@ def _get_connection_or_404(session: Session, client_id: UUID, organization_id: U
     if not connection or not connection.is_active:
         raise HTTPException(status_code=404, detail="Active Celonis connection not found for client")
     return connection
+
+
+def _get_user_token(
+    session: Session,
+    *,
+    organization_id: UUID,
+    person_id: UUID,
+) -> CelonisUserToken | None:
+    return session.exec(
+        select(CelonisUserToken).where(
+            CelonisUserToken.organization_id == organization_id,
+            CelonisUserToken.person_id == person_id,
+        )
+    ).first()
+
+
+def _resolve_actor_token_override(session: Session, current_actor: CurrentActor) -> str | None:
+    row = _get_user_token(
+        session,
+        organization_id=current_actor.organization.id,
+        person_id=current_actor.person.id,
+    )
+    if row is None:
+        return None
+    token = row.token_value.strip()
+    return token or None
+
+
+def _token_override_kwargs(token_override: str | None) -> dict:
+    if not token_override:
+        return {}
+    return {"token_override": token_override}
 
 
 @router.get("/connections", response_model=list[CelonisConnectionOut])
@@ -129,6 +163,90 @@ def upsert_connection(
     return row
 
 
+@router.get("/user-token", response_model=CelonisUserTokenStatus)
+def get_user_token_status(
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    row = _get_user_token(
+        session,
+        organization_id=current_actor.organization.id,
+        person_id=current_actor.person.id,
+    )
+    if row is None or not row.token_value.strip():
+        return CelonisUserTokenStatus(token_configured=False, updated_at=None)
+    return CelonisUserTokenStatus(token_configured=True, updated_at=row.updated_at)
+
+
+@router.put("/user-token", response_model=CelonisUserTokenStatus)
+def put_user_token(
+    payload: CelonisUserTokenUpdate,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    token_value = payload.token_value.strip()
+    if not token_value:
+        raise HTTPException(status_code=400, detail="token_value cannot be empty")
+
+    row = _get_user_token(
+        session,
+        organization_id=current_actor.organization.id,
+        person_id=current_actor.person.id,
+    )
+    now = datetime.utcnow()
+    if row is None:
+        row = CelonisUserToken(
+            organization_id=current_actor.organization.id,
+            person_id=current_actor.person.id,
+            token_value=token_value,
+            created_at=now,
+            updated_at=now,
+        )
+    else:
+        row.token_value = token_value
+        row.updated_at = now
+
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+
+    log_activity(
+        session,
+        entity_type=EntityType.person,
+        entity_id=current_actor.person.id,
+        actor_id=current_actor.person.id,
+        organization_id=current_actor.organization.id,
+        action="person.celonis_user_token.updated",
+        metadata={"token_present": True, "scope": "person+organization"},
+    )
+    return CelonisUserTokenStatus(token_configured=True, updated_at=row.updated_at)
+
+
+@router.delete("/user-token", response_model=CelonisUserTokenStatus)
+def delete_user_token(
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    row = _get_user_token(
+        session,
+        organization_id=current_actor.organization.id,
+        person_id=current_actor.person.id,
+    )
+    if row is not None:
+        session.delete(row)
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.person,
+            entity_id=current_actor.person.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            action="person.celonis_user_token.updated",
+            metadata={"token_present": False, "scope": "person+organization"},
+        )
+    return CelonisUserTokenStatus(token_configured=False, updated_at=None)
+
+
 @router.post("/extract", response_model=CelonisActionResult)
 def extract(
     payload: CelonisExtractRequest,
@@ -137,10 +255,12 @@ def extract(
 ):
     settings = get_settings()
     connection = _get_connection_or_404(session, payload.client_id, current_actor.organization.id)
+    token_override = _resolve_actor_token_override(session, current_actor)
     try:
         result = CelonisGateway(settings).extract(
             tenant_base_url=connection.tenant_base_url,
             source_path=payload.source_path,
+            **_token_override_kwargs(token_override),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -165,11 +285,13 @@ def import_data(
 ):
     settings = get_settings()
     connection = _get_connection_or_404(session, payload.client_id, current_actor.organization.id)
+    token_override = _resolve_actor_token_override(session, current_actor)
     try:
         result = CelonisGateway(settings).import_data(
             tenant_base_url=connection.tenant_base_url,
             target_path=payload.target_path,
             payload=payload.payload,
+            **_token_override_kwargs(token_override),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -196,10 +318,12 @@ def preflight_connection(
 ):
     settings = get_settings()
     connection = _get_connection_or_404(session, client_id, current_actor.organization.id)
+    token_override = _resolve_actor_token_override(session, current_actor)
     result = CelonisGateway(settings).preflight(
         tenant_base_url=connection.tenant_base_url,
         probe_path=probe_path,
         service=service,
+        **_token_override_kwargs(token_override),
     )
     return CelonisPreflightResult(
         client_id=client_id,
@@ -228,6 +352,7 @@ def preflight_connection_batch(
     connection = _get_connection_or_404(session, client_id, current_actor.organization.id)
     selected_services = _parse_services_or_default(services)
     gateway = CelonisGateway(settings)
+    token_override = _resolve_actor_token_override(session, current_actor)
     run_id = str(uuid4())
     run_ts = datetime.utcnow()
 
@@ -238,6 +363,7 @@ def preflight_connection_batch(
             tenant_base_url=connection.tenant_base_url,
             probe_path="",
             service=service_name,
+            **_token_override_kwargs(token_override),
         )
         if result.permission_status == "authorized":
             authorized_count += 1

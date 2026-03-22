@@ -39,3 +39,10 @@ worktree_path: {{WORKTREE_PATH}}
 
 ## Next Action
 - 
+
+<!-- Remove the section below if this run has no Celonis deployment involvement -->
+## Deployment Gate
+- Preflight:
+- Diff Acknowledged:
+- Deploy Reviewer:
+- Deploy Decision:

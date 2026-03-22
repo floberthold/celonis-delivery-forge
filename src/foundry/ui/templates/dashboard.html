@@ -12,7 +12,14 @@
 <div class="alert error">{{ error_message }}</div>
 {% endif %}
 
-<section class="cards">
+<!-- Welcome Section -->
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Welcome to {{ active_organization.name }}</h3>
+    <p class="muted-note">Your delivery platform for managing Celonis implementations. Use the navigation below to get started.</p>
+</section>
+
+<!-- Quick Stats Section -->
+<section class="cards" style="margin-bottom: 1.5rem;">
     <div class="card">
         <h3>Clients</h3>
         <p class="metric">{{ clients_count }}</p>
@@ -22,342 +29,80 @@
         <p class="metric">{{ projects_count }}</p>
     </div>
     <div class="card">
+        <h3>Team Members</h3>
+        <p class="metric">{{ team_member_count }}</p>
+    </div>
+    <div class="card">
         <h3>Assets</h3>
         <p class="metric">{{ assets_count }}</p>
     </div>
+</section>
+
+<!-- Quick Navigation Section -->
+<section style="margin-bottom: 1.5rem;">
+    <h3 style="margin-bottom: 1rem;">Quick Navigation</h3>
+    <div class="quicknav-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+        <a href="/projects-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+            <strong>Projects</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Manage delivery projects</p>
+        </a>
+        <a href="/assets-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+            <strong>Assets</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Track Celonis content</p>
+        </a>
+        <a href="/reviews-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+            <strong>Reviews</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Quality assurance</p>
+        </a>
+        <a href="/orchestration-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+            <strong>Operations</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Manage tasks & quests</p>
+        </a>
+        <a href="/people-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+            <strong>Admin</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Setup & configuration</p>
+        </a>
+        <a href="/docs-site/user/" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📚</div>
+            <strong>Docs</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Help & guides</p>
+        </a>
+    </div>
+</section>
+
+<!-- Getting Started Section -->
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Getting Started</h3>
+    <ul style="margin: 0; padding-left: 1.5rem;">
+        <li><strong>New to Foundry?</strong> Visit <a href="/docs-site/user/">User Docs</a> for onboarding guides.</li>
+        <li><strong>Need to set up Celonis?</strong> Go to <a href="/tenant-ui">Admin → Tenant</a> to configure your connection.</li>
+        <li><strong>Creating your first project?</strong> Head to <a href="/projects-ui">Projects</a> and click the create form.</li>
+        <li><strong>Team management?</strong> Use <a href="/people-ui">Admin → People</a> to add team members and clients.</li>
+    </ul>
+</section>
+
+<!-- Additional Metrics -->
+<section class="cards">
     <div class="card">
         <h3>Reviews</h3>
         <p class="metric">{{ reviews_count }}</p>
     </div>
     <div class="card">
-        <h3>Timeline Events</h3>
+        <h3>Activities</h3>
         <p class="metric">{{ timeline_count }}</p>
     </div>
 </section>
 
-<section class="forms-grid">
-    <form class="panel form-card" method="post" action="/dashboard/create-client">
-        <h3>Create Client</h3>
-        <label>Name<input name="name" required></label>
-        <label>Tenant URL<input name="tenant_url" required></label>
-        <label>Sensitivity
-            <select name="sensitivity_level">
-                {% for row in sensitivity_options %}
-                <option value="{{ row }}">{{ row }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit">Create Client</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/create-person">
-        <h3>Create Person</h3>
-        <label>Name<input name="name" required></label>
-        <label>Email<input type="email" name="email" required></label>
-        <label>Password<input type="password" name="password" maxlength="72" required></label>
-        <label>Global Role
-            <select name="role_global">
-                {% for row in global_role_options %}
-                <option value="{{ row }}">{{ row }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit">Create Person</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/create-project">
-        <h3>Create Project</h3>
-        <label>Name<input name="name" required></label>
-        <label>Client
-            <select name="client_id" required>
-                {% for row in form_clients %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Status
-            <select name="status">
-                {% for row in project_status_options %}
-                <option value="{{ row }}">{{ row }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit">Create Project</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/create-membership">
-        <h3>Add Project Membership</h3>
-        <label>Project
-            <select name="project_id" required>
-                {% for row in form_projects %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Person
-            <select name="person_id" required>
-                {% for row in form_people %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Role
-            <select name="role">
-                {% for row in membership_role_options %}
-                <option value="{{ row }}">{{ row }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit">Add Membership</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/create-asset">
-        <h3>Create Asset</h3>
-        <label>Name<input name="name" required></label>
-        <label>Type
-            <select name="asset_type" required>
-                {% for row in asset_type_options %}
-                <option value="{{ row }}">{{ row }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Project
-            <select name="project_id" required>
-                {% for row in form_projects %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Client
-            <select name="client_id" required>
-                {% for row in form_clients %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Celonis URL<input name="celonis_url"></label>
-        <label>Asset Identifier<input name="asset_identifier"></label>
-        <button type="submit">Create Asset</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/create-review">
-        <h3>Submit Review</h3>
-        <label>Asset
-            <select name="asset_id" required>
-                {% for row in form_assets %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Project
-            <select name="project_id" required>
-                {% for row in form_projects %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Author
-            <select name="author_id" required>
-                {% for row in form_people %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Reviewer
-            <select name="reviewer_id" required>
-                {% for row in form_people %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Change Summary<textarea name="change_summary" rows="3" required></textarea></label>
-        <button type="submit">Submit Review</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/review-decision">
-        <h3>Apply Review Decision</h3>
-        <label>Review
-            <select name="review_id" required>
-                {% for row in form_reviews %}
-                <option value="{{ row.id }}">{{ row.id }} · {{ row.status.value }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Reviewer
-            <select name="reviewer_id" required>
-                {% for row in form_people %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Decision
-            <select name="decision" required>
-                <option value="approve">approve</option>
-                <option value="request_changes">request_changes</option>
-            </select>
-        </label>
-        <label>Note<textarea name="note" rows="2"></textarea></label>
-        <label class="inline-checkbox"><input type="checkbox" name="snippet_worthy"> Snippet-worthy</label>
-        <button type="submit">Apply Decision</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/celonis-connection">
-        <h3>Celonis Connection</h3>
-        <label>Client
-            <select name="client_id" required>
-                {% for row in form_clients %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Tenant Base URL<input name="tenant_base_url" placeholder="https://team.eu-1.celonis.cloud" required></label>
-        <button type="submit">Save Connection</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/celonis-extract">
-        <h3>Celonis Extract</h3>
-        <label>Client
-            <select name="client_id" required>
-                {% for row in form_clients %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Source Path<input name="source_path" value="/process-mining/api/teams" required></label>
-        <button type="submit">Run Extract</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/celonis-preflight">
-        <h3>Celonis Preflight</h3>
-        <label>Client
-            <select name="client_id" required>
-                {% for row in form_clients %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Service
-            <select name="service">
-                <option value="core">core</option>
-                <option value="process-mining">process-mining</option>
-                <option value="data-integration">data-integration</option>
-                <option value="studio">studio</option>
-                <option value="apps">apps</option>
-            </select>
-        </label>
-        <label>Probe Path Override (optional)<input name="probe_path" value="" placeholder="Leave empty to use service default"></label>
-        <button type="submit">Run Preflight</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/celonis-preflight-batch">
-        <h3>Celonis Preflight (All Services)</h3>
-        <label>Client
-            <select name="client_id" required>
-                {% for row in form_clients %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <p class="hint">Runs checks for core, process-mining, data-integration, studio, and apps using default probe paths.</p>
-        <button type="submit">Run Batch Preflight</button>
-    </form>
-
-    <form class="panel form-card" method="post" action="/dashboard/celonis-import">
-        <h3>Celonis Import</h3>
-        <label>Client
-            <select name="client_id" required>
-                {% for row in form_clients %}
-                <option value="{{ row.id }}">{{ row.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>Target Path<input name="target_path" value="/process-mining/api/teams" required></label>
-        <label>Payload JSON<textarea name="payload_json" rows="4">{"name":"foundry-import"}</textarea></label>
-        <button type="submit">Run Import</button>
-    </form>
-</section>
-
-<section class="grid">
-    <div class="panel">
-        <h3>Recent Clients</h3>
-        <ul>
-            {% for row in clients %}
-            <li>{{ row.name }} ({{ row.sensitivity_level.value }})</li>
-            {% else %}
-            <li>No clients yet.</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="panel">
-        <h3>Recent Projects</h3>
-        <ul>
-            {% for row in projects %}
-            <li>{{ row.name }} ({{ row.status.value }})</li>
-            {% else %}
-            <li>No projects yet.</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="panel">
-        <h3>Recent Assets</h3>
-        <ul>
-            {% for row in assets %}
-            <li>{{ row.name }} ({{ row.type.value }})</li>
-            {% else %}
-            <li>No assets yet.</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="panel">
-        <h3>Recent Reviews</h3>
-        <ul>
-            {% for row in reviews %}
-            <li>{{ row.id }} ({{ row.status.value }})</li>
-            {% else %}
-            <li>No reviews yet.</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="panel">
-        <h3>Recent Timeline Events</h3>
-        <ul>
-            {% for row in timeline %}
-            <li>{{ row.action }} - {{ row.timestamp }}</li>
-            {% else %}
-            <li>No activity yet.</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="panel">
-        <h3>Celonis Connections</h3>
-        <ul>
-            {% for row in celonis_connections %}
-            <li>{{ row.client_id }} → {{ row.tenant_base_url | clickable_url }} (active={{ row.is_active }})</li>
-            {% else %}
-            <li>No connections configured yet.</li>
-            {% endfor %}
-        </ul>
-    </div>
-
-    <div class="panel">
-        <h3>Celonis Preflight History</h3>
-        <ul>
-            {% for row in celonis_preflight_history %}
-            <li>
-                {{ row.timestamp }} · {{ row.client_name }} · {{ row.service }} ·
-                <span class="celonis-status-badge celonis-status-{{ row.permission_status|replace('_', '-') }}">{{ row.permission_status }}</span>
-                {% if row.status_code %}(HTTP {{ row.status_code }}){% endif %}
-                {% if row.run_id %} · run {{ row.run_id }}{% endif %}
-            </li>
-            {% else %}
-            <li>No preflight checks yet.</li>
-            {% endfor %}
-        </ul>
-    </div>
-</section>
+<style>
+.quicknav-grid a:hover {
+    background-color: #f5f5f5;
+    border-color: #0066cc;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+}
+</style>
 {% endblock %}

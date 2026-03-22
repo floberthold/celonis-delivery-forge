@@ -11,12 +11,16 @@ from sqlmodel import Session, select
 
 from foundry.models import (
     CelonisSnapshot,
+    SnapshotApp,
     SnapshotDataModel,
+    SnapshotDataPool,
     SnapshotJob,
     SnapshotKnowledgeModel,
     SnapshotPackage,
     SnapshotRunStatus,
+    SnapshotSpace,
     SnapshotTask,
+    SnapshotTransformation,
 )
 
 
@@ -152,6 +156,10 @@ def _build_relationship_graph(
     data_model_rows: Sequence[SnapshotDataModel],
     job_rows: Sequence[SnapshotJob],
     km_rows: Sequence[SnapshotKnowledgeModel],
+    space_rows: Sequence[SnapshotSpace] = (),
+    app_rows: Sequence[SnapshotApp] = (),
+    pool_rows: Sequence[SnapshotDataPool] = (),
+    transformation_rows: Sequence[SnapshotTransformation] = (),
 ) -> dict[str, list[dict[str, str]]]:
     nodes: list[dict[str, str]] = []
     edges: list[dict[str, str]] = []
@@ -159,7 +167,11 @@ def _build_relationship_graph(
     package_ids = {row.package_id for row in package_rows}
     data_model_ids = {row.data_model_id for row in data_model_rows}
     km_ids = {row.km_id for row in km_rows}
+    space_ids = {row.space_id for row in space_rows}
+    pool_ids = {row.pool_id for row in pool_rows}
 
+    for row in space_rows:
+        nodes.append({"node_id": f"space:{row.space_id}", "kind": "space", "name": row.name})
     for row in package_rows:
         nodes.append({"node_id": f"package:{row.package_id}", "kind": "package", "name": row.name})
     for row in task_rows:
@@ -170,62 +182,56 @@ def _build_relationship_graph(
         nodes.append({"node_id": f"job:{row.job_id}", "kind": "job", "name": row.name})
     for row in km_rows:
         nodes.append({"node_id": f"knowledge_model:{row.km_id}", "kind": "knowledge_model", "name": row.name})
+    for row in app_rows:
+        nodes.append({"node_id": f"app:{row.app_id}", "kind": "app", "name": row.name})
+    for row in pool_rows:
+        nodes.append({"node_id": f"pool:{row.pool_id}", "kind": "data_pool", "name": row.name})
+    for row in transformation_rows:
+        nodes.append({"node_id": f"transformation:{row.transformation_id}", "kind": "transformation", "name": row.name})
 
+    # package → space
+    for pkg in package_rows:
+        if pkg.space_id and pkg.space_id in space_ids:
+            edges.append({"from": f"space:{pkg.space_id}", "to": f"package:{pkg.package_id}", "type": "contains_package"})
+
+    # task → package
     for task in task_rows:
         if task.package_id and task.package_id in package_ids:
-            edges.append(
-                {
-                    "from": f"package:{task.package_id}",
-                    "to": f"task:{task.task_id}",
-                    "type": "contains_task",
-                }
-            )
+            edges.append({"from": f"package:{task.package_id}", "to": f"task:{task.task_id}", "type": "contains_task"})
 
         dm_refs = _collect_refs(task.raw_json, {"datamodelid", "data_model_id"})
         for dm_id in sorted(dm_refs):
             if dm_id in data_model_ids:
-                edges.append(
-                    {
-                        "from": f"task:{task.task_id}",
-                        "to": f"data_model:{dm_id}",
-                        "type": "references_data_model",
-                    }
-                )
+                edges.append({"from": f"task:{task.task_id}", "to": f"data_model:{dm_id}", "type": "references_data_model"})
 
         km_refs = _collect_refs(task.raw_json, {"knowledgemodelid", "knowledge_model_id", "kmid"})
         for km_id in sorted(km_refs):
             if km_id in km_ids:
-                edges.append(
-                    {
-                        "from": f"task:{task.task_id}",
-                        "to": f"knowledge_model:{km_id}",
-                        "type": "references_knowledge_model",
-                    }
-                )
+                edges.append({"from": f"task:{task.task_id}", "to": f"knowledge_model:{km_id}", "type": "references_knowledge_model"})
 
     for job in job_rows:
         dm_refs = _collect_refs(job.raw_json, {"datamodelid", "data_model_id"})
         for dm_id in sorted(dm_refs):
             if dm_id in data_model_ids:
-                edges.append(
-                    {
-                        "from": f"job:{job.job_id}",
-                        "to": f"data_model:{dm_id}",
-                        "type": "uses_data_model",
-                    }
-                )
+                edges.append({"from": f"job:{job.job_id}", "to": f"data_model:{dm_id}", "type": "uses_data_model"})
+        if job.pool_id and job.pool_id in pool_ids:
+            edges.append({"from": f"pool:{job.pool_id}", "to": f"job:{job.job_id}", "type": "contains_job"})
 
     for km in km_rows:
         dm_refs = _collect_refs(km.raw_json, {"datamodelid", "data_model_id"})
         for dm_id in sorted(dm_refs):
             if dm_id in data_model_ids:
-                edges.append(
-                    {
-                        "from": f"knowledge_model:{km.km_id}",
-                        "to": f"data_model:{dm_id}",
-                        "type": "models_on_data_model",
-                    }
-                )
+                edges.append({"from": f"knowledge_model:{km.km_id}", "to": f"data_model:{dm_id}", "type": "models_on_data_model"})
+
+    for app in app_rows:
+        if app.space_id and app.space_id in space_ids:
+            edges.append({"from": f"space:{app.space_id}", "to": f"app:{app.app_id}", "type": "contains_app"})
+        if app.package_key and app.package_key in package_ids:
+            edges.append({"from": f"package:{app.package_key}", "to": f"app:{app.app_id}", "type": "published_as_app"})
+
+    for tf in transformation_rows:
+        if tf.pool_id and tf.pool_id in pool_ids:
+            edges.append({"from": f"pool:{tf.pool_id}", "to": f"transformation:{tf.transformation_id}", "type": "contains_transformation"})
 
     unique_edges: dict[tuple[str, str, str], dict[str, str]] = {}
     for edge in edges:
@@ -246,11 +252,19 @@ def _build_delta(
     data_model_rows: Sequence[SnapshotDataModel],
     job_rows: Sequence[SnapshotJob],
     km_rows: Sequence[SnapshotKnowledgeModel],
-    prev_package_rows: Sequence[SnapshotPackage],
-    prev_task_rows: Sequence[SnapshotTask],
-    prev_data_model_rows: Sequence[SnapshotDataModel],
-    prev_job_rows: Sequence[SnapshotJob],
-    prev_km_rows: Sequence[SnapshotKnowledgeModel],
+    space_rows: Sequence[SnapshotSpace] = (),
+    app_rows: Sequence[SnapshotApp] = (),
+    pool_rows: Sequence[SnapshotDataPool] = (),
+    transformation_rows: Sequence[SnapshotTransformation] = (),
+    prev_package_rows: Sequence[SnapshotPackage] = (),
+    prev_task_rows: Sequence[SnapshotTask] = (),
+    prev_data_model_rows: Sequence[SnapshotDataModel] = (),
+    prev_job_rows: Sequence[SnapshotJob] = (),
+    prev_km_rows: Sequence[SnapshotKnowledgeModel] = (),
+    prev_space_rows: Sequence[SnapshotSpace] = (),
+    prev_app_rows: Sequence[SnapshotApp] = (),
+    prev_pool_rows: Sequence[SnapshotDataPool] = (),
+    prev_transformation_rows: Sequence[SnapshotTransformation] = (),
 ) -> dict[str, Any]:
     package_diff = _diff_maps(
         current_map=_build_record_map(package_rows, id_attr="package_id", name_attr="name"),
@@ -272,17 +286,37 @@ def _build_delta(
         current_map=_build_record_map(km_rows, id_attr="km_id", name_attr="name"),
         previous_map=_build_record_map(prev_km_rows, id_attr="km_id", name_attr="name"),
     )
+    space_diff = _diff_maps(
+        current_map=_build_record_map(space_rows, id_attr="space_id", name_attr="name"),
+        previous_map=_build_record_map(prev_space_rows, id_attr="space_id", name_attr="name"),
+    )
+    app_diff = _diff_maps(
+        current_map=_build_record_map(app_rows, id_attr="app_id", name_attr="name"),
+        previous_map=_build_record_map(prev_app_rows, id_attr="app_id", name_attr="name"),
+    )
+    pool_diff = _diff_maps(
+        current_map=_build_record_map(pool_rows, id_attr="pool_id", name_attr="name"),
+        previous_map=_build_record_map(prev_pool_rows, id_attr="pool_id", name_attr="name"),
+    )
+    transformation_diff = _diff_maps(
+        current_map=_build_record_map(transformation_rows, id_attr="transformation_id", name_attr="name"),
+        previous_map=_build_record_map(prev_transformation_rows, id_attr="transformation_id", name_attr="name"),
+    )
 
     return {
         "snapshot_id": str(current_snapshot.id),
         "previous_snapshot_id": str(previous_snapshot.id) if previous_snapshot else None,
         "computed_at": datetime.utcnow().isoformat(),
         "assets": {
+            "spaces": space_diff,
             "packages": package_diff,
             "tasks": task_diff,
             "data_models": data_model_diff,
             "jobs": job_diff,
             "knowledge_models": km_diff,
+            "apps": app_diff,
+            "data_pools": pool_diff,
+            "transformations": transformation_diff,
         },
     }
 
@@ -320,45 +354,30 @@ def build_snapshot_delta_report(
     if snapshot is None:
         raise ValueError("Snapshot not found")
 
-    package_rows = session.exec(
-        select(SnapshotPackage).where(SnapshotPackage.snapshot_id == snapshot_id)
-    ).all()
-    task_rows = session.exec(
-        select(SnapshotTask).where(SnapshotTask.snapshot_id == snapshot_id)
-    ).all()
-    data_model_rows = session.exec(
-        select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == snapshot_id)
-    ).all()
-    job_rows = session.exec(
-        select(SnapshotJob).where(SnapshotJob.snapshot_id == snapshot_id)
-    ).all()
-    km_rows = session.exec(
-        select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == snapshot_id)
-    ).all()
+    package_rows = session.exec(select(SnapshotPackage).where(SnapshotPackage.snapshot_id == snapshot_id)).all()
+    task_rows = session.exec(select(SnapshotTask).where(SnapshotTask.snapshot_id == snapshot_id)).all()
+    data_model_rows = session.exec(select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == snapshot_id)).all()
+    job_rows = session.exec(select(SnapshotJob).where(SnapshotJob.snapshot_id == snapshot_id)).all()
+    km_rows = session.exec(select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == snapshot_id)).all()
+    space_rows = session.exec(select(SnapshotSpace).where(SnapshotSpace.snapshot_id == snapshot_id)).all()
+    app_rows = session.exec(select(SnapshotApp).where(SnapshotApp.snapshot_id == snapshot_id)).all()
+    pool_rows = session.exec(select(SnapshotDataPool).where(SnapshotDataPool.snapshot_id == snapshot_id)).all()
+    transformation_rows = session.exec(select(SnapshotTransformation).where(SnapshotTransformation.snapshot_id == snapshot_id)).all()
 
     previous_snapshot = _get_previous_snapshot(session, snapshot)
     if previous_snapshot is not None:
-        prev_package_rows = session.exec(
-            select(SnapshotPackage).where(SnapshotPackage.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_task_rows = session.exec(
-            select(SnapshotTask).where(SnapshotTask.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_data_model_rows = session.exec(
-            select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_job_rows = session.exec(
-            select(SnapshotJob).where(SnapshotJob.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_km_rows = session.exec(
-            select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == previous_snapshot.id)
-        ).all()
+        prev_package_rows = session.exec(select(SnapshotPackage).where(SnapshotPackage.snapshot_id == previous_snapshot.id)).all()
+        prev_task_rows = session.exec(select(SnapshotTask).where(SnapshotTask.snapshot_id == previous_snapshot.id)).all()
+        prev_data_model_rows = session.exec(select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == previous_snapshot.id)).all()
+        prev_job_rows = session.exec(select(SnapshotJob).where(SnapshotJob.snapshot_id == previous_snapshot.id)).all()
+        prev_km_rows = session.exec(select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == previous_snapshot.id)).all()
+        prev_space_rows = session.exec(select(SnapshotSpace).where(SnapshotSpace.snapshot_id == previous_snapshot.id)).all()
+        prev_app_rows = session.exec(select(SnapshotApp).where(SnapshotApp.snapshot_id == previous_snapshot.id)).all()
+        prev_pool_rows = session.exec(select(SnapshotDataPool).where(SnapshotDataPool.snapshot_id == previous_snapshot.id)).all()
+        prev_transformation_rows = session.exec(select(SnapshotTransformation).where(SnapshotTransformation.snapshot_id == previous_snapshot.id)).all()
     else:
-        prev_package_rows = []
-        prev_task_rows = []
-        prev_data_model_rows = []
-        prev_job_rows = []
-        prev_km_rows = []
+        prev_package_rows = prev_task_rows = prev_data_model_rows = prev_job_rows = prev_km_rows = []
+        prev_space_rows = prev_app_rows = prev_pool_rows = prev_transformation_rows = []
 
     return _build_delta(
         current_snapshot=snapshot,
@@ -368,11 +387,19 @@ def build_snapshot_delta_report(
         data_model_rows=data_model_rows,
         job_rows=job_rows,
         km_rows=km_rows,
+        space_rows=space_rows,
+        app_rows=app_rows,
+        pool_rows=pool_rows,
+        transformation_rows=transformation_rows,
         prev_package_rows=prev_package_rows,
         prev_task_rows=prev_task_rows,
         prev_data_model_rows=prev_data_model_rows,
         prev_job_rows=prev_job_rows,
         prev_km_rows=prev_km_rows,
+        prev_space_rows=prev_space_rows,
+        prev_app_rows=prev_app_rows,
+        prev_pool_rows=prev_pool_rows,
+        prev_transformation_rows=prev_transformation_rows,
     )
 
 
@@ -408,6 +435,20 @@ def build_snapshot_replay_plan(
     )
     order = _append_replay_steps(
         steps,
+        asset_type="data_pool",
+        action="upsert",
+        items=[*assets["data_pools"]["added"], *assets["data_pools"]["modified"]],
+        order_start=order,
+    )
+    order = _append_replay_steps(
+        steps,
+        asset_type="transformation",
+        action="upsert",
+        items=[*assets["transformations"]["added"], *assets["transformations"]["modified"]],
+        order_start=order,
+    )
+    order = _append_replay_steps(
+        steps,
         asset_type="job",
         action="upsert",
         items=[*assets["jobs"]["added"], *assets["jobs"]["modified"]],
@@ -418,6 +459,13 @@ def build_snapshot_replay_plan(
         asset_type="knowledge_model",
         action="upsert",
         items=[*assets["knowledge_models"]["added"], *assets["knowledge_models"]["modified"]],
+        order_start=order,
+    )
+    order = _append_replay_steps(
+        steps,
+        asset_type="app",
+        action="upsert",
+        items=[*assets["apps"]["added"], *assets["apps"]["modified"]],
         order_start=order,
     )
     order = _append_replay_steps(
@@ -437,6 +485,13 @@ def build_snapshot_replay_plan(
     )
     order = _append_replay_steps(
         steps,
+        asset_type="app",
+        action="delete",
+        items=assets["apps"]["removed"],
+        order_start=order,
+    )
+    order = _append_replay_steps(
+        steps,
         asset_type="knowledge_model",
         action="delete",
         items=assets["knowledge_models"]["removed"],
@@ -444,9 +499,23 @@ def build_snapshot_replay_plan(
     )
     order = _append_replay_steps(
         steps,
+        asset_type="transformation",
+        action="delete",
+        items=assets["transformations"]["removed"],
+        order_start=order,
+    )
+    order = _append_replay_steps(
+        steps,
         asset_type="job",
         action="delete",
         items=assets["jobs"]["removed"],
+        order_start=order,
+    )
+    order = _append_replay_steps(
+        steps,
+        asset_type="data_pool",
+        action="delete",
+        items=assets["data_pools"]["removed"],
         order_start=order,
     )
     order = _append_replay_steps(
@@ -488,15 +557,23 @@ def _generate_docs(
     km_rows: Sequence[SnapshotKnowledgeModel],
     delta_report: dict[str, Any],
     graph: dict[str, list[dict[str, str]]],
+    space_rows: Sequence[SnapshotSpace] = (),
+    app_rows: Sequence[SnapshotApp] = (),
+    pool_rows: Sequence[SnapshotDataPool] = (),
+    transformation_rows: Sequence[SnapshotTransformation] = (),
 ) -> None:
     docs_dir.mkdir(parents=True, exist_ok=True)
 
     counts = {
+        "spaces": len(space_rows),
         "packages": len(package_rows),
         "tasks": len(task_rows),
         "data_models": len(data_model_rows),
         "jobs": len(job_rows),
         "knowledge_models": len(km_rows),
+        "apps": len(app_rows),
+        "data_pools": len(pool_rows),
+        "transformations": len(transformation_rows),
     }
 
     index_md = [
@@ -519,8 +596,12 @@ def _generate_docs(
     inventory_md = [
         "# Inventory",
         "",
-        "## Packages",
+        "## Spaces",
     ]
+    for row in space_rows:
+        inventory_md.append(f"- {row.name} ({row.space_id}) [{row.change_type.value}]")
+
+    inventory_md.append("\n## Packages")
     for row in package_rows:
         inventory_md.append(f"- {row.name} ({row.package_id}) [{row.change_type.value}]")
 
@@ -539,6 +620,19 @@ def _generate_docs(
     inventory_md.append("\n## Knowledge Models")
     for row in km_rows:
         inventory_md.append(f"- {row.name} ({row.km_id})")
+
+    inventory_md.append("\n## Apps")
+    for row in app_rows:
+        inventory_md.append(f"- {row.name} ({row.app_id}) [{row.change_type.value}]")
+
+    inventory_md.append("\n## Data Pools")
+    for row in pool_rows:
+        inventory_md.append(f"- {row.name} ({row.pool_id}) [{row.change_type.value}]")
+
+    inventory_md.append("\n## Transformations")
+    for row in transformation_rows:
+        pool_label = f" pool={row.pool_id}" if row.pool_id else ""
+        inventory_md.append(f"- {row.name} ({row.transformation_id}){pool_label}")
 
     (docs_dir / "inventory.md").write_text("\n".join(inventory_md), encoding="utf-8")
 
@@ -601,45 +695,30 @@ def build_snapshot_export(
     if snapshot is None:
         raise ValueError("Snapshot not found")
 
-    package_rows = session.exec(
-        select(SnapshotPackage).where(SnapshotPackage.snapshot_id == snapshot_id)
-    ).all()
-    task_rows = session.exec(
-        select(SnapshotTask).where(SnapshotTask.snapshot_id == snapshot_id)
-    ).all()
-    data_model_rows = session.exec(
-        select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == snapshot_id)
-    ).all()
-    job_rows = session.exec(
-        select(SnapshotJob).where(SnapshotJob.snapshot_id == snapshot_id)
-    ).all()
-    km_rows = session.exec(
-        select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == snapshot_id)
-    ).all()
+    package_rows = session.exec(select(SnapshotPackage).where(SnapshotPackage.snapshot_id == snapshot_id)).all()
+    task_rows = session.exec(select(SnapshotTask).where(SnapshotTask.snapshot_id == snapshot_id)).all()
+    data_model_rows = session.exec(select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == snapshot_id)).all()
+    job_rows = session.exec(select(SnapshotJob).where(SnapshotJob.snapshot_id == snapshot_id)).all()
+    km_rows = session.exec(select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == snapshot_id)).all()
+    space_rows = session.exec(select(SnapshotSpace).where(SnapshotSpace.snapshot_id == snapshot_id)).all()
+    app_rows = session.exec(select(SnapshotApp).where(SnapshotApp.snapshot_id == snapshot_id)).all()
+    pool_rows = session.exec(select(SnapshotDataPool).where(SnapshotDataPool.snapshot_id == snapshot_id)).all()
+    transformation_rows = session.exec(select(SnapshotTransformation).where(SnapshotTransformation.snapshot_id == snapshot_id)).all()
 
     previous_snapshot = _get_previous_snapshot(session, snapshot)
     if previous_snapshot is not None:
-        prev_package_rows = session.exec(
-            select(SnapshotPackage).where(SnapshotPackage.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_task_rows = session.exec(
-            select(SnapshotTask).where(SnapshotTask.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_data_model_rows = session.exec(
-            select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_job_rows = session.exec(
-            select(SnapshotJob).where(SnapshotJob.snapshot_id == previous_snapshot.id)
-        ).all()
-        prev_km_rows = session.exec(
-            select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == previous_snapshot.id)
-        ).all()
+        prev_package_rows = session.exec(select(SnapshotPackage).where(SnapshotPackage.snapshot_id == previous_snapshot.id)).all()
+        prev_task_rows = session.exec(select(SnapshotTask).where(SnapshotTask.snapshot_id == previous_snapshot.id)).all()
+        prev_data_model_rows = session.exec(select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == previous_snapshot.id)).all()
+        prev_job_rows = session.exec(select(SnapshotJob).where(SnapshotJob.snapshot_id == previous_snapshot.id)).all()
+        prev_km_rows = session.exec(select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == previous_snapshot.id)).all()
+        prev_space_rows = session.exec(select(SnapshotSpace).where(SnapshotSpace.snapshot_id == previous_snapshot.id)).all()
+        prev_app_rows = session.exec(select(SnapshotApp).where(SnapshotApp.snapshot_id == previous_snapshot.id)).all()
+        prev_pool_rows = session.exec(select(SnapshotDataPool).where(SnapshotDataPool.snapshot_id == previous_snapshot.id)).all()
+        prev_transformation_rows = session.exec(select(SnapshotTransformation).where(SnapshotTransformation.snapshot_id == previous_snapshot.id)).all()
     else:
-        prev_package_rows = []
-        prev_task_rows = []
-        prev_data_model_rows = []
-        prev_job_rows = []
-        prev_km_rows = []
+        prev_package_rows = prev_task_rows = prev_data_model_rows = prev_job_rows = prev_km_rows = []
+        prev_space_rows = prev_app_rows = prev_pool_rows = prev_transformation_rows = []
 
     delta_report = _build_delta(
         current_snapshot=snapshot,
@@ -649,11 +728,19 @@ def build_snapshot_export(
         data_model_rows=data_model_rows,
         job_rows=job_rows,
         km_rows=km_rows,
+        space_rows=space_rows,
+        app_rows=app_rows,
+        pool_rows=pool_rows,
+        transformation_rows=transformation_rows,
         prev_package_rows=prev_package_rows,
         prev_task_rows=prev_task_rows,
         prev_data_model_rows=prev_data_model_rows,
         prev_job_rows=prev_job_rows,
         prev_km_rows=prev_km_rows,
+        prev_space_rows=prev_space_rows,
+        prev_app_rows=prev_app_rows,
+        prev_pool_rows=prev_pool_rows,
+        prev_transformation_rows=prev_transformation_rows,
     )
     relationship_graph = _build_relationship_graph(
         package_rows,
@@ -661,6 +748,10 @@ def build_snapshot_export(
         data_model_rows,
         job_rows,
         km_rows,
+        space_rows=space_rows,
+        app_rows=app_rows,
+        pool_rows=pool_rows,
+        transformation_rows=transformation_rows,
     )
 
     ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
@@ -678,11 +769,15 @@ def build_snapshot_export(
             "status": snapshot.status.value,
             "previous_snapshot_id": str(previous_snapshot.id) if previous_snapshot else None,
             "counts": {
+                "spaces": len(space_rows),
                 "packages": len(package_rows),
                 "tasks": len(task_rows),
                 "data_models": len(data_model_rows),
                 "jobs": len(job_rows),
                 "knowledge_models": len(km_rows),
+                "apps": len(app_rows),
+                "data_pools": len(pool_rows),
+                "transformations": len(transformation_rows),
             },
             "delta_counts": {
                 asset_name: payload["counts"]
@@ -699,97 +794,63 @@ def build_snapshot_export(
     _json_dump(data_dir / "relationships.json", relationship_graph)
 
     _jsonl_dump(
+        data_dir / "spaces.jsonl",
+        _serialize_rows(space_rows, ["id", "snapshot_id", "client_id", "space_id", "name", "change_type", "raw_json", "created_at"]),
+    )
+    _jsonl_dump(
         data_dir / "packages.jsonl",
         _serialize_rows(
             package_rows,
-            [
-                "id",
-                "snapshot_id",
-                "client_id",
-                "package_id",
-                "name",
-                "key",
-                "space_id",
-                "space_name",
-                "change_type",
-                "raw_json",
-                "created_at",
-            ],
+            ["id", "snapshot_id", "client_id", "package_id", "name", "key", "space_id", "space_name", "change_type", "raw_json", "created_at"],
         ),
     )
     _jsonl_dump(
         data_dir / "tasks.jsonl",
         _serialize_rows(
             task_rows,
-            [
-                "id",
-                "snapshot_id",
-                "client_id",
-                "package_id",
-                "task_id",
-                "name",
-                "task_type",
-                "description",
-                "pql_formula",
-                "change_type",
-                "content_hash",
-                "raw_json",
-                "created_at",
-            ],
+            ["id", "snapshot_id", "client_id", "package_id", "task_id", "name", "task_type", "description", "pql_formula", "change_type", "content_hash", "raw_json", "created_at"],
         ),
     )
     _jsonl_dump(
         data_dir / "data_models.jsonl",
         _serialize_rows(
             data_model_rows,
-            [
-                "id",
-                "snapshot_id",
-                "client_id",
-                "data_model_id",
-                "name",
-                "space_id",
-                "space_name",
-                "change_type",
-                "raw_json",
-                "created_at",
-            ],
+            ["id", "snapshot_id", "client_id", "data_model_id", "name", "space_id", "space_name", "change_type", "raw_json", "created_at"],
         ),
     )
     _jsonl_dump(
         data_dir / "jobs.jsonl",
         _serialize_rows(
             job_rows,
-            [
-                "id",
-                "snapshot_id",
-                "client_id",
-                "job_id",
-                "name",
-                "pool_id",
-                "pool_name",
-                "change_type",
-                "raw_json",
-                "created_at",
-            ],
+            ["id", "snapshot_id", "client_id", "job_id", "name", "pool_id", "pool_name", "change_type", "raw_json", "created_at"],
         ),
     )
     _jsonl_dump(
         data_dir / "knowledge_models.jsonl",
         _serialize_rows(
             km_rows,
-            [
-                "id",
-                "snapshot_id",
-                "client_id",
-                "km_id",
-                "name",
-                "space_id",
-                "space_name",
-                "change_type",
-                "raw_json",
-                "created_at",
-            ],
+            ["id", "snapshot_id", "client_id", "km_id", "name", "space_id", "space_name", "change_type", "raw_json", "created_at"],
+        ),
+    )
+    _jsonl_dump(
+        data_dir / "apps.jsonl",
+        _serialize_rows(
+            app_rows,
+            ["id", "snapshot_id", "client_id", "app_id", "name", "space_id", "space_name", "package_key", "change_type", "raw_json", "created_at"],
+        ),
+    )
+    _jsonl_dump(
+        data_dir / "data_pools.jsonl",
+        _serialize_rows(
+            pool_rows,
+            ["id", "snapshot_id", "client_id", "pool_id", "name", "change_type", "raw_json", "created_at"],
+        ),
+    )
+    _jsonl_dump(
+        data_dir / "transformations.jsonl",
+        _serialize_rows(
+            transformation_rows,
+            ["id", "snapshot_id", "client_id", "transformation_id", "name", "pool_id", "pool_name", "change_type", "raw_json", "created_at"],
         ),
     )
 
@@ -803,6 +864,10 @@ def build_snapshot_export(
         km_rows,
         delta_report,
         relationship_graph,
+        space_rows=space_rows,
+        app_rows=app_rows,
+        pool_rows=pool_rows,
+        transformation_rows=transformation_rows,
     )
 
     bundle_path = export_dir.with_suffix(".zip")
@@ -818,11 +883,15 @@ def build_snapshot_export(
         "docs_path": str(docs_dir.resolve()),
         "generated_at": datetime.utcnow(),
         "asset_counts": {
+            "spaces": len(space_rows),
             "packages": len(package_rows),
             "tasks": len(task_rows),
             "data_models": len(data_model_rows),
             "jobs": len(job_rows),
             "knowledge_models": len(km_rows),
+            "apps": len(app_rows),
+            "data_pools": len(pool_rows),
+            "transformations": len(transformation_rows),
         },
         "delta_counts": {
             asset_name: payload["counts"]

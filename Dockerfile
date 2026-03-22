@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md /app/
 COPY src /app/src
-COPY docu /app/docu
+COPY docs_site /app/docs_site
 
 RUN pip install --upgrade pip && pip install .
 

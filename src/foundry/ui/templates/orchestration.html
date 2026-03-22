@@ -18,6 +18,17 @@
     <div class="policy-chip">{{ override_policy }}</div>
 </section>
 
+{% if map_mode and map_close_url %}
+<section class="panel">
+    <div class="section-header">
+        <h3>Map Window Mode</h3>
+        <a class="link-button" href="{{ map_close_url }}">Exit Map Window</a>
+    </div>
+    <p class="muted-note">Zoom with mouse wheel. Keyboard: + to zoom in, - to zoom out, 0 to reset.</p>
+</section>
+{% endif %}
+
+{% if not map_mode %}
 <section class="panel orchestration-create-panel">
     <div class="section-header">
         <h3>Create Quest</h3>
@@ -74,15 +85,33 @@
         <p class="metric">{{ blocked_quests_count }}</p>
     </div>
 </section>
+{% endif %}
 
-<section class="orchestration-grid">
+<section class="orchestration-grid {% if map_mode %}orchestration-grid-map-mode{% endif %}">
     <article class="panel command-map">
         <div class="section-header">
             <h3>Command Map (Sprite Town)</h3>
         </div>
-        <p class="map-hint">Agents patrol project districts. Click an agent to inspect assignment context.</p>
+        <p class="map-hint">Agents patrol project districts. Drag to pan the map, use arrow keys to move, and click a project building to open the task board overlay.</p>
+        <div class="command-map-controls" id="command-map-controls">
+            <button type="button" id="map-zoom-out">-</button>
+            <button type="button" id="map-zoom-reset">100%</button>
+            <button type="button" id="map-zoom-in">+</button>
+            <button type="button" id="map-fullscreen-toggle">Fullscreen</button>
+            <a class="link-button" id="map-popout-link" href="{{ map_popout_url }}" target="_blank" rel="noopener noreferrer">Open Map Window</a>
+        </div>
         <div class="command-map-canvas-wrap">
             <canvas id="orchestration-map-canvas" width="960" height="560" aria-label="Agent town map"></canvas>
+        </div>
+        <div class="command-map-board-overlay is-hidden" id="map-board-overlay" aria-hidden="true">
+            <div class="command-map-board-overlay-backdrop" id="map-board-overlay-backdrop"></div>
+            <section class="command-map-board-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="map-board-overlay-title">
+                <div class="command-map-board-overlay-header">
+                    <h4 id="map-board-overlay-title">Project Task Board</h4>
+                    <button type="button" id="map-board-overlay-close">Close</button>
+                </div>
+                <iframe id="map-board-overlay-frame" title="Project task board" loading="lazy"></iframe>
+            </section>
         </div>
         <div class="command-map-detail" id="orchestration-map-detail">
             <h4 id="map-detail-name">Select an agent</h4>
@@ -108,9 +137,102 @@
         <script>
             window.__ORCHESTRATION_MAP_PAYLOAD__ = {{ orchestration_map_payload | tojson }};
         </script>
-        <script src="/static/orchestration_map.js"></script>
+        <script src="/static/orchestration_map.js?v=20260322-map-fix-3"></script>
     </article>
 
+    <article class="panel command-map-board-panel" id="project-task-board">
+        <div class="section-header">
+            <h3>
+                {% if project_board_project %}
+                {{ project_board_project.name }} Task Board
+                {% else %}
+                Project Task Board
+                {% endif %}
+            </h3>
+            {% if project_board_project %}
+            <a class="link-button" href="/orchestration-ui/board/{{ project_board_project.id }}">Deep Link</a>
+            {% endif %}
+        </div>
+
+        {% if project_board_project %}
+        <form method="post" action="/todos-ui/create" class="project-board-create-form">
+            <input type="hidden" name="redirect_to" value="{{ project_board_redirect_url }}">
+            <input type="hidden" name="project_id" value="{{ project_board_project.id }}">
+            <input type="hidden" name="person_id" value="">
+            <input type="hidden" name="client_id" value="">
+            <input type="hidden" name="scope_ref" value="">
+            <label>Title
+                <input name="title" required>
+            </label>
+            <label>Description
+                <input name="description">
+            </label>
+            <label>Priority
+                <select name="priority">
+                    {% for option in todo_priority_options %}
+                    <option value="{{ option }}">{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Assignee
+                <select name="assignee_id">
+                    <option value="">-</option>
+                    {% for person in project_board_people %}
+                    <option value="{{ person.id }}">{{ person.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit">Create Task</button>
+        </form>
+
+        <div class="project-board-columns">
+            {% for column in project_board_columns %}
+            <section class="project-board-column">
+                <h4>{{ column.label }} ({{ column.rows|length }})</h4>
+                <div class="project-board-column-list">
+                    {% for row in column.rows %}
+                    <form method="post" action="/todos-ui/update" class="project-board-row {% if row.selected %}is-selected{% endif %}">
+                        <input type="hidden" name="redirect_to" value="{{ project_board_redirect_url }}">
+                        <input type="hidden" name="todo_id" value="{{ row.id }}">
+                        <input type="hidden" name="description" value="{{ row.description or '' }}">
+                        <input type="hidden" name="long_description_markdown" value="">
+                        <input type="hidden" name="due_at" value="">
+                        <label>Task
+                            <input type="text" name="title" value="{{ row.title }}" required>
+                        </label>
+                        <div class="project-board-row-meta">
+                            <select name="status">
+                                {% for option in todo_status_options %}
+                                <option value="{{ option }}" {% if option == row.status %}selected{% endif %}>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                            <select name="priority">
+                                {% for option in todo_priority_options %}
+                                <option value="{{ option }}" {% if option == row.priority %}selected{% endif %}>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                            <select name="assignee_id">
+                                <option value="">-</option>
+                                {% for person in project_board_people %}
+                                <option value="{{ person.id }}" {% if row.assignee_id == person.id %}selected{% endif %}>{{ person.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit">Update</button>
+                    </form>
+                    {% else %}
+                    <p class="region-meta">No tasks in this column.</p>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No project selected yet. Click a project building on the map to open its board.</p>
+        {% endif %}
+    </article>
+
+    {% if not map_mode %}
     <article class="panel">
         <div class="section-header">
             <h3>Quest Log</h3>
@@ -252,7 +374,9 @@
             {% endfor %}
         </div>
     </article>
+    {% endif %}
 
+    {% if not map_mode %}
     <article class="panel">
         <div class="section-header">
             <h3>Unit Roster</h3>
@@ -269,7 +393,9 @@
             {% endfor %}
         </div>
     </article>
+    {% endif %}
 
+    {% if not map_mode %}
     <article class="panel">
         <div class="section-header">
             <h3>Quest Timeline</h3>
@@ -313,5 +439,6 @@
             {% endfor %}
         </div>
     </article>
+    {% endif %}
 </section>
 {% endblock %}

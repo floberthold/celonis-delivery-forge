@@ -34,6 +34,16 @@
         "/^\\$env:FORGE_DATABASE_URL='sqlite:///\\./tmp_quests_api_test\\.db'; python -m pytest tests/test_quests_api\\.py -q$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^python -m mkdocs build --strict$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git -C \"Code": true,
+        ".\\.venv\\Scripts\\Activate.ps1": true,
+        "/^\\.\\\\\\.venv\\\\Scripts\\\\Activate\\.ps1 ; python -m pytest tests/test_celonis_ui_route_presence\\.py -v --tb=short$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

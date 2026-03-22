@@ -16,6 +16,8 @@
 {% if not has_active_connection %}
 <div class="alert error">
     No active Celonis connection is configured for this client. Open <a href="/dashboard">Dashboard</a> to add or reactivate it.
+    <br>
+    <a href="/onboarding/celonis-setup?client_id={{ client.id }}">Open guided setup wizard</a>
 </div>
 {% endif %}
 

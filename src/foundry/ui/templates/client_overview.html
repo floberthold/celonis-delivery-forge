@@ -48,6 +48,27 @@
     </tbody>
 </table>
 
+<h4>Add Project Membership</h4>
+<form method="post" action="/memberships-ui/create" class="inline-form">
+    <input type="hidden" name="redirect_to" value="/clients-ui/{{ client.id }}/overview">
+    <select name="project_id" required>
+        {% for project in projects %}
+        <option value="{{ project.id }}">{{ project.name }}</option>
+        {% endfor %}
+    </select>
+    <select name="person_id" required>
+        {% for person in all_people %}
+        <option value="{{ person.id }}">{{ person.name }}</option>
+        {% endfor %}
+    </select>
+    <select name="role" required>
+        {% for option in membership_role_options %}
+        <option value="{{ option }}">{{ option }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" {% if not projects or not all_people %}disabled{% endif %}>Add Membership</button>
+</form>
+
 <h3>Connected People</h3>
 <table>
     <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Overview</th></tr></thead>

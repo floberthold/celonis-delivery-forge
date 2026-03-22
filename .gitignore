@@ -19,6 +19,7 @@ pip-wheel-metadata/
 build/
 dist/
 site/
+docs_site/
 
 # Virtual environments
 .venv/
@@ -56,6 +57,10 @@ htmlcov/
 foundry.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.sqlite-journal
+*.db-wal
+*.db-shm
 tmp*.db
 uploads/
 

@@ -60,17 +60,100 @@ Built for consultants. Built for scale. Built to last.
 - Swagger: <http://127.0.0.1:8000/docs>
 - Health: <http://127.0.0.1:8000/health>
 - UI Dashboard: <http://127.0.0.1:8000/dashboard>
-- User Docs: <http://127.0.0.1:8000/docu/user.html>
-- Developer Docs: <http://127.0.0.1:8000/docu/developer.html>
+- User Docs: <http://127.0.0.1:8000/docs-site/user/>
+- Developer Docs: <http://127.0.0.1:8000/docs-site/developer/>
 
-Documentation source files for these pages are stored in the root `docu/` folder.
-Reusable visual graphics for the docs are stored in `src/foundry/ui/static/docs/`.
+Documentation source files are now in the root `site_docs/` folder and are built with MkDocs Material into `docs_site/`.
 
 5. Configure Celonis token for companion actions:
 
 ```powershell
 $env:FORGE_CELONIS_API_TOKEN="<your-token>"
 ```
+
+6. Configure SMTP for registration and password-reset emails:
+
+```powershell
+$env:FORGE_SMTP_HOST="smtp.office365.com"
+$env:FORGE_SMTP_PORT="587"
+$env:FORGE_SMTP_USERNAME="<smtp-user>"
+$env:FORGE_SMTP_PASSWORD="<smtp-password-or-app-password>"
+$env:FORGE_SMTP_FROM_EMAIL="noreply@your-domain.com"
+$env:FORGE_SMTP_STARTTLS="true"
+$env:FORGE_SMTP_USE_SSL="false"
+$env:FORGE_PUBLIC_BASE_URL="http://127.0.0.1:8000"
+```
+
+Provider defaults:
+
+- Microsoft 365: `smtp.office365.com`, port `587`, StartTLS `true`
+- Gmail: `smtp.gmail.com`, port `587`, StartTLS `true` (use an app password)
+
+## Admin Setup Guide (All Functionalities)
+
+Use this checklist when provisioning a full environment for users, registration, password reset, and integrations.
+
+1. Base environment
+
+```powershell
+Copy-Item .env.example .env
+```
+
+2. Core application settings
+
+```powershell
+$env:FORGE_ENV="dev"
+$env:FORGE_JWT_SECRET="<strong-random-secret>"
+$env:FORGE_PUBLIC_BASE_URL="http://127.0.0.1:8000"
+```
+
+3. Database settings
+
+```powershell
+# SQLite (simple local mode)
+$env:FORGE_DATABASE_URL="sqlite:///./foundry.db"
+
+# Optional local fallback behavior
+$env:FORGE_DATABASE_FALLBACK_TO_LOCAL="true"
+$env:FORGE_DATABASE_CONNECT_TIMEOUT_SECONDS="5"
+```
+
+4. Email settings (required for register + forgot-password)
+
+```powershell
+$env:FORGE_SMTP_HOST="smtp.office365.com"
+$env:FORGE_SMTP_PORT="587"
+$env:FORGE_SMTP_USERNAME="<smtp-user>"
+$env:FORGE_SMTP_PASSWORD="<smtp-password-or-app-password>"
+$env:FORGE_SMTP_FROM_EMAIL="noreply@your-domain.com"
+$env:FORGE_SMTP_STARTTLS="true"
+$env:FORGE_SMTP_USE_SSL="false"
+```
+
+5. Integration settings
+
+```powershell
+$env:FORGE_CELONIS_API_TOKEN="<celonis-token>"
+$env:FORGE_GITLAB_BASE_URL="https://gitlab.com"
+$env:FORGE_GITLAB_API_TOKEN="<gitlab-token>"
+```
+
+6. Start and validate
+
+```powershell
+uvicorn foundry.api.main:app --reload
+```
+
+- Check health: <http://127.0.0.1:8000/health>
+- Check docs: <http://127.0.0.1:8000/docs>
+- Open login: <http://127.0.0.1:8000/login>
+
+7. Functional smoke test
+
+- Register a new user at `/register` and verify email link delivery.
+- Request password reset at `/forgot-password` and verify reset email delivery.
+- Sign in and open `/account-ui` to update profile/password.
+- Open `/dashboard` and verify Celonis and GitLab cards load with configured tokens.
 
 ## Quick Start (Desktop Mode)
 

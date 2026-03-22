@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Celonis Deployments | Foundry{% endblock %}
+
+{% block content %}
+<h2>Celonis Deployments</h2>
+<p class="muted-note">Track and govern app deployment requests. Each request must pass a preflight check and permission-diff acknowledgement before a reviewer can approve it.</p>
+<p class="muted-note">After you create a request, the agent keeps it in a supervised queue and guides it through gate checks (preflight, diff acknowledgement, and review) before it can proceed to approved execution readiness.</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="cards">
+    <article class="card">
+        <h3>Draft</h3>
+        <p class="metric">{{ counts.draft }}</p>
+    </article>
+    <article class="card">
+        <h3>Awaiting Approval</h3>
+        <p class="metric">{{ counts.awaiting_approval }}</p>
+    </article>
+    <article class="card">
+        <h3>Approved</h3>
+        <p class="metric">{{ counts.approved }}</p>
+    </article>
+    <article class="card">
+        <h3>Cancelled</h3>
+        <p class="metric">{{ counts.cancelled }}</p>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <h3>Create Deployment Request</h3>
+    </div>
+    <form method="post" action="/celonis-deployments-ui/create" class="form-card">
+        <label>Client
+            <select name="client_id" required>
+                <option value="">— select client —</option>
+                {% for c in clients %}
+                <option value="{{ c.id }}" {% if prefill_client_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Project
+            <select name="project_id" required>
+                <option value="">— select project —</option>
+                {% for p in projects %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Target Space Name
+            <input type="text" name="target_space_name" value="{{ prefill_space_name or '' }}" placeholder="e.g. production-space">
+        </label>
+        <label>Package Key
+            <input type="text" name="target_package_key" placeholder="e.g. com.example.my-app">
+        </label>
+        <label>Package Display Name
+            <input type="text" name="target_package_name" placeholder="e.g. My Celonis App">
+        </label>
+        <label>Preflight Run ID (optional — auto-populated from discovery)
+            <input type="text" name="preflight_run_id" value="{{ prefill_preflight_run_id or '' }}" placeholder="preflight run UUID">
+        </label>
+        <label>Notes
+            <textarea name="notes" rows="3" placeholder="Scope, change description, links to assets…"></textarea>
+        </label>
+        <button type="submit">Create Request</button>
+    </form>
+
+    <div class="mt-1">
+        <h4>What Happens After You Create A Request</h4>
+        <ul class="muted-note">
+            <li><strong>1. Draft queue</strong> - The request is created in <code>draft</code> and linked to your selected client, project, and target metadata.</li>
+            <li><strong>2. Access validation</strong> - The agent expects a passing preflight run for the same target context before approval submission is allowed.</li>
+            <li><strong>3. Permission confirmation</strong> - You acknowledge the permission diff so reviewer and operator can see that intended changes were reviewed.</li>
+            <li><strong>4. Review handoff</strong> - Once gates pass, you submit the request for review; status changes to <code>awaiting_approval</code>.</li>
+            <li><strong>5. Approval outcome</strong> - A different reviewer approves (or rejects) the request. Approved requests are marked ready for supervised deployment execution.</li>
+        </ul>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <h3>Request Queue</h3>
+    </div>
+    {% if deploy_requests %}
+    <table>
+        <thead>
+            <tr>
+                <th>Created</th>
+                <th>Client</th>
+                <th>Project</th>
+                <th>Space / Package</th>
+                <th>Status</th>
+                <th>Gates</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in deploy_requests %}
+            <tr>
+                <td>{{ req.created_at.strftime("%Y-%m-%d") }}</td>
+                <td>{{ req.client_name }}</td>
+                <td>{{ req.project_name }}</td>
+                <td>
+                    <span class="small-text">{{ req.target_space_name or "—" }}</span><br>
+                    <span class="muted-note small-text">{{ req.target_package_key or "—" }}</span>
+                </td>
+                <td>
+                    {% if req.status == "approved" %}
+                    <span class="badge badge-green">{{ req.status }}</span>
+                    {% elif req.status == "awaiting_approval" %}
+                    <span class="badge badge-blue">{{ req.status }}</span>
+                    {% elif req.status == "cancelled" %}
+                    <span class="badge badge-grey">{{ req.status }}</span>
+                    {% else %}
+                    <span class="badge">{{ req.status }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span title="Preflight passed" class="badge {% if req.preflight_passed %}badge-green{% else %}badge-grey{% endif %}">Preflight</span>
+                    <span title="Permission diff acknowledged" class="badge {% if req.permission_diff_acknowledged %}badge-green{% else %}badge-grey{% endif %}">Diff</span>
+                </td>
+                <td class="action-cell">
+                    {% if req.status == "draft" %}
+                        {% if not req.preflight_passed %}
+                        <a href="/celonis-discovery-ui?client_id={{ req.client_id }}" class="button-small">Run Preflight</a>
+                        {% endif %}
+                        {% if req.preflight_passed and not req.permission_diff_acknowledged %}
+                        <form method="post" action="/celonis-deployments-ui/{{ req.id }}/acknowledge-diff" class="inline-form">
+                            <button type="submit" class="button-small">Acknowledge Diff</button>
+                        </form>
+                        {% endif %}
+                        {% if req.preflight_passed and req.permission_diff_acknowledged %}
+                        <form method="post" action="/celonis-deployments-ui/{{ req.id }}/submit-for-approval" class="inline-form">
+                            <button type="submit" class="button-small button-primary">Submit for Approval</button>
+                        </form>
+                        {% endif %}
+                        <form method="post" action="/celonis-deployments-ui/{{ req.id }}/cancel" class="inline-form">
+                            <button type="submit" class="button-small button-danger">Cancel</button>
+                        </form>
+                    {% elif req.status == "awaiting_approval" %}
+                        {% if req.can_review %}
+                        <form method="post" action="/celonis-deployments-ui/{{ req.id }}/approve" class="inline-form">
+                            <input type="hidden" name="decision" value="approved">
+                            <button type="submit" class="button-small button-primary">Approve</button>
+                        </form>
+                        <form method="post" action="/celonis-deployments-ui/{{ req.id }}/approve" class="inline-form">
+                            <input type="hidden" name="decision" value="rejected">
+                            <button type="submit" class="button-small button-danger">Reject</button>
+                        </form>
+                        {% else %}
+                        <span class="muted-note small-text">Awaiting a different reviewer…</span>
+                        {% endif %}
+                        <form method="post" action="/celonis-deployments-ui/{{ req.id }}/cancel" class="inline-form">
+                            <button type="submit" class="button-small">Cancel</button>
+                        </form>
+                    {% elif req.status == "approved" %}
+                        <form method="post" action="/celonis-deployments-ui/{{ req.id }}/cancel" class="inline-form">
+                            <button type="submit" class="button-small button-danger">Revoke</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if req.reviewer_note %}
+            <tr class="note-row">
+                <td colspan="7" class="muted-note small-text">Reviewer note: {{ req.reviewer_note }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted-note">No deployment requests yet. Create one above after a successful preflight.</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <h3>Gate Summary And Agent Lifecycle</h3>
+    </div>
+    <ul class="muted-note">
+        <li><strong>Preflight</strong> — must pass for the target tenant and Studio space via Tenant Discovery.</li>
+        <li><strong>Permission Diff</strong> — reviewer must acknowledge the permission changes that will be applied.</li>
+        <li><strong>Approval</strong> — a reviewer other than the request creator must explicitly approve before deployment.</li>
+    </ul>
+    <p class="muted-note">
+        When these gates are complete, the request moves from <code>draft</code> to <code>awaiting_approval</code>, then to <code>approved</code>.
+        The <code>approved</code> state means the agent has all required evidence to continue in the supervised deployment path. If a reviewer rejects,
+        the request returns to <code>draft</code> for correction and resubmission.
+    </p>
+    <p><a href="/celonis-discovery-ui">Go to Tenant Discovery →</a></p>
+</section>
+{% endblock %}

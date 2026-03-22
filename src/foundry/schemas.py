@@ -273,6 +273,15 @@ class CelonisConnectionOut(BaseModel):
         from_attributes = True
 
 
+class CelonisUserTokenUpdate(BaseModel):
+    token_value: str = Field(min_length=1, max_length=8192)
+
+
+class CelonisUserTokenStatus(BaseModel):
+    token_configured: bool
+    updated_at: Optional[datetime] = None
+
+
 class CelonisExtractRequest(BaseModel):
     client_id: UUID
     source_path: str = "/process-mining/api/teams"
@@ -361,6 +370,21 @@ class SnapshotGitHistoryOut(BaseModel):
     created_commit: bool
     commit_message: str
     committed_at: datetime
+
+
+class CelonisMarketplaceProjectOut(BaseModel):
+    folder: str
+    project_id: UUID
+    source_id: UUID
+    assets_registered: int
+
+
+class CelonisMarketplaceRegisterOut(BaseModel):
+    organization_id: UUID
+    client_id: UUID
+    project_count: int
+    asset_count: int
+    projects: list[CelonisMarketplaceProjectOut] = Field(default_factory=list)
 
 
 class IngestRunCreate(BaseModel):

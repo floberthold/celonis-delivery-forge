@@ -8,7 +8,7 @@ from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlsplit, u
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from jinja2 import ChoiceLoader, FileSystemLoader
 from markupsafe import Markup, escape
@@ -33,7 +33,10 @@ from foundry.models import (
     AssetType,
     Agent,
     CelonisConnection,
+    CelonisUserToken,
     CelonisSnapshot,
+    CelonisDeploymentRequest,
+    CelonisDeploymentStatus,
     Client,
     DecisionType,
     DeliveryFile,
@@ -119,6 +122,10 @@ from foundry.services.snapshot_export_service import (
     build_snapshot_delta_report,
     build_snapshot_export,
     build_snapshot_replay_plan,
+)
+from foundry.services.snapshot_coverage_service import (
+    build_snapshot_coverage_filename,
+    build_snapshot_coverage_report,
 )
 from foundry.services.quest_service import (
     create_assignment as create_assignment_service,
@@ -241,6 +248,18 @@ def _redirect_ui(path: str, *, ok: str | None = None, err: str | None = None) ->
     if err:
         return RedirectResponse(url=_with_query_params(path, err=err), status_code=303)
     return RedirectResponse(url=path, status_code=303)
+
+
+def _wants_json_response(request: Request | None) -> bool:
+    if request is None:
+        return False
+    response_mode = request.query_params.get("response_mode") or request.query_params.get("format")
+    if isinstance(response_mode, str) and response_mode.strip().lower() == "json":
+        return True
+    if request.headers.get("x-forge-response-mode", "").strip().lower() == "json":
+        return True
+    accept = request.headers.get("accept", "").lower()
+    return "application/json" in accept
 
 
 def _parse_uuid(value: str, field_name: str) -> UUID:
@@ -571,6 +590,42 @@ def _get_org_active_celonis_connection(
     ).first()
 
 
+def _get_org_person_celonis_token(
+    session: Session,
+    organization_id: UUID,
+    person_id: UUID,
+) -> CelonisUserToken | None:
+    return session.exec(
+        select(CelonisUserToken).where(
+            CelonisUserToken.organization_id == organization_id,
+            CelonisUserToken.person_id == person_id,
+        )
+    ).first()
+
+
+def _upsert_org_person_celonis_token(
+    session: Session,
+    organization_id: UUID,
+    person_id: UUID,
+    token_value: str,
+) -> CelonisUserToken:
+    row = _get_org_person_celonis_token(session, organization_id, person_id)
+    now = datetime.utcnow()
+    if row is None:
+        row = CelonisUserToken(
+            organization_id=organization_id,
+            person_id=person_id,
+            token_value=token_value,
+            created_at=now,
+            updated_at=now,
+        )
+    else:
+        row.token_value = token_value
+        row.updated_at = now
+    session.add(row)
+    return row
+
+
 def _org_template_libraries(session: Session, organization_id: UUID) -> list[TemplateLibrary]:
     return list(
         session.exec(
@@ -770,103 +825,33 @@ def _timeline_by_entity_keys(
 
 
 def _dashboard_context(request: Request, session: Session, current_actor: CurrentActor) -> dict:
-    clients = sorted(
-        _org_clients(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    projects = sorted(
-        _org_projects(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    assets = sorted(
-        _org_assets(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    reviews = sorted(
-        _org_reviews(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    timeline = sorted(
-        _org_activity_logs(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.timestamp),
-        reverse=True,
-    )
-    people = sorted(
-        session.exec(select(Person)).all(),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    memberships = session.exec(select(ProjectMembership)).all()
-    celonis_connections = sorted(
-        _org_celonis_connections(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.updated_at),
-        reverse=True,
-    )
-    connection_by_client = {row.client_id: row for row in celonis_connections}
-    person_name_by_id = {row.id: row.name for row in people}
-    client_name_by_id = {row.id: row.name for row in clients}
-
-    celonis_preflight_history: list[dict] = []
-    for row in timeline:
-        if row.action != "celonis_connection.preflight":
-            continue
-
-        metadata = row.metadata_json or {}
-        raw_client_id = metadata.get("client_id")
-        client_name = "Unknown client"
-        if raw_client_id:
-            try:
-                client_name = client_name_by_id.get(UUID(str(raw_client_id)), "Unknown client")
-            except ValueError:
-                client_name = "Unknown client"
-
-        celonis_preflight_history.append(
-            {
-                "timestamp": row.timestamp,
-                "actor_name": person_name_by_id.get(row.actor_id, "Unknown"),
-                "client_name": client_name,
-                "service": metadata.get("service", "core"),
-                "permission_status": metadata.get("permission_status", "unknown"),
-                "status_code": metadata.get("status_code"),
-                "run_id": metadata.get("run_id"),
-            }
+    """Simplified dashboard context with only essential metrics and organization data."""
+    # Count entities (only fetch counts, not full lists)
+    clients_count = len(_org_clients(session, current_actor.organization.id))
+    projects_count = len(_org_projects(session, current_actor.organization.id))
+    assets_count = len(_org_assets(session, current_actor.organization.id))
+    reviews_count = len(_org_reviews(session, current_actor.organization.id))
+    timeline_count = len(_org_activity_logs(session, current_actor.organization.id))
+    
+    # Count team members in organization
+    memberships = session.exec(
+        select(OrganizationMembership).where(
+            OrganizationMembership.organization_id == current_actor.organization.id
         )
-        if len(celonis_preflight_history) >= 12:
-            break
+    ).all()
+    team_member_count = len(memberships)
 
     return {
         "request": request,
         "active_organization": current_actor.organization,
         "ok_message": request.query_params.get("ok"),
         "error_message": request.query_params.get("err"),
-        "clients_count": len(clients),
-        "projects_count": len(projects),
-        "assets_count": len(assets),
-        "reviews_count": len(reviews),
-        "timeline_count": len(timeline),
-        "clients": clients[:10],
-        "projects": projects[:10],
-        "assets": assets[:10],
-        "reviews": reviews[:10],
-        "timeline": timeline[:10],
-        "form_clients": clients,
-        "form_projects": projects,
-        "form_assets": assets,
-        "form_reviews": reviews,
-        "form_people": people,
-        "form_memberships": memberships,
-        "celonis_connections": celonis_connections,
-        "celonis_preflight_history": celonis_preflight_history,
-        "connection_by_client": connection_by_client,
-        "sensitivity_options": [row.value for row in SensitivityLevel],
-        "project_status_options": [row.value for row in ProjectStatus],
-        "asset_type_options": [row.value for row in AssetType],
-        "membership_role_options": [row.value for row in MembershipRole],
-        "global_role_options": [row.value for row in GlobalRole],
+        "clients_count": clients_count,
+        "projects_count": projects_count,
+        "assets_count": assets_count,
+        "reviews_count": reviews_count,
+        "timeline_count": timeline_count,
+        "team_member_count": team_member_count,
     }
 
 
@@ -876,13 +861,33 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
     quests = _org_quests(session, current_actor.organization.id)
     people = _org_people(session, current_actor.organization.id)
     agents = _org_agents(session, current_actor.organization.id)
+    todos = _org_todos(session, current_actor.organization.id)
 
     projects_by_id = {row.id: row for row in projects}
+    people_by_id = {row.id: row for row in people}
+    map_mode = (request.query_params.get("map_mode") or "").strip().lower() in {"1", "true", "yes"}
 
     open_statuses = {QuestStatus.draft, QuestStatus.suggested, QuestStatus.accepted, QuestStatus.active, QuestStatus.blocked}
     open_quests = [row for row in quests if row.status in open_statuses]
     active_quests = [row for row in quests if row.status == QuestStatus.active]
     blocked_quests = [row for row in quests if row.status == QuestStatus.blocked]
+
+    project_todos: dict[UUID, list[Todo]] = {}
+    for row in todos:
+        if row.project_id is None:
+            continue
+        project_todos.setdefault(row.project_id, []).append(row)
+
+    in_progress_todo_by_person: dict[UUID, Todo] = {}
+    next_todo_by_person: dict[UUID, Todo] = {}
+    for row in sorted(todos, key=lambda item: _sort_datetime_key(item.updated_at), reverse=True):
+        if row.assignee_id is None:
+            continue
+        if row.status == TodoStatus.in_progress and row.assignee_id not in in_progress_todo_by_person:
+            in_progress_todo_by_person[row.assignee_id] = row
+            continue
+        if row.status != TodoStatus.done and row.assignee_id not in next_todo_by_person:
+            next_todo_by_person[row.assignee_id] = row
 
     pressure_by_project: dict[UUID, dict[str, int | str]] = {}
     for row in open_quests:
@@ -915,12 +920,18 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
 
     objectives_by_quest_id: dict[UUID, list[QuestObjective]] = {}
     assignments_by_quest_id: dict[UUID, list[QuestAssignment]] = {}
+    assignment_states_by_person: dict[UUID, set[str]] = {}
     for row in open_quests:
         objectives_by_quest_id[row.id] = list_objectives_service(session, quest_id=row.id)
-        assignments_by_quest_id[row.id] = list_assignments_service(session, quest_id=row.id)
+        assignment_rows = list_assignments_service(session, quest_id=row.id)
+        assignments_by_quest_id[row.id] = assignment_rows
+        for assignment in assignment_rows:
+            if assignment.assignee_person_id is None:
+                continue
+            assignment_states_by_person.setdefault(assignment.assignee_person_id, set()).add((assignment.state or "assigned").strip().lower())
 
     quest_rows: list[dict[str, object]] = []
-    for row in sorted(open_quests, key=lambda item: item.created_at, reverse=True)[:10]:
+    for row in sorted(open_quests, key=lambda item: _sort_datetime_key(item.created_at), reverse=True)[:10]:
         quest_status = row.status.value
 
         project_name = "Unscoped"
@@ -971,8 +982,9 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
         )
 
     units = []
+    agent_status_by_name = {row.name.casefold(): row.status.value for row in agents}
     preferred_project_by_person: dict[UUID, UUID] = {}
-    for row in sorted(open_quests, key=lambda item: item.created_at, reverse=True):
+    for row in sorted(open_quests, key=lambda item: _sort_datetime_key(item.created_at), reverse=True):
         if row.owner_person_id is None or row.project_id is None:
             continue
         preferred_project_by_person.setdefault(row.owner_person_id, row.project_id)
@@ -981,8 +993,35 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
         if row.role_global == GlobalRole.admin:
             unit_type = "guardian"
         else:
-            unit_type = "builder"
+            unit_type = ["builder", "scout", "courier"][len(units) % 3]
+
         preferred_project_id = preferred_project_by_person.get(row.id)
+        linked_agent_status = agent_status_by_name.get(row.name.casefold(), "active")
+        active_todo = in_progress_todo_by_person.get(row.id)
+        next_todo = next_todo_by_person.get(row.id)
+        assignment_states = assignment_states_by_person.get(row.id, set())
+
+        if linked_agent_status == "offline":
+            activity_state = "killed"
+            bubble_text = "offline"
+        elif active_todo:
+            activity_state = "working"
+            bubble_text = f"{active_todo.title} ({active_todo.status.value})"
+            preferred_project_id = active_todo.project_id or preferred_project_id
+        elif "blocked" in assignment_states:
+            activity_state = "thinking"
+            bubble_text = "blocked, re-planning"
+        elif next_todo:
+            activity_state = "chatting"
+            bubble_text = f"next: {next_todo.title}"
+            preferred_project_id = next_todo.project_id or preferred_project_id
+        elif linked_agent_status in {"idle", "paused"}:
+            activity_state = "sleeping"
+            bubble_text = "resting"
+        else:
+            activity_state = "idle"
+            bubble_text = "patrolling"
+
         units.append(
             {
                 "id": str(row.id),
@@ -990,6 +1029,8 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
                 "unit_type": unit_type,
                 "role": _enum_or_value(row.role_global, "member"),
                 "preferred_project_id": str(preferred_project_id) if preferred_project_id else None,
+                "activity_state": activity_state,
+                "activity_text": bubble_text,
             }
         )
 
@@ -1017,8 +1058,18 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
     for idx, project in enumerate(sorted(projects, key=lambda row: row.name.lower())[:8]):
         grid_x = idx % grid_cols
         grid_y = idx // grid_cols
+        project_todo_rows = project_todos.get(project.id, [])
+        open_todo_count = sum(1 for row in project_todo_rows if row.status != TodoStatus.done)
+        in_progress_todo_count = sum(1 for row in project_todo_rows if row.status == TodoStatus.in_progress)
+        done_todo_count = sum(1 for row in project_todo_rows if row.status == TodoStatus.done)
+        board_url = _with_query_params(
+            "/orchestration-ui",
+            board_project_id=str(project.id),
+            map_mode="1" if map_mode else None,
+        )
         area = {
             "id": f"area-{project.id}",
+            "kind": "project",
             "project_id": str(project.id),
             "project_name": project.name,
             "x": offset_x + (grid_x * (area_width + area_gap_x)),
@@ -1027,22 +1078,80 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
             "height": area_height,
             "open_count": project_open_counts.get(project.id, 0),
             "high_count": project_high_counts.get(project.id, 0),
+            "todo_open_count": open_todo_count,
+            "todo_in_progress_count": in_progress_todo_count,
+            "todo_done_count": done_todo_count,
+            "board_url": board_url,
+            "board_deep_link_url": f"/orchestration-ui/board/{project.id}",
+            "desk_zone": {
+                "x": offset_x + (grid_x * (area_width + area_gap_x)) + 18,
+                "y": offset_y + (grid_y * (area_height + area_gap_y)) + 84,
+                "width": area_width - 36,
+                "height": 54,
+            },
         }
         map_areas.append(area)
         area_by_project_id[str(project.id)] = area
 
+    sleep_zone = {
+        "id": "zone-sleep",
+        "kind": "sleep_zone",
+        "project_id": "",
+        "project_name": "Rest House",
+        "x": 20,
+        "y": map_height - 140,
+        "width": 190,
+        "height": 96,
+        "open_count": 0,
+        "high_count": 0,
+        "todo_open_count": 0,
+        "todo_in_progress_count": 0,
+        "todo_done_count": 0,
+        "board_url": None,
+        "board_deep_link_url": None,
+    }
+    graveyard_zone = {
+        "id": "zone-graveyard",
+        "kind": "graveyard",
+        "project_id": "",
+        "project_name": "Agent Graveyard",
+        "x": map_width - 220,
+        "y": map_height - 126,
+        "width": 190,
+        "height": 90,
+        "open_count": 0,
+        "high_count": 0,
+        "todo_open_count": 0,
+        "todo_in_progress_count": 0,
+        "todo_done_count": 0,
+        "board_url": None,
+        "board_deep_link_url": None,
+    }
+    map_areas.append(sleep_zone)
+    map_areas.append(graveyard_zone)
+    area_by_id = {str(row["id"]): row for row in map_areas}
+
     map_units: list[dict[str, object]] = []
     for idx, row in enumerate(units):
         target_project_id = row.get("preferred_project_id")
-        target_area = area_by_project_id.get(str(target_project_id)) if target_project_id else None
+        activity_state = str(row.get("activity_state") or "idle")
+
+        if activity_state == "killed":
+            target_area = area_by_id.get("zone-graveyard")
+            target_area_id = "zone-graveyard"
+        elif activity_state == "sleeping":
+            target_area = area_by_id.get("zone-sleep")
+            target_area_id = "zone-sleep"
+        else:
+            target_area = area_by_project_id.get(str(target_project_id)) if target_project_id else None
+            target_area_id = str(target_area["id"]) if target_area else None
+
         if target_area:
             base_x = int(target_area["x"]) + 28 + ((idx % 4) * 26)
             base_y = int(target_area["y"]) + 34 + ((idx % 3) * 24)
-            target_area_id = str(target_area["id"])
         else:
             base_x = 80 + ((idx % 9) * 92)
             base_y = 430 + ((idx % 2) * 58)
-            target_area_id = None
 
         map_units.append(
             {
@@ -1056,8 +1165,84 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
                 "speed": 30 + (idx % 3) * 7,
                 "target_area_id": target_area_id,
                 "target_project_id": str(target_project_id) if target_project_id else None,
+                "activity_state": activity_state,
+                "activity_text": str(row.get("activity_text") or ""),
             }
         )
+
+    selected_board_project_id: UUID | None = None
+    selected_board_project_raw = (request.query_params.get("board_project_id") or "").strip()
+    if selected_board_project_raw:
+        try:
+            parsed_board_project = UUID(selected_board_project_raw)
+            if parsed_board_project in projects_by_id:
+                selected_board_project_id = parsed_board_project
+        except ValueError:
+            selected_board_project_id = None
+    if selected_board_project_id is None and area_by_project_id:
+        first_project_id = next(iter(area_by_project_id.keys()), "")
+        if first_project_id:
+            selected_board_project_id = UUID(first_project_id)
+
+    selected_board_project = projects_by_id.get(selected_board_project_id) if selected_board_project_id else None
+    selected_board_todos = sorted(
+        project_todos.get(selected_board_project_id, []),
+        key=lambda row: (
+            0 if row.status == TodoStatus.in_progress else (1 if row.status == TodoStatus.open else 2),
+            0 if row.priority == TodoPriority.high else (1 if row.priority == TodoPriority.medium else 2),
+            _sort_datetime_key(row.updated_at),
+        ),
+    ) if selected_board_project_id else []
+
+    selected_board_todo_id_raw = (request.query_params.get("board_todo_id") or "").strip()
+    selected_board_todo_id: UUID | None = None
+    if selected_board_todo_id_raw:
+        try:
+            selected_board_todo_id = UUID(selected_board_todo_id_raw)
+        except ValueError:
+            selected_board_todo_id = None
+
+    selected_board_todo = next((row for row in selected_board_todos if row.id == selected_board_todo_id), None)
+    if selected_board_todo is None and selected_board_todos:
+        selected_board_todo = selected_board_todos[0]
+
+    board_rows = [
+        {
+            "id": str(row.id),
+            "title": row.title,
+            "description": row.description,
+            "status": row.status.value,
+            "priority": row.priority.value,
+            "assignee_id": row.assignee_id,
+            "assignee_name": people_by_id.get(row.assignee_id).name if row.assignee_id and row.assignee_id in people_by_id else "-",
+            "selected": selected_board_todo is not None and selected_board_todo.id == row.id,
+        }
+        for row in selected_board_todos
+    ]
+
+    board_columns = []
+    for status in TodoStatus:
+        board_columns.append(
+            {
+                "key": status.value,
+                "label": status.value.replace("_", " ").title(),
+                "rows": [row for row in board_rows if row["status"] == status.value],
+            }
+        )
+
+    board_redirect_url = _with_query_params(
+        "/orchestration-ui",
+        board_project_id=str(selected_board_project_id) if selected_board_project_id else None,
+        board_todo_id=str(selected_board_todo.id) if selected_board_todo else None,
+        map_mode="1" if map_mode else None,
+    )
+
+    popout_url = _with_query_params(
+        "/orchestration-ui",
+        board_project_id=str(selected_board_project_id) if selected_board_project_id else None,
+        board_todo_id=str(selected_board_todo.id) if selected_board_todo else None,
+        map_mode="1",
+    )
 
     orchestration_map_payload = {
         "width": map_width,
@@ -1065,6 +1250,13 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
         "areas": map_areas,
         "agents": map_units,
         "sprite_base_path": "/static/sprites/agents",
+        "map_mode": map_mode,
+        "initial_zoom": 1.35 if map_mode else 1.0,
+        "selected_board_project_id": str(selected_board_project_id) if selected_board_project_id else None,
+        "control_urls": {
+            "board_base_url": "/orchestration-ui",
+            "popout_url": popout_url,
+        },
     }
 
     selected_quest_action = (request.query_params.get("quest_action") or "").strip()
@@ -1076,7 +1268,7 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
             for row in _org_activity_logs(session, current_actor.organization.id)
             if row.entity_type == EntityType.quest
         ],
-        key=lambda row: row.timestamp,
+        key=lambda row: _sort_datetime_key(row.timestamp),
         reverse=True,
     )
 
@@ -1142,14 +1334,46 @@ def _orchestration_context(request: Request, session: Session, current_actor: Cu
         "selected_quest_actor_id": selected_quest_actor_id,
         "units": units,
         "orchestration_map_payload": orchestration_map_payload,
+        "map_mode": map_mode,
+        "map_popout_url": popout_url,
+        "map_close_url": board_redirect_url if map_mode else None,
+        "project_board_project": selected_board_project,
+        "project_board_columns": board_columns,
+        "project_board_rows": board_rows,
+        "project_board_selected_todo": selected_board_todo,
+        "project_board_redirect_url": board_redirect_url,
+        "project_board_people": sorted(people, key=lambda row: row.name.lower()),
         "form_projects": sorted(projects, key=lambda row: row.name.lower()),
         "form_people": sorted(people, key=lambda row: row.name.lower()),
         "form_agents": sorted(agents, key=lambda row: row.name.lower()),
         "quest_priority_options": [row.value for row in QuestPriority],
+        "todo_status_options": [row.value for row in TodoStatus],
+        "todo_priority_options": [row.value for row in TodoPriority],
         "assignment_state_options": ["assigned", "in_progress", "blocked", "done"],
         "quest_status_options": [row.value for row in QuestStatus],
         "override_policy": "Full user control enabled",
     }
+
+
+@router.get("/orchestration-ui/board/{project_id}")
+def orchestration_project_board(
+    project_id: UUID,
+    request: Request,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    if _get_org_project(session, project_id, current_actor.organization.id) is None:
+        return _redirect_ui("/orchestration-ui", err="Project not found")
+
+    map_mode = (request.query_params.get("map_mode") or "").strip().lower() in {"1", "true", "yes"}
+    return RedirectResponse(
+        url=_with_query_params(
+            "/orchestration-ui",
+            board_project_id=str(project_id),
+            map_mode="1" if map_mode else None,
+        ),
+        status_code=303,
+    )
 
 
 def _client_health_context(request: Request, session: Session, current_actor: CurrentActor) -> dict:
@@ -1186,9 +1410,9 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
 
     active_membership_count_by_project: dict[UUID, int] = {}
     for row in memberships:
-        if row.start_date > now:
+        if _sort_datetime_key(row.start_date) > _sort_datetime_key(now):
             continue
-        if row.end_date is not None and row.end_date < now:
+        if row.end_date is not None and _sort_datetime_key(row.end_date) < _sort_datetime_key(now):
             continue
         active_membership_count_by_project[row.project_id] = (
             active_membership_count_by_project.get(row.project_id, 0) + 1
@@ -1199,11 +1423,16 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
         if row.entity_type != EntityType.project:
             continue
         current = last_activity_by_project.get(row.entity_id)
-        if current is None or row.timestamp > current:
+        if current is None or _sort_datetime_key(row.timestamp) > _sort_datetime_key(current):
             last_activity_by_project[row.entity_id] = row.timestamp
 
     connection_by_client = {row.client_id: row for row in celonis_connections}
     client_name_by_id = {row.id: row.name for row in clients}
+    user_celonis_token = _get_org_person_celonis_token(
+        session,
+        current_actor.organization.id,
+        current_actor.person.id,
+    )
 
     project_rows: list[dict] = []
     critical_pm_count = 0
@@ -1223,7 +1452,8 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
             1
             for row in project_reviews
             if row.status == ReviewStatus.in_review
-            and ((row.submitted_at or row.created_at) < stale_review_cutoff)
+            and _sort_datetime_key(row.submitted_at or row.created_at)
+            < _sort_datetime_key(stale_review_cutoff)
         )
 
         open_todos = sum(1 for row in project_todos if row.status != TodoStatus.done)
@@ -1233,7 +1463,7 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
             if row.status != TodoStatus.done
             and row.priority == TodoPriority.high
             and row.due_at is not None
-            and row.due_at < now
+            and _sort_datetime_key(row.due_at) < _sort_datetime_key(now)
         )
 
         asset_total = len(project_assets)
@@ -1279,7 +1509,7 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
 
         workflow_runs_7d = 0
         for row in activity_rows:
-            if row.timestamp < workflow_window_cutoff:
+            if _sort_datetime_key(row.timestamp) < _sort_datetime_key(workflow_window_cutoff):
                 continue
             if row.entity_type == EntityType.review:
                 if review_project_by_id.get(row.entity_id) == project.id and row.action.startswith("review."):
@@ -1298,17 +1528,42 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
 
         if overdue_high_prio_todos > 0:
             pm_health = "critical"
+            pm_health_reason = "Overdue high-priority todos require immediate action"
         elif open_todos > 0 or pending_reviews > 0 or not connection_active:
             pm_health = "warning"
+            pm_reasons: list[str] = []
+            if open_todos > 0:
+                pm_reasons.append(f"{open_todos} open todos")
+            if pending_reviews > 0:
+                pm_reasons.append(f"{pending_reviews} pending reviews")
+            if not connection_active:
+                pm_reasons.append("No active Celonis connection")
+            pm_health_reason = "; ".join(pm_reasons)
         else:
             pm_health = "healthy"
+            pm_health_reason = "No PM risks detected"
 
         if deprecated_assets > 0 or stale_reviews > 0:
             dev_health = "critical"
+            dev_reasons: list[str] = []
+            if deprecated_assets > 0:
+                dev_reasons.append(f"{deprecated_assets} deprecated assets")
+            if stale_reviews > 0:
+                dev_reasons.append(f"{stale_reviews} stale in-review items")
+            dev_health_reason = "; ".join(dev_reasons)
         elif not connection_active or (technical_total > 0 and technical_healthy < technical_total):
             dev_health = "warning"
+            dev_reasons = []
+            if not connection_active:
+                dev_reasons.append("No active Celonis connection")
+            if technical_total > 0 and technical_healthy < technical_total:
+                dev_reasons.append(
+                    f"Technical asset approvals incomplete ({technical_healthy}/{technical_total})"
+                )
+            dev_health_reason = "; ".join(dev_reasons)
         else:
             dev_health = "healthy"
+            dev_health_reason = "No Dev risks detected"
 
         if pm_health == "critical":
             critical_pm_count += 1
@@ -1321,7 +1576,10 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
                 "client_name": client_name_by_id.get(project.client_id, "Unknown client"),
                 "project_id": project.id,
                 "project_name": project.name,
+                "project_overview_label": f"Project Overview: {project.name}",
                 "project_status": project.status.value,
+                "celonis_package_url": project.celonis_package_url,
+                "celonis_app_url": project.celonis_app_url,
                 "member_count": active_membership_count_by_project.get(project.id, 0),
                 "open_todos": open_todos,
                 "overdue_high_prio_todos": overdue_high_prio_todos,
@@ -1331,6 +1589,7 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
                 "asset_approval_rate": asset_approval_rate,
                 "last_activity": last_activity_by_project.get(project.id),
                 "pm_health": pm_health,
+                "pm_health_reason": pm_health_reason,
                 "connection_active": connection_active,
                 "uptime_status": uptime_status,
                 "pipeline_health": pipeline_health,
@@ -1346,6 +1605,8 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
                 "stale_reviews": stale_reviews,
                 "review_approval_rate": review_approval_rate,
                 "dev_health": dev_health,
+                "dev_health_reason": dev_health_reason,
+                "has_user_celonis_token": bool(user_celonis_token and user_celonis_token.token_value),
             }
         )
 
@@ -1355,6 +1616,11 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
         if not rows:
             return "healthy"
         return max((row[key] for row in rows), key=lambda value: health_rank.get(value, 0))
+
+    def _worst_row(rows: list[dict], key: str) -> dict | None:
+        if not rows:
+            return None
+        return max(rows, key=lambda row: health_rank.get(row[key], 0))
 
     def _aggregate_pipeline_health(rows: list[dict]) -> str:
         if not rows:
@@ -1381,6 +1647,8 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
         last_activity = max((row["last_activity"] for row in client_project_rows if row["last_activity"]), default=None)
         uptime_status = "healthy" if client_project_rows and all(row["connection_active"] for row in client_project_rows) else "warning"
         pipeline_health = _aggregate_pipeline_health(client_project_rows)
+        worst_pm_row = _worst_row(client_project_rows, "pm_health")
+        worst_dev_row = _worst_row(client_project_rows, "dev_health")
 
         rows_with_rollups.append(
             {
@@ -1390,7 +1658,10 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
                 "project_count": len(client_project_rows),
                 "project_id": None,
                 "project_name": "Portfolio summary",
+                "project_overview_label": "Portfolio summary",
                 "project_status": f"{len(client_project_rows)} projects",
+                "celonis_package_url": None,
+                "celonis_app_url": None,
                 "member_count": sum(row["member_count"] for row in client_project_rows),
                 "open_todos": sum(row["open_todos"] for row in client_project_rows),
                 "overdue_high_prio_todos": sum(row["overdue_high_prio_todos"] for row in client_project_rows),
@@ -1400,6 +1671,9 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
                 "asset_approval_rate": (assets_approved / asset_total) if asset_total else 0.0,
                 "last_activity": last_activity,
                 "pm_health": _worst_health(client_project_rows, "pm_health"),
+                "pm_health_reason": (
+                    worst_pm_row["pm_health_reason"] if worst_pm_row is not None else "No projects available"
+                ),
                 "connection_active": all(row["connection_active"] for row in client_project_rows) if client_project_rows else False,
                 "uptime_status": uptime_status,
                 "pipeline_health": pipeline_health,
@@ -1415,6 +1689,10 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
                 "stale_reviews": sum(row["stale_reviews"] for row in client_project_rows),
                 "review_approval_rate": 0.0,
                 "dev_health": _worst_health(client_project_rows, "dev_health"),
+                "dev_health_reason": (
+                    worst_dev_row["dev_health_reason"] if worst_dev_row is not None else "No projects available"
+                ),
+                "has_user_celonis_token": bool(user_celonis_token and user_celonis_token.token_value),
             }
         )
 
@@ -1433,6 +1711,7 @@ def _client_health_context(request: Request, session: Session, current_actor: Cu
         "critical_pm_count": critical_pm_count,
         "critical_dev_count": critical_dev_count,
         "sensitivity_options": [row.value for row in SensitivityLevel],
+        "has_user_celonis_token": bool(user_celonis_token and user_celonis_token.token_value),
     }
 
 
@@ -1448,9 +1727,196 @@ def login_page(request: Request):
         {
             "request": request,
             "error_message": request.query_params.get("err"),
+            "ok_message": request.query_params.get("ok"),
             "next_path": _normalize_redirect_path(request.query_params.get("next_path"), "/dashboard"),
         },
     )
+
+
+@router.get("/register")
+def register_page(request: Request):
+    return templates.TemplateResponse(
+        "register.html",
+        {
+            "request": request,
+            "error_message": request.query_params.get("err"),
+            "ok_message": request.query_params.get("ok"),
+        },
+    )
+
+
+@router.post("/register", include_in_schema=False)
+def register_submit(
+    request: Request,
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    try:
+        normalized_email = email.strip().lower()
+        normalized_name = name.strip()
+        if not normalized_name:
+            return _redirect_ui("/register", err="Name is required")
+
+        _validate_registration_password(password, confirm_password)
+
+        existing = session.exec(select(Person).where(Person.email == normalized_email)).first()
+        if existing:
+            return _redirect_ui("/register", err="An account with that email already exists")
+
+        token = create_action_token(
+            subject=normalized_email,
+            purpose="register",
+            expires_minutes=get_settings().registration_token_expire_minutes,
+            extra_claims={
+                "name": normalized_name,
+                "pwd_hash": hash_password(password),
+            },
+        )
+        _send_registration_email(request=request, email=normalized_email, token=token)
+    except ValueError as exc:
+        return _redirect_ui("/register", err=str(exc))
+    except Exception as exc:
+        return _redirect_ui("/register", err=f"Failed to send verification email: {exc}")
+
+    return _redirect_ui(
+        "/register",
+        ok="Verification email sent. Open your inbox and click the activation link.",
+    )
+
+
+@router.get("/register/verify")
+def register_verify(
+    token: str,
+    session: Session = Depends(get_session),
+):
+    try:
+        claims = decode_action_token(token=token, expected_purpose="register")
+        email = claims.get("sub", "").strip().lower()
+        name = claims.get("name", "").strip()
+        password_hash = claims.get("pwd_hash", "").strip()
+
+        if not email or not name or not password_hash:
+            return _redirect_ui("/register", err="Registration token is invalid")
+
+        existing = session.exec(select(Person).where(Person.email == email)).first()
+        if existing:
+            return _redirect_login(ok="Your account is already active. You can sign in now.")
+
+        person = Person(email=email, name=name, hashed_password=password_hash)
+        session.add(person)
+        session.commit()
+        session.refresh(person)
+
+        organization = Organization(name=f"{name} Workspace", slug=_build_unique_org_slug(session, f"{name}-workspace"))
+        session.add(organization)
+        session.commit()
+        session.refresh(organization)
+
+        membership = OrganizationMembership(
+            organization_id=organization.id,
+            person_id=person.id,
+            role=OrganizationRole.owner,
+        )
+        session.add(membership)
+        session.commit()
+
+        seed_default_templates(session, organization_id=organization.id)
+    except ValueError as exc:
+        return _redirect_ui("/register", err=str(exc))
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/register", err=f"Registration failed: {exc}")
+
+    return _redirect_login(ok="Account verified. You can sign in now.")
+
+
+@router.get("/forgot-password")
+def forgot_password_page(request: Request):
+    return templates.TemplateResponse(
+        "forgot_password.html",
+        {
+            "request": request,
+            "error_message": request.query_params.get("err"),
+            "ok_message": request.query_params.get("ok"),
+        },
+    )
+
+
+@router.post("/forgot-password", include_in_schema=False)
+def forgot_password_submit(
+    request: Request,
+    email: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    normalized_email = email.strip().lower()
+    person = session.exec(select(Person).where(Person.email == normalized_email)).first()
+
+    if person:
+        try:
+            token = create_action_token(
+                subject=str(person.id),
+                purpose="password-reset",
+                expires_minutes=get_settings().password_reset_token_expire_minutes,
+            )
+            _send_password_reset_email(request=request, email=normalized_email, token=token)
+        except Exception as exc:
+            return _redirect_ui("/forgot-password", err=f"Failed to send reset email: {exc}")
+
+    return _redirect_ui(
+        "/forgot-password",
+        ok="If the account exists, a reset email has been sent.",
+    )
+
+
+@router.get("/reset-password")
+def reset_password_page(request: Request, token: str = ""):
+    if not token:
+        return _redirect_ui("/forgot-password", err="Reset token is required")
+
+    error_message = ""
+    try:
+        decode_action_token(token=token, expected_purpose="password-reset")
+    except ValueError as exc:
+        error_message = str(exc)
+
+    return templates.TemplateResponse(
+        "reset_password.html",
+        {
+            "request": request,
+            "token": token,
+            "error_message": error_message,
+        },
+    )
+
+
+@router.post("/reset-password", include_in_schema=False)
+def reset_password_submit(
+    token: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    try:
+        claims = decode_action_token(token=token, expected_purpose="password-reset")
+        person_id = _parse_uuid(claims.get("sub", ""), "person_id")
+        person = session.get(Person, person_id)
+        if person is None:
+            return _redirect_ui("/forgot-password", err="Account no longer exists")
+
+        _validate_registration_password(password, confirm_password)
+        person.hashed_password = hash_password(password)
+        session.add(person)
+        session.commit()
+    except ValueError as exc:
+        return _redirect_ui("/forgot-password", err=str(exc))
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/forgot-password", err=f"Password reset failed: {exc}")
+
+    return _redirect_login(ok="Password updated. Sign in with your new password.")
 
 
 @router.post("/login", include_in_schema=False)
@@ -1507,6 +1973,110 @@ def logout() -> RedirectResponse:
     return response
 
 
+@router.get("/account-ui")
+def account_ui(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    person = session.get(Person, current_actor.person.id)
+    if person is None:
+        return _redirect_login(err="Account not found")
+
+    memberships = list(
+        session.exec(
+            select(OrganizationMembership).where(OrganizationMembership.person_id == person.id)
+        ).all()
+    )
+    organizations = {
+        row.id: row
+        for row in session.exec(
+            select(Organization).where(
+                Organization.id.in_([membership.organization_id for membership in memberships])
+            )
+        ).all()
+    }
+    membership_rows = [
+        {
+            "organization_name": organizations[membership.organization_id].name
+            if membership.organization_id in organizations
+            else "Unknown",
+            "organization_slug": organizations[membership.organization_id].slug
+            if membership.organization_id in organizations
+            else "-",
+            "role": _enum_or_value(membership.role, "member"),
+            "joined_at": membership.joined_at,
+        }
+        for membership in sorted(memberships, key=lambda row: _sort_datetime_key(row.joined_at))
+    ]
+
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "person": person,
+            "membership_rows": membership_rows,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+        },
+    )
+
+
+@router.post("/account-ui/update", include_in_schema=False)
+def account_ui_update(
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(""),
+    confirm_password: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        person = session.get(Person, current_actor.person.id)
+        if person is None:
+            return _redirect_login(err="Account not found")
+
+        normalized_name = name.strip()
+        normalized_email = email.strip().lower()
+        if not normalized_name:
+            return _redirect_ui("/account-ui", err="Name is required")
+        if not normalized_email:
+            return _redirect_ui("/account-ui", err="Email is required")
+
+        existing = session.exec(select(Person).where(Person.email == normalized_email)).first()
+        if existing and existing.id != person.id:
+            return _redirect_ui("/account-ui", err="Email is already in use")
+
+        person.name = normalized_name
+        person.email = normalized_email
+
+        has_password_input = bool(password.strip() or confirm_password.strip())
+        if has_password_input:
+            _validate_registration_password(password, confirm_password)
+            person.hashed_password = hash_password(password)
+
+        session.add(person)
+        session.commit()
+        session.refresh(person)
+
+        log_updated(
+            session,
+            entity_type=EntityType.person,
+            entity_id=person.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            metadata={
+                "email": person.email,
+                "self_service": True,
+                "password_updated": has_password_input,
+            },
+        )
+        return _redirect_ui("/account-ui", ok="Account updated")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/account-ui", err=f"Update account failed: {exc}")
+
+
 @router.get("/dashboard")
 def dashboard(
     request: Request,
@@ -1517,6 +2087,350 @@ def dashboard(
         "dashboard.html",
         _dashboard_context(request, session, current_actor),
     )
+
+
+def _latest_preflight_rows_for_client(
+    session: Session,
+    *,
+    organization_id: UUID,
+    client_id: UUID,
+) -> list[dict]:
+    logs = sorted(
+        _org_activity_logs(session, organization_id),
+        key=lambda row: _sort_datetime_key(row.timestamp),
+        reverse=True,
+    )
+    preflight_rows: list[dict] = []
+    target_run_id: str | None = None
+    for row in logs:
+        if row.action != "celonis_connection.preflight":
+            continue
+        metadata = row.metadata_json or {}
+        raw_client_id = str(metadata.get("client_id", "")).strip()
+        if raw_client_id != str(client_id):
+            continue
+        run_id = str(metadata.get("run_id", "")).strip() or None
+        if target_run_id is None:
+            target_run_id = run_id
+        if target_run_id and run_id != target_run_id:
+            continue
+        preflight_rows.append(
+            {
+                "service": metadata.get("service", "core"),
+                "permission_status": metadata.get("permission_status", "unknown"),
+                "status_code": metadata.get("status_code"),
+                "probe_url": metadata.get("probe_url") or "-",
+                "run_id": run_id,
+                "timestamp": row.timestamp,
+            }
+        )
+    return sorted(preflight_rows, key=lambda item: str(item["service"]))
+
+
+def _celonis_setup_context(
+    request: Request,
+    session: Session,
+    current_actor: CurrentActor,
+    *,
+    selected_client: Client | None,
+) -> dict:
+    clients = sorted(
+        _org_clients(session, current_actor.organization.id),
+        key=lambda row: row.name.lower(),
+    )
+    connection = (
+        _get_org_active_celonis_connection(
+            session,
+            selected_client.id,
+            current_actor.organization.id,
+        )
+        if selected_client
+        else None
+    )
+    user_token = _get_org_person_celonis_token(
+        session,
+        current_actor.organization.id,
+        current_actor.person.id,
+    )
+    env_token_configured = bool((get_settings().celonis_api_token or "").strip())
+    preflight_rows = (
+        _latest_preflight_rows_for_client(
+            session,
+            organization_id=current_actor.organization.id,
+            client_id=selected_client.id,
+        )
+        if selected_client
+        else []
+    )
+    all_authorized = bool(preflight_rows) and all(
+        row["permission_status"] == "authorized" for row in preflight_rows
+    )
+
+    step_client_ready = selected_client is not None
+    step_connection_ready = connection is not None
+    step_token_ready = bool(user_token and user_token.token_value) or env_token_configured
+    step_validation_ready = all_authorized
+    if not step_client_ready:
+        next_step = 1
+    elif not step_connection_ready:
+        next_step = 2
+    elif not step_token_ready:
+        next_step = 3
+    elif not step_validation_ready:
+        next_step = 4
+    else:
+        next_step = 5
+
+    return {
+        "request": request,
+        "active_organization": current_actor.organization,
+        "ok_message": request.query_params.get("ok"),
+        "error_message": request.query_params.get("err"),
+        "clients": clients,
+        "selected_client": selected_client,
+        "active_connection": connection,
+        "user_token_present": bool(user_token and user_token.token_value),
+        "env_token_configured": env_token_configured,
+        "preflight_rows": preflight_rows,
+        "preflight_all_authorized": all_authorized,
+        "latest_run_id": preflight_rows[0]["run_id"] if preflight_rows else None,
+        "step_client_ready": step_client_ready,
+        "step_connection_ready": step_connection_ready,
+        "step_token_ready": step_token_ready,
+        "step_validation_ready": step_validation_ready,
+        "next_step": next_step,
+    }
+
+
+@router.get("/onboarding/celonis-setup")
+def celonis_setup_wizard(
+    request: Request,
+    client_id: str = "",
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    selected_client: Client | None = None
+    org_clients = _org_clients(session, current_actor.organization.id)
+    if client_id.strip():
+        try:
+            parsed_client_id = _parse_uuid(client_id, "client_id")
+            selected_client = _get_org_client(session, parsed_client_id, current_actor.organization.id)
+        except Exception:
+            selected_client = None
+    if selected_client is None and org_clients:
+        selected_client = sorted(org_clients, key=lambda row: row.name.lower())[0]
+
+    return templates.TemplateResponse(
+        "celonis_setup_wizard.html",
+        _celonis_setup_context(
+            request,
+            session,
+            current_actor,
+            selected_client=selected_client,
+        ),
+    )
+
+
+@router.post("/onboarding/celonis-setup/create-client", include_in_schema=False)
+def celonis_setup_create_client(
+    name: str = Form(...),
+    tenant_url: str = Form(...),
+    sensitivity_level: str = Form("medium"),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        client = Client(
+            organization_id=current_actor.organization.id,
+            name=name.strip(),
+            tenant_url=tenant_url.strip(),
+            sensitivity_level=SensitivityLevel(sensitivity_level),
+        )
+        session.add(client)
+        session.commit()
+        session.refresh(client)
+        log_created(
+            session,
+            entity_type=EntityType.client,
+            entity_id=client.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            metadata={"source": "celonis_setup_wizard"},
+        )
+        return _redirect_ui(
+            f"/onboarding/celonis-setup?client_id={client.id}",
+            ok=f"Client '{client.name}' created",
+        )
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/onboarding/celonis-setup", err=f"Create client failed: {exc}")
+
+
+@router.post("/onboarding/celonis-setup/save-connection", include_in_schema=False)
+def celonis_setup_save_connection(
+    client_id: str = Form(...),
+    tenant_base_url: str = Form(...),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        if _get_org_client(session, parsed_client_id, current_actor.organization.id) is None:
+            return _redirect_ui("/onboarding/celonis-setup", err="Client not found")
+
+        existing = session.exec(
+            select(CelonisConnection).where(
+                CelonisConnection.client_id == parsed_client_id,
+                CelonisConnection.organization_id == current_actor.organization.id,
+            )
+        ).first()
+        if existing is None:
+            existing = CelonisConnection(
+                organization_id=current_actor.organization.id,
+                client_id=parsed_client_id,
+                tenant_base_url=tenant_base_url.strip(),
+                is_active=True,
+            )
+        else:
+            existing.tenant_base_url = tenant_base_url.strip()
+            existing.is_active = True
+            existing.updated_at = datetime.utcnow()
+
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return _redirect_ui(
+            f"/onboarding/celonis-setup?client_id={parsed_client_id}",
+            ok="Connection saved",
+        )
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(
+            f"/onboarding/celonis-setup?client_id={client_id}",
+            err=f"Save connection failed: {exc}",
+        )
+
+
+@router.post("/onboarding/celonis-setup/save-token", include_in_schema=False)
+def celonis_setup_save_token(
+    client_id: str = Form(...),
+    token_value: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        if _get_org_client(session, parsed_client_id, current_actor.organization.id) is None:
+            return _redirect_ui("/onboarding/celonis-setup", err="Client not found")
+
+        cleaned = token_value.strip()
+        existing = _get_org_person_celonis_token(
+            session,
+            current_actor.organization.id,
+            current_actor.person.id,
+        )
+        if cleaned:
+            _upsert_org_person_celonis_token(
+                session,
+                current_actor.organization.id,
+                current_actor.person.id,
+                cleaned,
+            )
+            label = "Token saved"
+        else:
+            if existing is not None:
+                session.delete(existing)
+            label = "Token cleared"
+        session.commit()
+        return _redirect_ui(f"/onboarding/celonis-setup?client_id={parsed_client_id}", ok=label)
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(
+            f"/onboarding/celonis-setup?client_id={client_id}",
+            err=f"Save token failed: {exc}",
+        )
+
+
+@router.post("/onboarding/celonis-setup/run-preflight", include_in_schema=False)
+def celonis_setup_run_preflight(
+    client_id: str = Form(...),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        client = _get_org_client(session, parsed_client_id, current_actor.organization.id)
+        if client is None:
+            return _redirect_ui("/onboarding/celonis-setup", err="Client not found")
+
+        connection = _get_org_active_celonis_connection(
+            session,
+            parsed_client_id,
+            current_actor.organization.id,
+        )
+        if connection is None:
+            return _redirect_ui(
+                f"/onboarding/celonis-setup?client_id={parsed_client_id}",
+                err="No active Celonis connection for selected client",
+            )
+
+        services = list(CelonisGateway.SERVICE_DEFAULT_PROBES.keys())
+        user_token = _get_org_person_celonis_token(
+            session,
+            current_actor.organization.id,
+            current_actor.person.id,
+        )
+        token_override = user_token.token_value if user_token else None
+        gateway = CelonisGateway(get_settings())
+        run_id = str(uuid4())
+        authorized_count = 0
+        for service_name in services:
+            result = gateway.preflight(
+                tenant_base_url=connection.tenant_base_url,
+                probe_path="",
+                service=service_name,
+                token_override=token_override,
+            )
+            if result.permission_status == "authorized":
+                authorized_count += 1
+            log_activity(
+                session,
+                entity_type=EntityType.celonis_connection,
+                entity_id=connection.id,
+                actor_id=current_actor.person.id,
+                organization_id=current_actor.organization.id,
+                action="celonis_connection.preflight",
+                metadata={
+                    "client_id": str(connection.client_id),
+                    "service": result.service,
+                    "probe_path": result.probe_path,
+                    "probe_url": result.probe_url,
+                    "has_token": result.has_token,
+                    "reachable": result.reachable,
+                    "authenticated": result.authenticated,
+                    "permission_status": result.permission_status,
+                    "status_code": result.status_code,
+                    "error": result.error,
+                    "source": "setup_wizard",
+                    "run_id": run_id,
+                },
+            )
+        total = len(services)
+        if authorized_count == total:
+            return _redirect_ui(
+                f"/onboarding/celonis-setup?client_id={parsed_client_id}",
+                ok=f"Preflight complete: all {total} services authorized (run {run_id})",
+            )
+        return _redirect_ui(
+            f"/onboarding/celonis-setup?client_id={parsed_client_id}",
+            err=f"Preflight found {total - authorized_count}/{total} service issues (run {run_id})",
+        )
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(
+            f"/onboarding/celonis-setup?client_id={client_id}",
+            err=f"Preflight failed: {exc}",
+        )
 
 
 @router.get("/orchestration-ui")
@@ -1904,6 +2818,218 @@ def client_health_create_client(
         return _redirect_ui("/client-health-ui", err=f"Create client failed: {exc}")
 
 
+@router.post("/client-health-ui/projects/{project_id}/celonis-links", include_in_schema=False)
+def client_health_update_project_celonis_links(
+    project_id: UUID,
+    celonis_package_url: str = Form(""),
+    celonis_app_url: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    project = _get_org_project(session, project_id, current_actor.organization.id)
+    if project is None:
+        return _redirect_ui("/client-health-ui", err="Project not found")
+
+    try:
+        project.celonis_package_url = _normalize_http_url(celonis_package_url) or None
+        project.celonis_app_url = _normalize_http_url(celonis_app_url) or None
+        session.add(project)
+        session.commit()
+        session.refresh(project)
+        log_updated(
+            session,
+            entity_type=EntityType.project,
+            entity_id=project.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            metadata={
+                "celonis_package_url_set": bool(project.celonis_package_url),
+                "celonis_app_url_set": bool(project.celonis_app_url),
+            },
+        )
+        return _redirect_ui("/client-health-ui", ok=f"Celonis links updated for '{project.name}'")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/client-health-ui", err=f"Update Celonis links failed: {exc}")
+
+
+@router.post("/client-health-ui/projects/{project_id}/celonis-token", include_in_schema=False)
+def client_health_update_user_celonis_token(
+    project_id: UUID,
+    token_value: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    project = _get_org_project(session, project_id, current_actor.organization.id)
+    if project is None:
+        return _redirect_ui("/client-health-ui", err="Project not found")
+
+    try:
+        cleaned = token_value.strip()
+        existing = _get_org_person_celonis_token(
+            session,
+            current_actor.organization.id,
+            current_actor.person.id,
+        )
+        if cleaned:
+            _upsert_org_person_celonis_token(
+                session,
+                current_actor.organization.id,
+                current_actor.person.id,
+                cleaned,
+            )
+            action_label = "saved"
+        else:
+            if existing is not None:
+                session.delete(existing)
+            action_label = "cleared"
+
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.project,
+            entity_id=project.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            action="project.celonis_token.updated",
+            metadata={"token_present": bool(cleaned), "scope": "person+organization"},
+        )
+        return _redirect_ui("/client-health-ui", ok=f"Celonis token {action_label} for your account")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/client-health-ui", err=f"Update Celonis token failed: {exc}")
+
+
+@router.post("/client-health-ui/projects/{project_id}/celonis-uptime", include_in_schema=False)
+def client_health_check_uptime(
+    project_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    project = _get_org_project(session, project_id, current_actor.organization.id)
+    if project is None:
+        return _redirect_ui("/client-health-ui", err="Project not found")
+
+    connection = _get_org_active_celonis_connection(
+        session,
+        project.client_id,
+        current_actor.organization.id,
+    )
+    if connection is None:
+        return _redirect_ui("/client-health-ui", err="No active Celonis connection for this client")
+
+    try:
+        settings = get_settings()
+        gateway = CelonisGateway(settings)
+        user_token = _get_org_person_celonis_token(
+            session,
+            current_actor.organization.id,
+            current_actor.person.id,
+        )
+        result = gateway.preflight(
+            tenant_base_url=connection.tenant_base_url,
+            probe_path="/",
+            service="core",
+            token_override=user_token.token_value if user_token else None,
+        )
+
+        log_activity(
+            session,
+            entity_type=EntityType.project,
+            entity_id=project.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            action="project.celonis_uptime_check",
+            metadata={
+                "probe_url": result.probe_url,
+                "permission_status": result.permission_status,
+                "status_code": result.status_code,
+                "reachable": result.reachable,
+                "authenticated": result.authenticated,
+                "has_user_token": bool(user_token and user_token.token_value),
+            },
+        )
+
+        message = (
+            f"Uptime check: {result.permission_status}"
+            + (f" (status {result.status_code})" if result.status_code is not None else "")
+        )
+        if result.reachable and result.permission_status in {"authorized", "forbidden", "unauthorized"}:
+            return _redirect_ui("/client-health-ui", ok=message)
+        return _redirect_ui("/client-health-ui", err=message)
+    except Exception as exc:
+        return _redirect_ui("/client-health-ui", err=f"Uptime check failed: {exc}")
+
+
+@router.post("/client-health-ui/projects/{project_id}/celonis-metrics-download", include_in_schema=False)
+def client_health_download_metrics(
+    project_id: UUID,
+    metrics_path: str = Form("/apps/api/packages"),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    project = _get_org_project(session, project_id, current_actor.organization.id)
+    if project is None:
+        return _redirect_ui("/client-health-ui", err="Project not found")
+
+    connection = _get_org_active_celonis_connection(
+        session,
+        project.client_id,
+        current_actor.organization.id,
+    )
+    if connection is None:
+        return _redirect_ui("/client-health-ui", err="No active Celonis connection for this client")
+
+    source_path = (metrics_path or "").strip() or "/apps/api/packages"
+
+    try:
+        settings = get_settings()
+        gateway = CelonisGateway(settings)
+        user_token = _get_org_person_celonis_token(
+            session,
+            current_actor.organization.id,
+            current_actor.person.id,
+        )
+        result = gateway.extract_full(
+            tenant_base_url=connection.tenant_base_url,
+            source_path=source_path,
+            token_override=user_token.token_value if user_token else None,
+        )
+
+        body = result.body or ""
+        log_activity(
+            session,
+            entity_type=EntityType.project,
+            entity_id=project.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            action="project.celonis_metrics_download",
+            metadata={
+                "path": source_path,
+                "status_code": result.status_code,
+                "ok": result.ok,
+                "payload_size": len(body),
+                "has_user_token": bool(user_token and user_token.token_value),
+            },
+        )
+
+        if not result.ok:
+            return _redirect_ui(
+                "/client-health-ui",
+                err=f"Metrics download failed with status {result.status_code}",
+            )
+
+        filename_safe_project = re.sub(r"[^a-z0-9-]+", "-", project.name.lower()).strip("-") or "project"
+        filename = f"celonis-metrics-{filename_safe_project}.json"
+        return Response(
+            content=body,
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as exc:
+        return _redirect_ui("/client-health-ui", err=f"Metrics download failed: {exc}")
+
+
 @router.post("/dashboard/create-client", include_in_schema=False)
 def dashboard_create_client(
     name: str = Form(...),
@@ -2060,6 +3186,47 @@ def dashboard_create_membership(
     except Exception as exc:
         session.rollback()
         return _redirect_dashboard(err=f"Create membership failed: {exc}")
+
+
+@router.post("/memberships-ui/create", include_in_schema=False)
+def memberships_ui_create(
+    project_id: str = Form(...),
+    person_id: str = Form(...),
+    role: str = Form("contributor"),
+    redirect_to: str = Form("/dashboard"),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    target_path = _normalize_redirect_path(redirect_to, "/dashboard")
+    try:
+        parsed_project_id = _parse_uuid(project_id, "project_id")
+        if _get_org_project(session, parsed_project_id, current_actor.organization.id) is None:
+            raise ValueError("Project not found")
+
+        membership = ProjectMembership(
+            project_id=parsed_project_id,
+            person_id=_parse_uuid(person_id, "person_id"),
+            role=MembershipRole(role),
+        )
+        session.add(membership)
+        session.commit()
+        session.refresh(membership)
+        log_created(
+            session,
+            entity_type=EntityType.membership,
+            entity_id=membership.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            metadata={
+                "project_id": str(membership.project_id),
+                "person_id": str(membership.person_id),
+                "role": _enum_or_value(membership.role, "member"),
+            },
+        )
+        return _redirect_ui(target_path, ok="Project membership added")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(target_path, err=f"Add membership failed: {exc}")
 
 
 @router.post("/dashboard/create-asset", include_in_schema=False)
@@ -2453,7 +3620,7 @@ def projects_ui(
 ):
     projects = sorted(
         _org_projects(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     clients = _org_clients(session, current_actor.organization.id)
@@ -2635,7 +3802,7 @@ def assets_ui(
 ):
     assets = sorted(
         _org_assets(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     projects = _org_projects(session, current_actor.organization.id)
@@ -2830,14 +3997,14 @@ def reviews_ui(
 ):
     reviews = sorted(
         _org_reviews(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     assets = _org_assets(session, current_actor.organization.id)
     projects = _org_projects(session, current_actor.organization.id)
     people = sorted(
         _org_people(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
 
@@ -3052,7 +4219,7 @@ def people_ui(
     membership_by_person_id = {row.person_id: row for row in memberships}
     people = sorted(
         _org_people(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     rows = [
@@ -3288,7 +4455,7 @@ def clients_ui(
 ):
     clients = sorted(
         _org_clients(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     rows = [
@@ -3479,7 +4646,7 @@ def todos_ui(
     all_todos = list(_org_todos(session, current_actor.organization.id))
     all_people = sorted(
         _org_people(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     all_clients = list(_org_clients(session, current_actor.organization.id))
@@ -3522,8 +4689,8 @@ def todos_ui(
     all_todos.sort(
         key=lambda row: (
             priority_order[row.priority.value],
-            row.due_at or datetime.max,
-            row.updated_at,
+            (row.due_at is None, _sort_datetime_key(row.due_at)),
+            _sort_datetime_key(row.updated_at),
         )
     )
 
@@ -3605,7 +4772,7 @@ def todos_ui(
             }
             for row in sorted(
                 [row for row in all_comments if row.todo_id == selected_todo.id],
-                key=lambda row: row.created_at,
+                key=lambda row: _sort_datetime_key(row.created_at),
                 reverse=True,
             )
         ]
@@ -3623,7 +4790,7 @@ def todos_ui(
             }
             for row in sorted(
                 [row for row in all_links if row.todo_id == selected_todo.id],
-                key=lambda row: row.created_at,
+                key=lambda row: _sort_datetime_key(row.created_at),
                 reverse=True,
             )
         ]
@@ -3641,7 +4808,7 @@ def todos_ui(
             }
             for row in sorted(
                 [row for row in all_documents if row.todo_id == selected_todo.id],
-                key=lambda row: row.created_at,
+                key=lambda row: _sort_datetime_key(row.created_at),
                 reverse=True,
             )
         ]
@@ -3660,7 +4827,7 @@ def todos_ui(
                         & (ActivityLog.organization_id == current_actor.organization.id)
                     )
                 ).all(),
-                key=lambda row: row.timestamp,
+                key=lambda row: _sort_datetime_key(row.timestamp),
                 reverse=True,
             )
         ]
@@ -4232,7 +5399,7 @@ def person_overview_ui(
     project_assets = [asset for asset in all_assets if asset.project_id in project_ids] if project_ids else []
     direct_assets = [asset for asset in all_assets if asset.id in direct_asset_ids] if direct_asset_ids else []
     asset_by_id = {asset.id: asset for asset in [*project_assets, *direct_assets]}
-    assets = sorted(asset_by_id.values(), key=lambda row: row.created_at, reverse=True)
+    assets = sorted(asset_by_id.values(), key=lambda row: _sort_datetime_key(row.created_at), reverse=True)
 
     reviews = [
         row
@@ -4250,7 +5417,7 @@ def person_overview_ui(
         or (row.project_id in project_ids if row.project_id else False)
         or (row.client_id in client_ids if row.client_id else False)
     ]
-    todos.sort(key=lambda row: row.created_at, reverse=True)
+    todos.sort(key=lambda row: _sort_datetime_key(row.created_at), reverse=True)
     todo_ids = {todo.id for todo in todos}
 
     entity_keys: list[tuple[EntityType, UUID]] = [(EntityType.person, parsed_person_id)]
@@ -4381,7 +5548,7 @@ def client_overview_ui(
         for row in all_todos
         if row.client_id == parsed_client_id or (row.project_id in project_ids if row.project_id else False)
     ]
-    todos.sort(key=lambda row: row.created_at, reverse=True)
+    todos.sort(key=lambda row: _sort_datetime_key(row.created_at), reverse=True)
     todo_ids = {todo.id for todo in todos}
 
     entity_keys: list[tuple[EntityType, UUID]] = [(EntityType.client, parsed_client_id)]
@@ -4431,7 +5598,7 @@ def client_overview_ui(
                 last_run_by_repo_id[row.id].triggered_at if row.id in last_run_by_repo_id else None
             ),
         }
-        for row in sorted(gitlab_repos, key=lambda item: item.created_at, reverse=True)
+        for row in sorted(gitlab_repos, key=lambda item: _sort_datetime_key(item.created_at), reverse=True)
     ]
 
     todo_rows = [
@@ -4479,6 +5646,7 @@ def client_overview_ui(
             "all_people": all_people,
             "todo_status_options": [row.value for row in TodoStatus],
             "todo_priority_options": [row.value for row in TodoPriority],
+            "membership_role_options": [row.value for row in MembershipRole],
         },
     )
 
@@ -4528,7 +5696,7 @@ def project_overview_ui(
         for row in _org_todos(session, current_actor.organization.id)
         if row.project_id == parsed_project_id
     ]
-    todos.sort(key=lambda row: row.created_at, reverse=True)
+    todos.sort(key=lambda row: _sort_datetime_key(row.created_at), reverse=True)
     todo_ids = {todo.id for todo in todos}
 
     entity_keys: list[tuple[EntityType, UUID]] = [(EntityType.project, parsed_project_id)]
@@ -4571,7 +5739,7 @@ def project_overview_ui(
                 last_run_by_repo_id[row.id].triggered_at if row.id in last_run_by_repo_id else None
             ),
         }
-        for row in sorted(gitlab_repos, key=lambda item: item.created_at, reverse=True)
+        for row in sorted(gitlab_repos, key=lambda item: _sort_datetime_key(item.created_at), reverse=True)
     ]
     todo_rows = [
         {
@@ -4610,6 +5778,7 @@ def project_overview_ui(
             "all_people": all_people,
             "todo_status_options": [row.value for row in TodoStatus],
             "todo_priority_options": [row.value for row in TodoPriority],
+            "membership_role_options": [row.value for row in MembershipRole],
         },
     )
 
@@ -4819,32 +5988,32 @@ def templates_ui(
             for row in _org_template_libraries(session, current_actor.organization.id)
             if row.library_type == LibraryType.template
         ],
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     templates_rows = sorted(
         _org_templates(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     instantiations = sorted(
         _org_template_instantiations(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     clients = sorted(
         _org_clients(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     projects = sorted(
         _org_projects(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     people = sorted(
         _org_people(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
 
@@ -5048,22 +6217,22 @@ def files_ui(
             for row in _org_template_libraries(session, current_actor.organization.id)
             if row.library_type == LibraryType.document
         ],
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     files = sorted(
         _org_delivery_files(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     clients = sorted(
         _org_clients(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
     projects = sorted(
         _org_projects(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
 
@@ -5339,12 +6508,12 @@ def timeline_ui(
 ):
     rows = sorted(
         _org_activity_logs(session, current_actor.organization.id),
-        key=lambda row: row.timestamp,
+        key=lambda row: _sort_datetime_key(row.timestamp),
         reverse=True,
     )
     people = sorted(
         _org_people(session, current_actor.organization.id),
-        key=lambda row: row.created_at,
+        key=lambda row: _sort_datetime_key(row.created_at),
         reverse=True,
     )
 
@@ -5483,12 +6652,625 @@ def timeline_ui_delete(
 
 @router.get("/docu/user.html")
 def docu_user(request: Request):
-    return templates.TemplateResponse("user.html", {"request": request})
+    return RedirectResponse(url="/docs-site/user/", status_code=307)
 
 
 @router.get("/docu/developer.html")
 def docu_developer(request: Request):
-    return templates.TemplateResponse("developer.html", {"request": request})
+    return RedirectResponse(url="/docs-site/developer/", status_code=307)
+
+
+@router.get("/docu/guide-admin-setup.html")
+def docu_guide_admin_setup(request: Request):
+    return RedirectResponse(url="/docs-site/admin/full-setup/", status_code=307)
+
+
+@router.get("/docu/guide-account-flows.html")
+def docu_guide_account_flows(request: Request):
+    return RedirectResponse(url="/docs-site/guides/account-flows/", status_code=307)
+
+
+@router.get("/docu/guide-delivery-walkthrough.html")
+def docu_guide_delivery_walkthrough(request: Request):
+    return RedirectResponse(url="/docs-site/guides/delivery-walkthrough/", status_code=307)
+
+
+# ---------------------------------------------------------------------------
+# Celonis Credentials page
+# ---------------------------------------------------------------------------
+
+@router.get("/celonis-credentials-ui", include_in_schema=False)
+def celonis_credentials_ui(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    user_token = _get_org_person_celonis_token(
+        session, current_actor.organization.id, current_actor.person.id
+    )
+    env_token_configured = bool((get_settings().celonis_api_token or "").strip())
+    recent_logs = sorted(
+        [
+            row
+            for row in _org_activity_logs(session, current_actor.organization.id)
+            if row.action in ("celonis_user_token.saved", "celonis_user_token.cleared")
+            and (row.metadata_json or {}).get("person_id") == str(current_actor.person.id)
+        ],
+        key=lambda r: _sort_datetime_key(r.timestamp),
+        reverse=True,
+    )[:10]
+    return templates.TemplateResponse(
+        "celonis_credentials.html",
+        {
+            "request": request,
+            "active_organization": current_actor.organization,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "token_present": bool(user_token and user_token.token_value),
+            "token_updated_at": getattr(user_token, "updated_at", None) if user_token else None,
+            "env_token_configured": env_token_configured,
+            "activity_rows": [
+                {
+                    "timestamp": row.timestamp,
+                    "action": row.action.replace("celonis_user_token.", ""),
+                    "metadata_json": row.metadata_json or {},
+                }
+                for row in recent_logs
+            ],
+        },
+    )
+
+
+@router.post("/celonis-credentials-ui/save-token", include_in_schema=False)
+def celonis_credentials_save_token(
+    token_value: str = Form(...),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        cleaned = token_value.strip()
+        if not cleaned:
+            return _redirect_ui("/celonis-credentials-ui", err="Token value cannot be blank")
+        _upsert_org_person_celonis_token(
+            session, current_actor.organization.id, current_actor.person.id, cleaned
+        )
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.person,
+            entity_id=current_actor.person.id,
+            actor_id=current_actor.person.id,
+            action="celonis_user_token.saved",
+            organization_id=current_actor.organization.id,
+            metadata={
+                "person_id": str(current_actor.person.id),
+                "token_present": True,
+            },
+        )
+        return _redirect_ui("/celonis-credentials-ui", ok="Token saved successfully")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-credentials-ui", err=f"Save token failed: {exc}")
+
+
+@router.post("/celonis-credentials-ui/clear-token", include_in_schema=False)
+def celonis_credentials_clear_token(
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        existing = _get_org_person_celonis_token(
+            session, current_actor.organization.id, current_actor.person.id
+        )
+        if existing:
+            session.delete(existing)
+            session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.person,
+            entity_id=current_actor.person.id,
+            actor_id=current_actor.person.id,
+            action="celonis_user_token.cleared",
+            organization_id=current_actor.organization.id,
+            metadata={
+                "person_id": str(current_actor.person.id),
+                "token_present": False,
+            },
+        )
+        return _redirect_ui("/celonis-credentials-ui", ok="Token cleared")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-credentials-ui", err=f"Clear token failed: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Celonis Discovery page
+# ---------------------------------------------------------------------------
+
+def _recent_preflights_for_org(session: Session, organization_id: UUID) -> list[dict]:
+    """Return one summary row per preflight run (latest 20 runs, most recent first)."""
+    logs = sorted(
+        [
+            row
+            for row in _org_activity_logs(session, organization_id)
+            if row.action == "celonis_connection.preflight"
+        ],
+        key=lambda r: _sort_datetime_key(r.timestamp),
+        reverse=True,
+    )
+    seen_runs: dict[str, dict] = {}
+    for row in logs:
+        meta = row.metadata_json or {}
+        run_id = str(meta.get("run_id", "")).strip() or str(row.id)
+        if run_id in seen_runs:
+            continue
+        seen_runs[run_id] = {
+            "id": run_id,
+            "client_id": str(meta.get("client_id", "")),
+            "client_name": "",
+            "space_name": meta.get("space_name") or "",
+            "passed": meta.get("permission_status") == "authorized",
+            "created_at": row.timestamp,
+        }
+        if len(seen_runs) >= 20:
+            break
+    return list(seen_runs.values())
+
+
+@router.get("/celonis-discovery-ui", include_in_schema=False)
+def celonis_discovery_ui(
+    request: Request,
+    client_id: str = "",
+    space_name: str = "",
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    clients = sorted(
+        _org_clients(session, current_actor.organization.id),
+        key=lambda c: c.name.lower(),
+    )
+    client_map = {str(c.id): c.name for c in clients}
+    selected_client_id = client_id.strip() or (str(clients[0].id) if clients else "")
+
+    preflight_rows: list[dict] = []
+    all_authorized = False
+    preflight_run_id: str | None = None
+    if selected_client_id:
+        try:
+            parsed_cid = _parse_uuid(selected_client_id, "client_id")
+            preflight_rows = _latest_preflight_rows_for_client(
+                session,
+                organization_id=current_actor.organization.id,
+                client_id=parsed_cid,
+            )
+            if preflight_rows:
+                all_authorized = all(r["permission_status"] == "authorized" for r in preflight_rows)
+                preflight_run_id = preflight_rows[0].get("run_id")
+        except Exception:
+            pass
+
+    recent_preflights = _recent_preflights_for_org(session, current_actor.organization.id)
+    for row in recent_preflights:
+        row["client_name"] = client_map.get(row["client_id"], row["client_id"])
+
+    user_token = _get_org_person_celonis_token(
+        session, current_actor.organization.id, current_actor.person.id
+    )
+    # Reshape preflight_rows for template (use permission_status as "status")
+    display_rows = [
+        {
+            "service": r.get("service", ""),
+            "check": "permission",
+            "status": r.get("permission_status", "unknown"),
+            "detail": r.get("probe_url") or "",
+        }
+        for r in preflight_rows
+    ]
+    return templates.TemplateResponse(
+        "celonis_discovery.html",
+        {
+            "request": request,
+            "active_organization": current_actor.organization,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "clients": clients,
+            "selected_client_id": selected_client_id,
+            "space_name": space_name,
+            "preflight_rows": display_rows,
+            "all_authorized": all_authorized,
+            "preflight_run_id": preflight_run_id,
+            "recent_preflights": recent_preflights,
+            "token_present": bool(user_token and user_token.token_value),
+        },
+    )
+
+
+@router.post("/celonis-discovery-ui/run-preflight", include_in_schema=False)
+def celonis_discovery_run_preflight(
+    client_id: str = Form(...),
+    space_name: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        client = _get_org_client(session, parsed_client_id, current_actor.organization.id)
+        if client is None:
+            return _redirect_ui("/celonis-discovery-ui", err="Client not found")
+        connection = _get_org_active_celonis_connection(
+            session, parsed_client_id, current_actor.organization.id
+        )
+        if connection is None:
+            return _redirect_ui(
+                f"/celonis-discovery-ui?client_id={parsed_client_id}",
+                err="No active Celonis connection for this client — configure one in Celonis Setup",
+            )
+        user_token = _get_org_person_celonis_token(
+            session, current_actor.organization.id, current_actor.person.id
+        )
+        token_override = user_token.token_value if user_token else None
+        gateway = CelonisGateway(get_settings())
+        run_id = str(uuid4())
+        services = list(CelonisGateway.SERVICE_DEFAULT_PROBES.keys())
+        authorized_count = 0
+        for service_name in services:
+            result = gateway.preflight(
+                tenant_base_url=connection.tenant_base_url,
+                probe_path="",
+                service=service_name,
+                token_override=token_override,
+            )
+            if result.permission_status == "authorized":
+                authorized_count += 1
+            log_activity(
+                session,
+                entity_type=EntityType.celonis_connection,
+                entity_id=connection.id,
+                actor_id=current_actor.person.id,
+                organization_id=current_actor.organization.id,
+                action="celonis_connection.preflight",
+                metadata={
+                    "client_id": str(connection.client_id),
+                    "service": result.service,
+                    "probe_path": result.probe_path,
+                    "probe_url": result.probe_url,
+                    "has_token": result.has_token,
+                    "reachable": result.reachable,
+                    "authenticated": result.authenticated,
+                    "permission_status": result.permission_status,
+                    "status_code": result.status_code,
+                    "error": result.error,
+                    "source": "discovery_ui",
+                    "space_name": space_name.strip(),
+                    "run_id": run_id,
+                },
+            )
+        total = len(services)
+        ok_msg = (
+            f"Preflight complete — all {total} services authorized (run {run_id})"
+            if authorized_count == total
+            else f"Preflight complete — {authorized_count}/{total} services authorized (run {run_id})"
+        )
+        return _redirect_ui(
+            f"/celonis-discovery-ui?client_id={parsed_client_id}&space_name={quote_plus(space_name.strip())}",
+            ok=ok_msg,
+        )
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui(
+            f"/celonis-discovery-ui?client_id={client_id}",
+            err=f"Preflight failed: {exc}",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Celonis Deployments page
+# ---------------------------------------------------------------------------
+
+def _get_deploy_request(
+    session: Session, deploy_id: UUID, organization_id: UUID
+) -> CelonisDeploymentRequest | None:
+    req = session.get(CelonisDeploymentRequest, deploy_id)
+    if not req or req.organization_id != organization_id:
+        return None
+    return req
+
+
+@router.get("/celonis-deployments-ui", include_in_schema=False)
+def celonis_deployments_ui(
+    request: Request,
+    client_id: str = "",
+    space_name: str = "",
+    preflight_run_id: str = "",
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    clients = sorted(
+        _org_clients(session, current_actor.organization.id),
+        key=lambda c: c.name.lower(),
+    )
+    projects = sorted(
+        _org_projects(session, current_actor.organization.id),
+        key=lambda p: p.name.lower(),
+    )
+    client_map = {str(c.id): c.name for c in clients}
+    project_map = {str(p.id): p.name for p in projects}
+
+    deploy_requests = list(
+        session.exec(
+            select(CelonisDeploymentRequest)
+            .where(CelonisDeploymentRequest.organization_id == current_actor.organization.id)
+            .order_by(CelonisDeploymentRequest.created_at.desc())
+        ).all()
+    )
+
+    from collections import Counter
+    status_counts = Counter(r.status.value for r in deploy_requests)
+    counts = {
+        "draft": status_counts.get("draft", 0),
+        "awaiting_approval": status_counts.get("awaiting_approval", 0),
+        "approved": status_counts.get("approved", 0),
+        "cancelled": status_counts.get("cancelled", 0),
+    }
+
+    enriched = []
+    for req in deploy_requests:
+        enriched.append({
+            "id": req.id,
+            "client_id": req.client_id,
+            "client_name": client_map.get(str(req.client_id), str(req.client_id)),
+            "project_name": project_map.get(str(req.project_id), str(req.project_id)),
+            "target_space_name": req.target_space_name,
+            "target_package_key": req.target_package_key,
+            "status": req.status.value,
+            "preflight_passed": req.preflight_passed,
+            "permission_diff_acknowledged": req.permission_diff_acknowledged,
+            "created_at": req.created_at,
+            "reviewer_note": req.reviewer_note,
+            "can_review": (
+                req.status == CelonisDeploymentStatus.awaiting_approval
+                and str(req.created_by) != str(current_actor.person.id)
+            ),
+        })
+
+    return templates.TemplateResponse(
+        "celonis_deployments.html",
+        {
+            "request": request,
+            "active_organization": current_actor.organization,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "clients": clients,
+            "projects": projects,
+            "counts": counts,
+            "deploy_requests": enriched,
+            "prefill_client_id": client_id.strip(),
+            "prefill_space_name": space_name.strip(),
+            "prefill_preflight_run_id": preflight_run_id.strip(),
+        },
+    )
+
+
+@router.post("/celonis-deployments-ui/create", include_in_schema=False)
+def celonis_deployments_create(
+    client_id: str = Form(...),
+    project_id: str = Form(...),
+    target_space_name: str = Form(""),
+    target_package_key: str = Form(""),
+    target_package_name: str = Form(""),
+    preflight_run_id: str = Form(""),
+    notes: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_client_id = _parse_uuid(client_id, "client_id")
+        parsed_project_id = _parse_uuid(project_id, "project_id")
+        if _get_org_client(session, parsed_client_id, current_actor.organization.id) is None:
+            return _redirect_ui("/celonis-deployments-ui", err="Client not found")
+        if _get_org_project(session, parsed_project_id, current_actor.organization.id) is None:
+            return _redirect_ui("/celonis-deployments-ui", err="Project not found")
+        cleaned_run_id = preflight_run_id.strip()
+        preflight_passed = False
+        if cleaned_run_id:
+            matching_logs = [
+                row
+                for row in _org_activity_logs(session, current_actor.organization.id)
+                if row.action == "celonis_connection.preflight"
+                and str((row.metadata_json or {}).get("client_id", "")).strip() == str(parsed_client_id)
+                and str((row.metadata_json or {}).get("run_id", "")).strip() == cleaned_run_id
+            ]
+            preflight_passed = bool(matching_logs) and all(
+                str((row.metadata_json or {}).get("permission_status", "")) == "authorized"
+                for row in matching_logs
+            )
+
+        req = CelonisDeploymentRequest(
+            organization_id=current_actor.organization.id,
+            project_id=parsed_project_id,
+            client_id=parsed_client_id,
+            created_by=current_actor.person.id,
+            target_space_name=target_space_name.strip() or None,
+            target_package_key=target_package_key.strip() or None,
+            target_package_name=target_package_name.strip() or None,
+            preflight_run_id=cleaned_run_id or None,
+            preflight_passed=preflight_passed,
+            notes=notes.strip() or None,
+        )
+        session.add(req)
+        session.commit()
+        session.refresh(req)
+        log_activity(
+            session,
+            entity_type=EntityType.celonis_deployment_request,
+            entity_id=req.id,
+            actor_id=current_actor.person.id,
+            action="celonis_deployment_request.created",
+            organization_id=current_actor.organization.id,
+            metadata={"client_id": str(parsed_client_id), "project_id": str(parsed_project_id)},
+        )
+        return _redirect_ui("/celonis-deployments-ui", ok="Deployment request created")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=f"Create request failed: {exc}")
+
+
+@router.post("/celonis-deployments-ui/{deploy_id}/acknowledge-diff", include_in_schema=False)
+def celonis_deployments_acknowledge_diff(
+    deploy_id: str,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_id = _parse_uuid(deploy_id, "deploy_id")
+        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
+        if not req:
+            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
+        if req.status != CelonisDeploymentStatus.draft:
+            return _redirect_ui("/celonis-deployments-ui", err="Can only acknowledge diff on draft requests")
+        req.permission_diff_acknowledged = True
+        req.permission_diff_acknowledged_by = current_actor.person.id
+        req.updated_at = datetime.utcnow()
+        session.add(req)
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.celonis_deployment_request,
+            entity_id=req.id,
+            actor_id=current_actor.person.id,
+            action="celonis_deployment_request.diff_acknowledged",
+            organization_id=current_actor.organization.id,
+            metadata={},
+        )
+        return _redirect_ui("/celonis-deployments-ui", ok="Permission diff acknowledged")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=f"Acknowledge diff failed: {exc}")
+
+
+@router.post("/celonis-deployments-ui/{deploy_id}/submit-for-approval", include_in_schema=False)
+def celonis_deployments_submit_for_approval(
+    deploy_id: str,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_id = _parse_uuid(deploy_id, "deploy_id")
+        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
+        if not req:
+            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
+        if req.status != CelonisDeploymentStatus.draft:
+            return _redirect_ui("/celonis-deployments-ui", err="Only draft requests can be submitted")
+        if not req.preflight_passed:
+            return _redirect_ui(
+                "/celonis-deployments-ui",
+                err="Preflight must pass before submitting for approval — run preflight in Tenant Discovery first",
+            )
+        if not req.permission_diff_acknowledged:
+            return _redirect_ui(
+                "/celonis-deployments-ui",
+                err="Permission diff must be acknowledged before submitting for approval",
+            )
+        req.status = CelonisDeploymentStatus.awaiting_approval
+        req.updated_at = datetime.utcnow()
+        session.add(req)
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.celonis_deployment_request,
+            entity_id=req.id,
+            actor_id=current_actor.person.id,
+            action="celonis_deployment_request.submitted_for_approval",
+            organization_id=current_actor.organization.id,
+            metadata={},
+        )
+        return _redirect_ui("/celonis-deployments-ui", ok="Request submitted for approval")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=f"Submit for approval failed: {exc}")
+
+
+@router.post("/celonis-deployments-ui/{deploy_id}/approve", include_in_schema=False)
+def celonis_deployments_approve(
+    deploy_id: str,
+    decision: str = Form(...),
+    reviewer_note: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_id = _parse_uuid(deploy_id, "deploy_id")
+        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
+        if not req:
+            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
+        if req.status != CelonisDeploymentStatus.awaiting_approval:
+            return _redirect_ui("/celonis-deployments-ui", err="Request is not awaiting approval")
+        if str(req.created_by) == str(current_actor.person.id):
+            return _redirect_ui(
+                "/celonis-deployments-ui",
+                err="The request creator cannot be the reviewer — a different team member must approve",
+            )
+        if decision not in ("approved", "rejected"):
+            return _redirect_ui("/celonis-deployments-ui", err="Invalid decision value")
+        req.reviewer_id = current_actor.person.id
+        req.reviewer_decision = decision
+        req.reviewer_note = reviewer_note.strip() or None
+        req.status = (
+            CelonisDeploymentStatus.approved
+            if decision == "approved"
+            else CelonisDeploymentStatus.draft
+        )
+        req.updated_at = datetime.utcnow()
+        session.add(req)
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.celonis_deployment_request,
+            entity_id=req.id,
+            actor_id=current_actor.person.id,
+            action=f"celonis_deployment_request.{decision}",
+            organization_id=current_actor.organization.id,
+            metadata={"decision": decision},
+        )
+        return _redirect_ui(
+            "/celonis-deployments-ui",
+            ok=f"Request {decision}",
+        )
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=f"Review action failed: {exc}")
+
+
+@router.post("/celonis-deployments-ui/{deploy_id}/cancel", include_in_schema=False)
+def celonis_deployments_cancel(
+    deploy_id: str,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    try:
+        parsed_id = _parse_uuid(deploy_id, "deploy_id")
+        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
+        if not req:
+            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
+        if req.status == CelonisDeploymentStatus.cancelled:
+            return _redirect_ui("/celonis-deployments-ui", err="Request is already cancelled")
+        req.status = CelonisDeploymentStatus.cancelled
+        req.updated_at = datetime.utcnow()
+        session.add(req)
+        session.commit()
+        log_activity(
+            session,
+            entity_type=EntityType.celonis_deployment_request,
+            entity_id=req.id,
+            actor_id=current_actor.person.id,
+            action="celonis_deployment_request.cancelled",
+            organization_id=current_actor.organization.id,
+            metadata={},
+        )
+        return _redirect_ui("/celonis-deployments-ui", ok="Request cancelled")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=f"Cancel request failed: {exc}")
 
 
 @router.get("/tenant-ui")
@@ -5511,7 +7293,7 @@ def _kpis_list_context(
     ok: str | None = None,
     err: str | None = None,
 ) -> dict:
-    kpis = sorted(_org_kpis(session, current_actor.organization.id), key=lambda row: row.created_at, reverse=True)
+    kpis = sorted(_org_kpis(session, current_actor.organization.id), key=lambda row: _sort_datetime_key(row.created_at), reverse=True)
     projects = sorted(_org_projects(session, current_actor.organization.id), key=lambda row: row.name.lower())
     clients = sorted(_org_clients(session, current_actor.organization.id), key=lambda row: row.name.lower())
     people = sorted(_org_people(session, current_actor.organization.id), key=lambda row: row.name.lower())
@@ -5819,11 +7601,21 @@ def trigger_snapshot_ui(
                 f"/snapshots-ui/{client_id}",
                 err="No active Celonis connection configured. Open Dashboard and save a Celonis connection for this client.",
             )
+        token_row = _get_org_person_celonis_token(
+            session,
+            current_actor.organization.id,
+            current_actor.person.id,
+        )
+        token_override = token_row.token_value.strip() if token_row and token_row.token_value else None
+        run_kwargs: dict = {}
+        if token_override:
+            run_kwargs["token_override"] = token_override
         snap = run_snapshot(
             session,
             client_id=client_id,
             triggered_by=current_actor.person.id,
             organization_id=current_actor.organization.id,
+            **run_kwargs,
         )
         return _redirect_ui(f"/snapshots-ui/{client_id}", ok=f"Snapshot {snap.id} completed")
     except Exception as exc:
@@ -5885,24 +7677,44 @@ def snapshot_detail_ui(
 def snapshot_export_ui(
     client_id: UUID,
     snapshot_id: UUID,
+    request: Request,
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
+    wants_json = _wants_json_response(request)
     try:
         client = _get_org_client(session, client_id, current_actor.organization.id)
         snap = session.get(CelonisSnapshot, snapshot_id)
         if client is None or snap is None or snap.client_id != client_id:
+            if wants_json:
+                return JSONResponse({"ok": False, "error": "Snapshot not found"}, status_code=404)
             return _redirect_ui(f"/snapshots-ui/{client_id}", err="Snapshot not found")
         result = build_snapshot_export(
             session,
             snapshot_id=snapshot_id,
             base_output_dir=Path(get_settings().uploads_dir) / "snapshot_exports",
         )
+        if wants_json:
+            return {
+                "ok": True,
+                "snapshot_id": str(snapshot_id),
+                "message": f"Export bundle created: {result['bundle_path']}",
+                "result": result,
+            }
         return _redirect_ui(
             f"/snapshots-ui/{client_id}/{snapshot_id}/detail",
             ok=f"Export bundle created: {result['bundle_path']}",
         )
     except Exception as exc:
+        if wants_json:
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "snapshot_id": str(snapshot_id),
+                    "error": f"Export failed: {exc}",
+                },
+                status_code=500,
+            )
         return _redirect_ui(
             f"/snapshots-ui/{client_id}/{snapshot_id}/detail",
             err=f"Export failed: {exc}",
@@ -5971,6 +7783,44 @@ def snapshot_replay_plan_ui(
     if snap is None or snap.client_id != client_id:
         return _redirect_ui(f"/snapshots-ui/{client_id}", err="Snapshot not found")
     return build_snapshot_replay_plan(session, snapshot_id=snapshot_id)
+
+
+@router.get("/snapshots-ui/{client_id}/{snapshot_id}/coverage")
+def snapshot_coverage_ui(
+    client_id: UUID,
+    snapshot_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    client = _get_org_client(session, client_id, current_actor.organization.id)
+    if client is None:
+        return _redirect_ui("/clients-ui", err="Client not found")
+    snap = session.get(CelonisSnapshot, snapshot_id)
+    if snap is None or snap.client_id != client_id:
+        return _redirect_ui(f"/snapshots-ui/{client_id}", err="Snapshot not found")
+    return build_snapshot_coverage_report(snap)
+
+
+@router.get("/snapshots-ui/{client_id}/{snapshot_id}/coverage/download")
+def snapshot_coverage_download_ui(
+    client_id: UUID,
+    snapshot_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    client = _get_org_client(session, client_id, current_actor.organization.id)
+    if client is None:
+        return _redirect_ui("/clients-ui", err="Client not found")
+    snap = session.get(CelonisSnapshot, snapshot_id)
+    if snap is None or snap.client_id != client_id:
+        return _redirect_ui(f"/snapshots-ui/{client_id}", err="Snapshot not found")
+    payload = build_snapshot_coverage_report(snap)
+    filename = build_snapshot_coverage_filename(snapshot_id)
+    return Response(
+        content=json.dumps(payload, indent=2, default=str),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ---------------------------------------------------------------------------

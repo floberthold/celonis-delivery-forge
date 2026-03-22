@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     gitlab_base_url: str = ""
     gitlab_api_token: str = ""
     uploads_dir: str = "./uploads"
+    celonis_shared_dir: str = "./Code from Celonis"
     public_base_url: str = ""
     delivery_file_max_upload_bytes: int = 25 * 1024 * 1024
     local_database_url: str = _default_local_database_url()

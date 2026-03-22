@@ -1,0 +1,71 @@
+site_name: Celonis Delivery Forge Docs
+site_description: Documentation for users, admins, and developers
+site_url: https://example.local/docs-site/
+docs_dir: site_docs
+site_dir: docs_site
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.instant
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+  palette:
+    - scheme: default
+      primary: blue grey
+      accent: amber
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started/quick-start.md
+      - Configuration Reference: getting-started/configuration-reference.md
+  - User Guide:
+      - Overview: user/index.md
+      - Account and Security: user/account-and-security.md
+      - Core Workspaces: user/core-workspaces.md
+      - Governance and Reviews: user/governance-and-reviews.md
+      - KPI and Snapshots: user/kpi-and-snapshots.md
+      - Route Reference: user/route-reference.md
+      - Delivery Walkthrough: guides/delivery-walkthrough.md
+  - Admin Guide:
+      - Overview: admin/index.md
+      - Full Setup: admin/full-setup.md
+      - Runtime Modes: admin/runtime-modes.md
+      - User Provisioning and Roles: admin/user-provisioning-and-roles.md
+      - Operations Checklist: admin/operations-checklist.md
+      - Backup and Recovery: admin/backup-and-recovery.md
+      - Incident Playbooks: admin/incident-playbooks.md
+      - Account Lifecycle: guides/account-flows.md
+  - Developer Guide:
+      - Overview: developer/index.md
+      - Local Development: developer/local-development.md
+      - Architecture: developer/architecture.md
+      - Module Map: developer/module-map.md
+      - Data Models and Migrations: developer/data-models-and-migrations.md
+      - Auth and Access Control: developer/auth-and-access-control.md
+      - Testing: developer/testing.md
+      - Integrations: developer/integrations.md
+      - Docs Architecture: developer/docs-architecture.md
+  - Guides:
+    - Account Flows: guides/account-flows.md
+    - Delivery Walkthrough: guides/delivery-walkthrough.md
+    - New Environment Bring-up: guides/new-environment-bring-up.md
+  - Troubleshooting:
+    - Overview: troubleshooting/index.md
+    - Authentication Issues: troubleshooting/auth-issues.md
+    - Database and Startup: troubleshooting/database-and-startup.md
+    - Integrations and Email: troubleshooting/integrations-and-email.md
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - tables
+extra_css:
+  - stylesheets/extra.css

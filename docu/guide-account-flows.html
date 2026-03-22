@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Account Flows Guide | Foundry{% endblock %}
+
+{% block content %}
+<h2>Account Flows Guide (Step-by-Step)</h2>
+<p class="muted-note">Detailed operational guide for registration, verification, login, profile updates, and password reset.</p>
+
+<section class="panel">
+    <h3>1) Register a New Account</h3>
+    <ol>
+        <li>Open <a href="/register">/register</a>.</li>
+        <li>Enter full name, email, password, and password confirmation.</li>
+        <li>Submit form and confirm success message appears.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>2) Verify Email</h3>
+    <ol>
+        <li>Open your mailbox for the registration email.</li>
+        <li>Click the verification link.</li>
+        <li>Confirm redirect to login with activation success banner.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>3) Sign In</h3>
+    <ol>
+        <li>Open <a href="/login">/login</a>.</li>
+        <li>Enter email/password and submit.</li>
+        <li>Confirm redirect to <a href="/dashboard">Dashboard</a> or preserved target path.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>4) Update My Account</h3>
+    <ol>
+        <li>Open <a href="/account-ui">/account-ui</a>.</li>
+        <li>Update name and/or email.</li>
+        <li>Optionally provide new password and confirmation.</li>
+        <li>Save changes and confirm success banner.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>5) Forgot Password</h3>
+    <ol>
+        <li>Open <a href="/forgot-password">/forgot-password</a>.</li>
+        <li>Submit your email.</li>
+        <li>Open reset email and follow reset link.</li>
+        <li>Set new password and confirm login works.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>Troubleshooting</h3>
+    <ul>
+        <li>No verification/reset email: ask admin to verify SMTP variables and sender policy.</li>
+        <li>Reset link invalid/expired: request a new link from <a href="/forgot-password">Forgot Password</a>.</li>
+        <li>Login succeeds but data is missing: verify your organization membership.</li>
+    </ul>
+</section>
+
+<section class="panel">
+    <h3>Fast Links</h3>
+    <p>
+        <a class="link-button" href="/docu/user.html">Back to User Docs</a>
+        <a class="link-button" href="/docu/developer.html">Open Developer Docs</a>
+        <a class="link-button" href="/account-ui">Open My Account</a>
+    </p>
+</section>
+{% endblock %}

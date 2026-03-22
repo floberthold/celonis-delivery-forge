@@ -14,7 +14,7 @@ a = Analysis(
     ['src\\foundry\\desktop\\app.py'],
     pathex=[],
     binaries=[],
-    datas=[('docu', 'docu')],
+    datas=[('docs_site', 'docs_site')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

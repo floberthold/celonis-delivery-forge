@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import httpx
 
@@ -13,6 +14,16 @@ class CelonisHttpResult:
     status_code: int
     ok: bool
     response_preview: str
+
+
+@dataclass
+class CelonisHttpFullResult:
+    """Full (un-truncated) response for extraction calls."""
+    action: str
+    url: str
+    status_code: int
+    ok: bool
+    body: str | None  # complete response text; None on network/decode error
 
 
 @dataclass
@@ -42,20 +53,60 @@ class CelonisGateway:
     def __init__(self, settings: Settings):
         self._settings = settings
 
-    def extract(self, *, tenant_base_url: str, source_path: str) -> CelonisHttpResult:
+    def extract(
+        self,
+        *,
+        tenant_base_url: str,
+        source_path: str,
+        token_override: str | None = None,
+    ) -> CelonisHttpResult:
         normalized_base = self._normalize_base_url(tenant_base_url)
         normalized_path = self._normalize_path(source_path)
         url = f"{normalized_base}{normalized_path}"
         with httpx.Client(timeout=self._settings.celonis_timeout_seconds) as client:
-            response = client.get(url, headers=self._headers())
+            response = client.get(url, headers=self._headers(token_override))
         return self._to_result(action="extract", url=url, response=response)
 
-    def import_data(self, *, tenant_base_url: str, target_path: str, payload: dict) -> CelonisHttpResult:
+    def extract_full(
+        self,
+        *,
+        tenant_base_url: str,
+        source_path: str,
+        token_override: str | None = None,
+    ) -> "CelonisHttpFullResult":
+        """Like extract() but returns the complete response body without any truncation."""
+        normalized_base = self._normalize_base_url(tenant_base_url)
+        normalized_path = self._normalize_path(source_path)
+        url = f"{normalized_base}{normalized_path}"
+        with httpx.Client(timeout=self._settings.celonis_timeout_seconds) as client:
+            response = client.get(url, headers=self._headers(token_override))
+        body: str | None = None
+        if response.is_success:
+            try:
+                body = response.text
+            except Exception:
+                body = None
+        return CelonisHttpFullResult(
+            action="extract_full",
+            url=url,
+            status_code=response.status_code,
+            ok=response.is_success,
+            body=body,
+        )
+
+    def import_data(
+        self,
+        *,
+        tenant_base_url: str,
+        target_path: str,
+        payload: dict,
+        token_override: str | None = None,
+    ) -> CelonisHttpResult:
         normalized_base = self._normalize_base_url(tenant_base_url)
         normalized_path = self._normalize_path(target_path)
         url = f"{normalized_base}{normalized_path}"
         with httpx.Client(timeout=self._settings.celonis_timeout_seconds) as client:
-            response = client.post(url, headers=self._headers(), json=payload)
+            response = client.post(url, headers=self._headers(token_override), json=payload)
         return self._to_result(action="import", url=url, response=response)
 
     def preflight(
@@ -64,6 +115,7 @@ class CelonisGateway:
         tenant_base_url: str,
         probe_path: str = "/",
         service: str = "core",
+        token_override: str | None = None,
     ) -> CelonisPreflightHttpResult:
         normalized_base = self._normalize_base_url(tenant_base_url)
         normalized_service = self._normalize_service(service)
@@ -72,8 +124,9 @@ class CelonisGateway:
         effective_probe = requested_probe or default_probe
         normalized_path = self._normalize_path(effective_probe)
         probe_url = f"{normalized_base}{normalized_path}"
+        effective_token = (token_override or self._settings.celonis_api_token or "").strip()
 
-        if not self._settings.celonis_api_token:
+        if not effective_token:
             return CelonisPreflightHttpResult(
                 service=normalized_service,
                 probe_path=normalized_path,
@@ -89,8 +142,11 @@ class CelonisGateway:
             )
 
         try:
-            with httpx.Client(timeout=self._settings.celonis_timeout_seconds) as client:
-                response = client.get(probe_url, headers=self._headers())
+            with httpx.Client(
+                timeout=self._settings.celonis_timeout_seconds,
+                follow_redirects=True,
+            ) as client:
+                response = client.get(probe_url, headers=self._headers(token_override))
         except Exception as exc:
             return CelonisPreflightHttpResult(
                 service=normalized_service,
@@ -106,8 +162,12 @@ class CelonisGateway:
                 response_preview="",
             )
 
-        permission_status = self._permission_status(response.status_code)
-        is_authenticated = response.status_code not in {401, 403}
+        permission_status = self._classify_preflight_response(response)
+        is_authenticated = permission_status not in {
+            "unauthorized",
+            "forbidden",
+            "redirect-to-login",
+        }
 
         return CelonisPreflightHttpResult(
             service=normalized_service,
@@ -123,11 +183,12 @@ class CelonisGateway:
             response_preview=self._build_response_preview(response),
         )
 
-    def _headers(self) -> dict:
-        if not self._settings.celonis_api_token:
+    def _headers(self, token_override: str | None = None) -> dict:
+        token = (token_override or self._settings.celonis_api_token or "").strip()
+        if not token:
             raise ValueError("FORGE_CELONIS_API_TOKEN is not configured")
         return {
-            "Authorization": f"Bearer {self._settings.celonis_api_token}",
+            "Authorization": f"Bearer {token}",
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
@@ -160,6 +221,8 @@ class CelonisGateway:
     def _permission_status(status_code: int) -> str:
         if 200 <= status_code < 300:
             return "authorized"
+        if status_code in {301, 302, 303, 307, 308}:
+            return "redirect-to-login"
         if status_code == 401:
             return "unauthorized"
         if status_code == 403:
@@ -171,6 +234,42 @@ class CelonisGateway:
         if 500 <= status_code < 600:
             return "server-error"
         return "unknown"
+
+    @staticmethod
+    def _classify_preflight_response(response: httpx.Response) -> str:
+        # Redirects from API probes often indicate SSO/login handoff for insufficient key scope.
+        if response.status_code in {301, 302, 303, 307, 308}:
+            return "redirect-to-login"
+
+        if response.status_code == 200:
+            content_type = (response.headers.get("content-type") or "").lower()
+            location = (response.headers.get("location") or "").lower()
+            final_url = str(getattr(response, "url", "")).lower()
+            parsed_path = urlparse(final_url).path.lower()
+            body_preview = ""
+            try:
+                body_preview = (response.text or "")[:512].lower()
+            except Exception:
+                body_preview = ""
+
+            login_signals = (
+                "/login",
+                "/sso",
+                "signin",
+                "sign-in",
+            )
+            if any(signal in location for signal in login_signals):
+                return "redirect-to-login"
+            if any(signal in parsed_path for signal in login_signals):
+                return "redirect-to-login"
+            if "text/html" in content_type and (
+                "<html" in body_preview
+                or "login" in body_preview
+                or "sign in" in body_preview
+            ):
+                return "redirect-to-login"
+
+        return CelonisGateway._permission_status(response.status_code)
 
     @staticmethod
     def _to_result(*, action: str, url: str, response: httpx.Response) -> CelonisHttpResult:

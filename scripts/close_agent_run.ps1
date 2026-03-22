@@ -95,6 +95,29 @@ function Ensure-DecisionForDone {
     }
 }
 
+function Ensure-DeployGateForDone {
+    param([string]$Content)
+
+    # Only enforce when the run card explicitly declares a Deployment Gate section
+    if ($Content -notmatch "(?m)^##\s+Deployment Gate") {
+        return
+    }
+
+    $preflight = Get-BulletValue -Content $Content -Label "Preflight"
+    $diffAck   = Get-BulletValue -Content $Content -Label "Diff Acknowledged"
+    $reviewer  = Get-BulletValue -Content $Content -Label "Deploy Reviewer"
+
+    if ($preflight.ToLowerInvariant() -ne "passed") {
+        throw "Cannot move to DONE. Deployment Gate: Preflight must be 'passed' (current: '$preflight')."
+    }
+    if ($diffAck.ToLowerInvariant() -ne "yes") {
+        throw "Cannot move to DONE. Deployment Gate: Diff Acknowledged must be 'yes' (current: '$diffAck')."
+    }
+    if ([string]::IsNullOrWhiteSpace($reviewer)) {
+        throw "Cannot move to DONE. Deployment Gate: Deploy Reviewer must be filled in."
+    }
+}
+
 $fullPath = Resolve-Path -Path $RunCard
 $content = Get-CardContent -Path $fullPath
 $currentStatus = Get-FieldValue -Content $content -Name "status"
@@ -115,6 +138,7 @@ if ($Status -eq "DONE") {
     }
     Ensure-EvidenceForReview -Content $content
     Ensure-DecisionForDone -Content $content
+    Ensure-DeployGateForDone -Content $content
 }
 
 $updatedAtUtc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")

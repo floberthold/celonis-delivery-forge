@@ -12,12 +12,30 @@
         <a class="link-button" href="#architecture">Architecture</a>
         <a class="link-button" href="#routes">Routes</a>
         <a class="link-button" href="#authscope">Auth Scope</a>
+        <a class="link-button" href="#detailed-guides">Detailed Guides</a>
         <a class="link-button" href="#dev">Dev Loop</a>
+        <a class="link-button" href="#adminsetup">Admin Setup</a>
         <a class="link-button" href="#integrations">Integrations</a>
         <a class="link-button" href="#docsystem">Doc System</a>
         <a class="link-button" href="#packaging">Packaging</a>
         <a class="link-button" href="#quality">Quality</a>
     </p>
+</section>
+
+<section class="panel" id="detailed-guides">
+    <h3>Detailed Step-by-Step Guides</h3>
+    <div class="cards">
+        <div class="card">
+            <h3>Admin Full Setup</h3>
+            <p>Provision all environment settings and verify complete platform functionality.</p>
+            <p><a class="link-button" href="/docu/guide-admin-setup.html">Open Guide</a></p>
+        </div>
+        <div class="card">
+            <h3>Account Lifecycle Flows</h3>
+            <p>Validate register, verify-email, forgot-password, and account management paths.</p>
+            <p><a class="link-button" href="/docu/guide-account-flows.html">Open Guide</a></p>
+        </div>
+    </div>
 </section>
 
 <section class="panel" id="architecture">
@@ -124,8 +142,44 @@
     </table>
 </section>
 
+<section class="panel" id="adminsetup">
+    <h3>5) Admin Setup Runbook</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Area</th>
+                <th>Required Variables</th>
+                <th>Why It Matters</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Core App</td>
+                <td><code>FORGE_ENV</code>, <code>FORGE_JWT_SECRET</code>, <code>FORGE_PUBLIC_BASE_URL</code></td>
+                <td>Controls runtime mode, token security, and email link URLs.</td>
+            </tr>
+            <tr>
+                <td>Database</td>
+                <td><code>FORGE_DATABASE_URL</code>, optional fallback controls</td>
+                <td>Persists users, orgs, templates, workflows, and audit data.</td>
+            </tr>
+            <tr>
+                <td>Email Auth Flows</td>
+                <td><code>FORGE_SMTP_HOST</code>, <code>FORGE_SMTP_FROM_EMAIL</code>, SMTP auth/tls vars</td>
+                <td>Required for account verification and password reset emails.</td>
+            </tr>
+            <tr>
+                <td>Integrations</td>
+                <td><code>FORGE_CELONIS_API_TOKEN</code>, <code>FORGE_GITLAB_BASE_URL</code>, <code>FORGE_GITLAB_API_TOKEN</code></td>
+                <td>Enables live companion actions and GitLab workflows.</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="muted-note">After setting variables, restart the app and validate <code>/health</code>, then smoke-test <code>/register</code>, <code>/forgot-password</code>, and <code>/dashboard</code>.</p>
+</section>
+
 <section class="panel" id="integrations">
-    <h3>5) Integration and Feature Modules</h3>
+    <h3>6) Integration and Feature Modules</h3>
     <table>
         <thead>
             <tr>
@@ -165,7 +219,7 @@
 </section>
 
 <section class="panel" id="docsystem">
-    <h3>6) Documentation System</h3>
+    <h3>7) Documentation System</h3>
     <div class="cards">
         <div class="card">
             <h3>Source of truth</h3>
@@ -187,7 +241,7 @@
 </section>
 
 <section class="panel" id="packaging">
-    <h3>7) Packaging and Runtime Expectations</h3>
+    <h3>8) Packaging and Runtime Expectations</h3>
     <ul>
         <li>Docker copies <code>src/</code> and root <code>docu/</code> into container runtime.</li>
         <li>Standalone script includes <code>docu</code> via PyInstaller <code>--add-data</code>.</li>
@@ -200,7 +254,7 @@
 </section>
 
 <section class="panel" id="quality">
-    <h3>8) Quality Checklist</h3>
+    <h3>9) Quality Checklist</h3>
     <ul>
         <li>Routes return 200 for docs pages in local and packaged runs.</li>
         <li>Graphics render without external dependencies.</li>
@@ -212,7 +266,7 @@
 </section>
 
 <section class="panel">
-    <h3>9) Fast Links</h3>
+    <h3>10) Fast Links</h3>
     <p>
         <a class="link-button" href="/docs">Open Swagger</a>
         <a class="link-button" href="/dashboard">Open Dashboard</a>

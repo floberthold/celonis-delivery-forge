@@ -9,6 +9,10 @@
 <div class="alert error">{{ error_message }}</div>
 {% endif %}
 
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+
 <section class="panel login-panel">
     <form class="form-card" method="post" action="/login">
         <input type="hidden" name="next_path" value="{{ next_path }}">
@@ -22,16 +26,15 @@
     </form>
 
     <div class="login-guide">
-        <h3>How to get an account</h3>
+        <h3>Need an account?</h3>
         <ol>
-            <li>Contact your delivery lead or workspace admin.</li>
-            <li>Share your full name and work email address.</li>
-            <li>After your account is created, return to this page and sign in.</li>
+            <li>Open <a href="/register">Create account</a>.</li>
+            <li>Complete the form and verify your email from the inbox link.</li>
+            <li>Return here and sign in.</li>
         </ol>
-        <p class="muted-note">Self-registration is not available on this page.</p>
+        <p class="muted-note"><a href="/forgot-password">Forgot your password?</a></p>
         <p class="muted-note">
-            Admin note: create users in People management after signing in.
-            Required fields are name, email, and a temporary password.
+            SMTP must be configured by an admin so verification and reset emails can be delivered.
         </p>
     </div>
 </section>
