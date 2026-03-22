@@ -11,7 +11,7 @@
 
 <section class="panel login-panel">
     <form class="form-card" method="post" action="/login">
-        <input type="hidden" name="next_path" value="/dashboard">
+        <input type="hidden" name="next_path" value="{{ next_path }}">
         <label>Email
             <input type="email" name="email" required>
         </label>
@@ -20,5 +20,19 @@
         </label>
         <button type="submit">Sign in</button>
     </form>
+
+    <div class="login-guide">
+        <h3>How to get an account</h3>
+        <ol>
+            <li>Contact your delivery lead or workspace admin.</li>
+            <li>Share your full name and work email address.</li>
+            <li>After your account is created, return to this page and sign in.</li>
+        </ol>
+        <p class="muted-note">Self-registration is not available on this page.</p>
+        <p class="muted-note">
+            Admin note: create users in People management after signing in.
+            Required fields are name, email, and a temporary password.
+        </p>
+    </div>
 </section>
 {% endblock %}

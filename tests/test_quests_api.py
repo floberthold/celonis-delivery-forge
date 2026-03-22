@@ -268,3 +268,48 @@ def test_quest_list_filters() -> None:
         project_response = api_client.get("/quests/", params={"project_id": str(project_id)})
         assert project_response.status_code == 200
         assert len(project_response.json()) == 2
+
+
+def test_archived_quest_cannot_transition_back_to_active() -> None:
+    _reset_db()
+
+    person_id, organization_id, client_id, project_id = _seed_org_fixture()
+    auth_token = create_access_token(str(person_id), organization_id=str(organization_id))
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+
+        create_response = api_client.post(
+            "/quests/",
+            json={
+                "title": "Archive Me",
+                "source": "user_authored",
+                "status": "suggested",
+                "priority": "medium",
+                "project_id": str(project_id),
+                "client_id": str(client_id),
+            },
+        )
+        assert create_response.status_code == 200, create_response.text
+        quest_id = create_response.json()["id"]
+
+        replace_response = api_client.post(
+            f"/quests/{quest_id}/replace",
+            json={
+                "title": "Replacement Quest",
+                "description": "replacement",
+                "priority": "high",
+            },
+        )
+        assert replace_response.status_code == 200, replace_response.text
+
+        invalid_update_response = api_client.patch(
+            f"/quests/{quest_id}",
+            json={"status": "active"},
+        )
+        assert invalid_update_response.status_code == 400, invalid_update_response.text
+        assert "Invalid quest status transition" in invalid_update_response.json()["detail"]
+
+
+if DB_FILE.exists():
+    DB_FILE.unlink()

@@ -256,6 +256,26 @@ table button:hover {
     max-width: 420px;
 }
 
+.login-guide {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #ebeff6;
+}
+
+.login-guide h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.login-guide ol {
+    margin: 0 0 0.6rem;
+    padding-left: 1.1rem;
+}
+
+.login-guide li {
+    margin-bottom: 0.35rem;
+}
+
 .panel ul {
     margin: 0;
     padding-left: 1.1rem;

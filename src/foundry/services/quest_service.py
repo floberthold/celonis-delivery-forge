@@ -1,7 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlmodel import Session, select
+from sqlalchemy import desc
+from sqlmodel import Session, col, select
 
 from foundry.models import (
     ActivityLog,
@@ -15,6 +16,17 @@ from foundry.models import (
     QuestSource,
     QuestStatus,
 )
+
+
+_ALLOWED_STATUS_TRANSITIONS: dict[QuestStatus, set[QuestStatus]] = {
+    QuestStatus.draft: {QuestStatus.suggested, QuestStatus.accepted, QuestStatus.active, QuestStatus.blocked, QuestStatus.archived},
+    QuestStatus.suggested: {QuestStatus.accepted, QuestStatus.active, QuestStatus.blocked, QuestStatus.archived},
+    QuestStatus.accepted: {QuestStatus.active, QuestStatus.blocked, QuestStatus.done, QuestStatus.archived},
+    QuestStatus.active: {QuestStatus.blocked, QuestStatus.done, QuestStatus.archived},
+    QuestStatus.blocked: {QuestStatus.accepted, QuestStatus.active, QuestStatus.done, QuestStatus.archived},
+    QuestStatus.done: {QuestStatus.archived},
+    QuestStatus.archived: set(),
+}
 
 
 class QuestServiceError(ValueError):
@@ -51,6 +63,17 @@ def _append_activity(
             metadata_json=metadata,
         )
     )
+
+
+def _validate_status_transition(current_status: QuestStatus, new_status: QuestStatus) -> None:
+    if new_status == current_status:
+        return
+
+    allowed = _ALLOWED_STATUS_TRANSITIONS[current_status]
+    if new_status not in allowed:
+        raise QuestServiceError(
+            f"Invalid quest status transition: {current_status.value} -> {new_status.value}"
+        )
 
 
 def get_org_quest(session: Session, quest_id: UUID, organization_id: UUID) -> Quest | None:
@@ -103,6 +126,10 @@ def update_quest(
     updates: dict,
 ) -> Quest:
     changed_fields = sorted(updates.keys())
+    new_status = updates.get("status")
+    if new_status is not None:
+        _validate_status_transition(quest.status, new_status)
+
     for field_name, field_value in updates.items():
         setattr(quest, field_name, field_value)
     quest.updated_at = datetime.utcnow()
@@ -138,6 +165,7 @@ def pause_quest(
     actor_id: UUID,
     organization_id: UUID,
 ) -> Quest:
+    _validate_status_transition(quest.status, QuestStatus.blocked)
     quest.status = QuestStatus.blocked
     quest.updated_at = datetime.utcnow()
     session.add(quest)
@@ -207,6 +235,7 @@ def replace_quest(
     description: str | None,
     priority: QuestPriority,
 ) -> Quest:
+    _validate_status_transition(quest.status, QuestStatus.archived)
     quest.status = QuestStatus.archived
     quest.updated_at = datetime.utcnow()
     session.add(quest)
@@ -325,13 +354,13 @@ def add_feedback(
 
 
 def list_objectives(session: Session, *, quest_id: UUID) -> list[QuestObjective]:
-    rows = list(
+    return list(
         session.exec(
-            select(QuestObjective).where(QuestObjective.quest_id == quest_id)
+            select(QuestObjective)
+            .where(QuestObjective.quest_id == quest_id)
+            .order_by(col(QuestObjective.sort_order), col(QuestObjective.created_at))
         ).all()
     )
-    rows.sort(key=lambda row: (row.sort_order, row.created_at))
-    return rows
 
 
 def create_objective(
@@ -451,13 +480,13 @@ def delete_objective(
 
 
 def list_assignments(session: Session, *, quest_id: UUID) -> list[QuestAssignment]:
-    rows = list(
+    return list(
         session.exec(
-            select(QuestAssignment).where(QuestAssignment.quest_id == quest_id)
+            select(QuestAssignment)
+            .where(QuestAssignment.quest_id == quest_id)
+            .order_by(desc(col(QuestAssignment.assigned_at)))
         ).all()
     )
-    rows.sort(key=lambda row: row.assigned_at, reverse=True)
-    return rows
 
 
 def create_assignment(

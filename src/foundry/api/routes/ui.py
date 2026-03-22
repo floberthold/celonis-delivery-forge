@@ -319,10 +319,19 @@ def _store_uploaded_delivery_file(upload_file: UploadFile) -> tuple[str, int]:
     return stored_filename, destination.stat().st_size
 
 
-def _redirect_login(*, err: str | None = None) -> RedirectResponse:
+def _redirect_login(*, err: str | None = None, next_path: str | None = None) -> RedirectResponse:
+    next_query = ""
+    normalized_next_path = _normalize_redirect_path(next_path, "/dashboard") if next_path else None
+    if normalized_next_path:
+        next_query = f"next_path={quote_plus(normalized_next_path)}"
+
     if err:
-        return RedirectResponse(url=f"/login?err={quote_plus(err)}", status_code=303)
-    return RedirectResponse(url="/login", status_code=303)
+        separator = "&" if next_query else ""
+        return RedirectResponse(
+            url=f"/login?{next_query}{separator}err={quote_plus(err)}" if next_query else f"/login?err={quote_plus(err)}",
+            status_code=303,
+        )
+    return RedirectResponse(url=f"/login?{next_query}" if next_query else "/login", status_code=303)
 
 
 def _validate_todo_scope(*, person_id: UUID | None, client_id: UUID | None, project_id: UUID | None) -> None:
@@ -1231,6 +1240,7 @@ def login_page(request: Request):
         {
             "request": request,
             "error_message": request.query_params.get("err"),
+            "next_path": _normalize_redirect_path(request.query_params.get("next_path"), "/dashboard"),
         },
     )
 
@@ -1245,7 +1255,7 @@ def login_submit(
 ):
     person = session.exec(select(Person).where(Person.email == email.strip().lower())).first()
     if not person or not verify_password(password, person.hashed_password):
-        return _redirect_login(err="Invalid credentials")
+        return _redirect_login(err="Invalid credentials", next_path=next_path)
 
     token = create_access_token(str(person.id))
     target_path = _normalize_redirect_path(next_path, "/dashboard")

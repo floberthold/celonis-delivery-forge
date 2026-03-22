@@ -1,7 +1,8 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlalchemy import desc
+from sqlmodel import Session, col, select
 
 from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
@@ -82,9 +83,8 @@ def list_quests(
         stmt = stmt.where(Quest.project_id == project_id)
     if owner_person_id is not None:
         stmt = stmt.where(Quest.owner_person_id == owner_person_id)
-    rows = list(session.exec(stmt).all())
-    rows.sort(key=lambda row: row.created_at, reverse=True)
-    return rows
+    stmt = stmt.order_by(desc(col(Quest.created_at)))
+    return list(session.exec(stmt).all())
 
 
 @router.patch("/{quest_id}", response_model=QuestOut)
@@ -100,13 +100,16 @@ def update_quest(
         raise HTTPException(status_code=404, detail="Quest not found")
 
     updates = payload.model_dump(exclude_unset=True)
-    return update_quest_service(
-        session,
-        actor_id=current_actor.person.id,
-        organization_id=organization_id,
-        quest=quest,
-        updates=updates,
-    )
+    try:
+        return update_quest_service(
+            session,
+            actor_id=current_actor.person.id,
+            organization_id=organization_id,
+            quest=quest,
+            updates=updates,
+        )
+    except QuestServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/{quest_id}/pause", response_model=QuestOut)
@@ -120,12 +123,15 @@ def pause_quest(
     if quest is None:
         raise HTTPException(status_code=404, detail="Quest not found")
 
-    return pause_quest_service(
-        session,
-        actor_id=current_actor.person.id,
-        organization_id=organization_id,
-        quest=quest,
-    )
+    try:
+        return pause_quest_service(
+            session,
+            actor_id=current_actor.person.id,
+            organization_id=organization_id,
+            quest=quest,
+        )
+    except QuestServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/{quest_id}/reprioritize", response_model=QuestOut)
@@ -161,15 +167,18 @@ def replace_quest(
     if quest is None:
         raise HTTPException(status_code=404, detail="Quest not found")
 
-    return replace_quest_service(
-        session,
-        actor_id=current_actor.person.id,
-        organization_id=organization_id,
-        quest=quest,
-        title=payload.title,
-        description=payload.description,
-        priority=payload.priority,
-    )
+    try:
+        return replace_quest_service(
+            session,
+            actor_id=current_actor.person.id,
+            organization_id=organization_id,
+            quest=quest,
+            title=payload.title,
+            description=payload.description,
+            priority=payload.priority,
+        )
+    except QuestServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.delete("/{quest_id}")

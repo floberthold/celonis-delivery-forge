@@ -192,9 +192,12 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
 
         prev_hashes = _prev_task_hashes(session, client_id)
         prev_pkg_ids = _prev_package_ids(session, client_id)
+        raw_packages = _extract_packages(gw, base_url)
+        raw_data_models = _extract_data_models(gw, base_url)
+        raw_jobs = _extract_jobs(gw, base_url)
+        raw_knowledge_models = _extract_knowledge_models(gw, base_url)
 
         # ---- packages ----
-        raw_packages = _extract_packages(gw, base_url)
         current_pkg_ids: set[str] = set()
         for pkg in raw_packages:
             pkg_id = str(pkg.get("id", pkg.get("key", "")))
@@ -247,7 +250,7 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
                 ))
 
         # ---- data models ----
-        for dm in _extract_data_models(gw, base_url):
+        for dm in raw_data_models:
             dm_id = str(dm.get("id", ""))
             if not dm_id:
                 continue
@@ -263,7 +266,7 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
             ))
 
         # ---- jobs ----
-        for job in _extract_jobs(gw, base_url):
+        for job in raw_jobs:
             job_id = str(job.get("id", ""))
             if not job_id:
                 continue
@@ -279,7 +282,7 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
             ))
 
         # ---- knowledge models ----
-        for km in _extract_knowledge_models(gw, base_url):
+        for km in raw_knowledge_models:
             km_id = str(km.get("id", ""))
             if not km_id:
                 continue
@@ -299,9 +302,9 @@ def run_snapshot(session: Session, *, client_id: UUID, triggered_by: UUID) -> Ce
         snap.finished_at = datetime.utcnow()
         snap.summary_json = {
             "packages": len(raw_packages),
-            "data_models": len(_extract_data_models(gw, base_url)),
-            "jobs": len(_extract_jobs(gw, base_url)),
-            "knowledge_models": len(_extract_knowledge_models(gw, base_url)),
+            "data_models": len(raw_data_models),
+            "jobs": len(raw_jobs),
+            "knowledge_models": len(raw_knowledge_models),
         }
 
         # Auto-generate a local export bundle + docs for every completed snapshot.

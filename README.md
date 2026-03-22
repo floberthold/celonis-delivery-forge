@@ -33,6 +33,9 @@ Built for consultants. Built for scale. Built to last.
 	Copy-Item .env.example .env
 	```
 
+	The default local profile now uses SQLite so the app boots without a running Postgres instance.
+	When startup falls back from an unreachable external database, it uses a separate LocalAppData SQLite file instead of reusing any old repo-root database.
+
 2. Install dependencies:
 
 	```powershell
@@ -44,6 +47,12 @@ Built for consultants. Built for scale. Built to last.
 
 	```powershell
 	uvicorn foundry.api.main:app --reload
+	```
+
+	If you want local startup to fail fast instead of falling back to SQLite, set:
+
+	```powershell
+	$env:FORGE_DATABASE_FALLBACK_TO_LOCAL="false"
 	```
 
 4. Open:
@@ -94,6 +103,17 @@ Desktop startup logs are written to `%LOCALAPPDATA%/CelonisDeliveryForge/desktop
 Copy-Item .env.example .env
 docker compose up --build
 ```
+
+Docker forces the API container to use the bundled Postgres service even if `.env` is configured for local SQLite.
+
+## Startup Troubleshooting
+
+- `psycopg.errors.ConnectionTimeout` during startup means your configured Postgres instance is unreachable.
+- In local `dev`, the app now falls back to `FORGE_LOCAL_DATABASE_URL` when `FORGE_DATABASE_FALLBACK_TO_LOCAL=true`.
+- If `FORGE_LOCAL_DATABASE_URL` is not set, fallback uses `%LOCALAPPDATA%/CelonisDeliveryForge/foundry-local.db`.
+- The initial Postgres reachability probe now uses `FORGE_DATABASE_CONNECT_TIMEOUT_SECONDS` so fallback happens quickly instead of hanging for a long startup window.
+- Check `/health` to confirm the active backend and startup mode.
+- To require Postgres locally, disable fallback and point `FORGE_DATABASE_URL` at a reachable database.
 
 ## Core API Endpoints
 

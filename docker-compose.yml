@@ -17,6 +17,8 @@ services:
     container_name: foundry-api
     env_file:
       - .env
+    environment:
+      FORGE_DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/foundry
     ports:
       - "8000:8000"
     depends_on:
