@@ -90,6 +90,7 @@ from foundry.models import (
     TodoTag,
     TemplateScope,
     TemplateStorageType,
+    TryCelonisDemo,
 )
 from foundry.schemas import (
     ReviewDecisionCreate,
@@ -110,6 +111,7 @@ from foundry.services.activity_log import log_activity, log_created, log_updated
 from foundry.services.email_service import send_email
 from foundry.services.template_seed import seed_default_templates
 from foundry.services.template_service import TemplateService
+from foundry.services.trycelonis_demo_rebuild import sync_trycelonis_demos
 from foundry.services.todo_service import (
     delete_todo_with_children,
     make_document_url,
@@ -870,6 +872,12 @@ def _org_assets(session: Session, organization_id: UUID) -> list[Asset]:
     return list(session.exec(select(Asset).where(Asset.organization_id == organization_id)).all())
 
 
+def _org_trycelonis_demos(session: Session, organization_id: UUID) -> list[TryCelonisDemo]:
+    return list(
+        session.exec(select(TryCelonisDemo).where(TryCelonisDemo.organization_id == organization_id)).all()
+    )
+
+
 def _org_reviews(session: Session, organization_id: UUID) -> list[ReviewRequest]:
     project_ids = [project.id for project in _org_projects(session, organization_id)]
     if not project_ids:
@@ -1253,6 +1261,7 @@ def _dashboard_context(request: Request, session: Session, current_actor: Curren
     clients_count = len(_org_clients(session, current_actor.organization.id))
     projects_count = len(_org_projects(session, current_actor.organization.id))
     assets_count = len(_org_assets(session, current_actor.organization.id))
+    trycelonis_demo_count = len(_org_trycelonis_demos(session, current_actor.organization.id))
     reviews_count = len(_org_reviews(session, current_actor.organization.id))
     timeline_count = len(_org_activity_logs(session, current_actor.organization.id))
     
@@ -1299,6 +1308,7 @@ def _dashboard_context(request: Request, session: Session, current_actor: Curren
         "clients_count": clients_count,
         "projects_count": projects_count,
         "assets_count": assets_count,
+        "trycelonis_demo_count": trycelonis_demo_count,
         "reviews_count": reviews_count,
         "timeline_count": timeline_count,
         "team_member_count": team_member_count,
@@ -2539,6 +2549,57 @@ def dashboard(
         "dashboard.html",
         _dashboard_context(request, session, current_actor),
     )
+
+
+@router.get("/sales-ui", include_in_schema=False)
+def sales_ui(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    rows = sorted(
+        _org_trycelonis_demos(session, current_actor.organization.id),
+        key=lambda row: (_sort_datetime_key(row.last_synced_at), row.title.lower()),
+        reverse=True,
+    )
+    settings = get_settings()
+    return templates.TemplateResponse(
+        "sales.html",
+        {
+            "request": request,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "rows": rows,
+            "trycelonis_catalog_url": settings.trycelonis_catalog_url,
+            "trycelonis_manifest_path": settings.trycelonis_manifest_path,
+            "demo_count": len(rows),
+            "last_synced_at": rows[0].last_synced_at if rows else None,
+        },
+    )
+
+
+@router.post("/sales-ui/trycelonis-sync", include_in_schema=False)
+def sales_ui_trycelonis_sync(
+    catalog_url: str = Form(""),
+    manifest_path: str = Form(""),
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    settings = get_settings()
+    try:
+        result = sync_trycelonis_demos(
+            session,
+            organization_id=current_actor.organization.id,
+            catalog_url=catalog_url.strip() or settings.trycelonis_catalog_url,
+            manifest_path=manifest_path.strip() or settings.trycelonis_manifest_path,
+        )
+        return _redirect_ui(
+            "/sales-ui",
+            ok=f"TryCelonis sync complete: imported {result.imported}, updated {result.updated}, total {result.total}.",
+        )
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/sales-ui", err=f"TryCelonis sync failed: {exc}")
 
 
 def _latest_preflight_rows_for_client(

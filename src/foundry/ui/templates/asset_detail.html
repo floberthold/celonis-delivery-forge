@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}{{ asset.name }} | Assets | Foundry{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="/assets-ui" class="link-button">← Back to Assets</a>
+</div>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h2>{{ asset.name }}</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+        <!-- Basic Information -->
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Type</h3>
+            <p style="margin: 0; font-weight: 500;">{{ asset.type }}</p>
+        </div>
+        
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Status</h3>
+            <p style="margin: 0; font-weight: 500;">{{ asset.status }}</p>
+        </div>
+        
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Project</h3>
+            <p style="margin: 0; font-weight: 500;">{{ project.name if project else "Unknown" }}</p>
+        </div>
+        
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Client</h3>
+            <p style="margin: 0; font-weight: 500;">{{ client.name if client else "Unknown" }}</p>
+        </div>
+        
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Created</h3>
+            <p style="margin: 0; font-weight: 500;">{{ asset.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+        
+        <div>
+            <h3 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Identifier</h3>
+            <p style="margin: 0; font-weight: 500; word-break: break-all;">{{ asset.asset_identifier or "—" }}</p>
+        </div>
+    </div>
+    
+    {% if asset.celonis_url %}
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+        <h3 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Celonis URL</h3>
+        <p style="margin: 0;"><a href="{{ asset.celonis_url }}" target="_blank" rel="noopener noreferrer">{{ asset.celonis_url }}</a></p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Description Card -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Description</h3>
+        <div style="display: flex; gap: 0.5rem;">
+            {% if not edit_description %}
+            <form method="get" style="display: inline;">
+                <input type="hidden" name="edit-description" value="true">
+                <button type="submit" style="padding: 0.35rem 0.75rem; font-size: 0.875rem;">✏️ Edit</button>
+            </form>
+            {% if script_info %}
+            <form method="post" action="/assets-ui/{{ asset.id }}/generate-description" style="display: inline;">
+                <button type="submit" style="padding: 0.35rem 0.75rem; font-size: 0.875rem;">✨ Generate</button>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if edit_description %}
+    <form method="post" action="/assets-ui/{{ asset.id }}/description">
+        <div>
+            <textarea 
+                name="description" 
+                style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 0.95rem;"
+                placeholder="Add a description for this asset..."
+            >{{ asset.description or '' }}</textarea>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <button type="submit">Save Description</button>
+            <a href="/assets-ui/{{ asset.id }}" class="link-button">Cancel</a>
+        </div>
+    </form>
+    {% else %}
+    {% if asset.description %}
+    <div style="white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; color: #333;">{{ asset.description }}</div>
+    {% else %}
+    <p style="color: #999; font-style: italic;">No description yet. Click "Generate" to auto-create one or "Edit" to add your own.</p>
+    {% endif %}
+    {% endif %}
+</div>
+
+{% if script_info %}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h3>Script Details</h3>
+    
+    <!-- Docstring -->
+    {% if script_info.docstring %}
+    <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e0e0e0;">
+        <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.75rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Description</h4>
+        <pre style="background-color: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.9rem; margin: 0; white-space: pre-wrap; word-wrap: break-word;">{{ script_info.docstring }}</pre>
+    </div>
+    {% endif %}
+    
+    <!-- Metadata -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div>
+            <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">File Path</h4>
+            <p style="margin: 0; font-size: 0.9rem; word-break: break-all;">{{ script_info.relative_path }}</p>
+        </div>
+        
+        <div>
+            <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Lines of Code</h4>
+            <p style="margin: 0; font-weight: 500;">{{ script_info.line_count }}</p>
+        </div>
+        
+        <div>
+            <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Asset Type</h4>
+            <p style="margin: 0; font-weight: 500;">{{ script_info.asset_type }}</p>
+        </div>
+        
+        <div>
+            <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">SHA256</h4>
+            <p style="margin: 0; font-size: 0.85rem; font-family: monospace; word-break: break-all;">{{ script_info.sha256[:16] }}...</p>
+        </div>
+    </div>
+    
+    <!-- Classes -->
+    {% if script_info.classes %}
+    <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e0e0e0;">
+        <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.75rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Classes ({{ script_info.classes|length }})</h4>
+        <ul style="margin: 0; padding-left: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none;">
+            {% for class_name in script_info.classes %}
+            <li style="display: inline-block; background-color: #e8f4f8; padding: 0.35rem 0.75rem; border-radius: 4px; font-family: monospace; font-size: 0.9rem;">{{ class_name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <!-- Functions -->
+    {% if script_info.functions %}
+    <div style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e0e0e0;">
+        <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.75rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Functions ({{ script_info.functions|length }})</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            {% for func_name in script_info.functions %}
+            <span style="display: inline-block; background-color: #f0e8f4; padding: 0.35rem 0.75rem; border-radius: 4px; font-family: monospace; font-size: 0.9rem;">{{ func_name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Imports -->
+    {% if script_info.imports %}
+    <div style="margin-bottom: 1.5rem;">
+        <h4 style="font-size: 0.875rem; color: #666; margin: 0 0 0.75rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Dependencies ({{ script_info.imports|length }})</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            {% for import_name in script_info.imports %}
+            <span style="display: inline-block; background-color: #f4f0e8; padding: 0.35rem 0.75rem; border-radius: 4px; font-family: monospace; font-size: 0.9rem;">{{ import_name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Parse Errors -->
+    {% if script_info.parse_error %}
+    <div style="margin-top: 1rem; padding: 1rem; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <h4 style="font-size: 0.875rem; color: #856404; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 0.5px;">Parse Error</h4>
+        <p style="margin: 0; color: #856404; font-size: 0.9rem;">{{ script_info.parse_error }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+    <a href="/assets-ui?edit={{ asset.id }}" class="link-button">Edit</a>
+    <a href="/assets-ui" class="link-button">Back</a>
+</div>
+
+{% endblock %}

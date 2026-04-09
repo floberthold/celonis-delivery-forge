@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Sales | Foundry{% endblock %}
+
+{% block content %}
+<h2>Sales</h2>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>TryCelonis Demo Overview</h3>
+    <p class="muted-note">This page is the sales-facing catalog of TryCelonis partner demos that we want to rebuild in Forge. It explains the source, stores the overview in the database, and links every entry back to its original external source.</p>
+    <p class="muted-note">Use it to decide which demo should get its own repository, which client or industry branch should be created, and which variant should be deployed into the shared sandbox space for an upcoming customer meeting.</p>
+    <ul style="margin: 0.75rem 0 0 1.25rem;">
+        <li>One demo overview row per TryCelonis entry.</li>
+        <li>One managed git repository per rebuilt demo app.</li>
+        <li>One client and industry branch per customer-specific variant.</li>
+        <li>One shared sandbox space for on-demand demo deployments.</li>
+    </ul>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Sync Catalog</h3>
+    <p class="muted-note">The partner portal is often gated. When live crawling cannot enumerate the demos directly, provide a manifest path exported from an authenticated session and sync that curated catalog into Forge.</p>
+    <form method="post" action="/sales-ui/trycelonis-sync" class="stack-form" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; align-items:end;">
+        <label>Catalog URL
+            <input type="text" name="catalog_url" value="{{ trycelonis_catalog_url }}" placeholder="https://partners.try.celonis.cloud/try/ui/demo-portal/ui">
+        </label>
+        <label>Manifest Path
+            <input type="text" name="manifest_path" value="{{ trycelonis_manifest_path }}" placeholder="C:\\catalogs\\trycelonis-catalog.json">
+        </label>
+        <div>
+            <button type="submit">Sync TryCelonis Demos</button>
+        </div>
+    </form>
+    <div style="margin-top: 0.75rem;">
+        <span class="muted-note">Stored demos: {{ demo_count }}</span>
+        {% if last_synced_at %}
+        <span class="muted-note"> · Last sync: {{ last_synced_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        {% endif %}
+    </div>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>How This Workflow Fits Delivery</h3>
+    <ol style="margin: 0.75rem 0 0 1.25rem;">
+        <li>Sync the TryCelonis overview into Forge.</li>
+        <li>Inspect the source link and summary for the selected demo.</li>
+        <li>Bootstrap or update the rebuilt demo repository.</li>
+        <li>Create a dedicated branch for the target client and industry.</li>
+        <li>Deploy that branch into the shared sandbox space only when the demo is needed.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>Stored Demo Catalog</h3>
+    {% if rows %}
+    <table>
+        <thead>
+            <tr>
+                <th>Demo</th>
+                <th>Summary</th>
+                <th>Industries</th>
+                <th>Tags</th>
+                <th>Confidence</th>
+                <th>Original Source</th>
+                <th>Synced</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td><strong>{{ row.title }}</strong><br><span class="muted-note monospace">{{ row.slug }}</span></td>
+                <td>{{ row.summary }}</td>
+                <td>{{ row.industries_json|join(', ') if row.industries_json else '—' }}</td>
+                <td>{{ row.tags_json|join(', ') if row.tags_json else '—' }}</td>
+                <td>{{ '%.2f'|format(row.confidence_score) }}</td>
+                <td><a href="{{ row.source_url }}" target="_blank" rel="noopener noreferrer">Open original source</a></td>
+                <td>{{ row.last_synced_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted-note">No TryCelonis demos are stored yet. Configure the connection, run a sync, and the overview will appear here.</p>
+    {% endif %}
+</section>
+{% endblock %}

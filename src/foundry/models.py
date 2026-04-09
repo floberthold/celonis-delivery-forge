@@ -714,6 +714,26 @@ class AssetSource(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class TryCelonisDemo(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    organization_id: UUID = Field(index=True, foreign_key="organization.id")
+    title: str = Field(index=True)
+    slug: str = Field(index=True)
+    summary: str = Field(sa_column=Column(Text, nullable=False))
+    source_url: str
+    catalog_url: str
+    source_kind: str = Field(default="manifest", index=True)
+    industries_json: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    tags_json: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    image_urls_json: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    evidence_json: list[dict] = Field(default_factory=list, sa_column=Column(JSON))
+    confidence_score: float = 0.0
+    is_visible: bool = Field(default=True, index=True)
+    last_synced_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class AssetSnapshot(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     asset_source_id: UUID = Field(index=True, foreign_key="assetsource.id")

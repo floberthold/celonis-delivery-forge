@@ -325,17 +325,123 @@
     }
 
     function drawRoads() {
-        ctx.fillStyle = "#c6a67d";
+        // Group areas by client for neighbourhood zones
+        const areasByClient = new Map();
+        projectAreas.forEach((area) => {
+            const clientName = String(area.client_name || "Unassigned");
+            if (!areasByClient.has(clientName)) {
+                areasByClient.set(clientName, []);
+            }
+            areasByClient.get(clientName).push(area);
+        });
 
+        // Neighborhood zone colors
+        const zoneColors = [
+            { fill: "rgba(100, 150, 200, 0.30)", stroke: "rgba(50, 100, 150, 0.65)" },
+            { fill: "rgba(150, 100, 200, 0.30)", stroke: "rgba(100, 50, 150, 0.65)" },
+            { fill: "rgba(100, 200, 150, 0.30)", stroke: "rgba(50, 150, 100, 0.65)" },
+            { fill: "rgba(200, 150, 100, 0.30)", stroke: "rgba(150, 100, 50, 0.65)" },
+        ];
+
+        // Draw neighbourhood zones for each client
+        let zoneIndex = 0;
+        areasByClient.forEach((areas, clientName) => {
+            if (areas.length === 0) return;
+            const colors = zoneColors[zoneIndex % zoneColors.length];
+            zoneIndex += 1;
+
+            // Find bounding box for all areas of this client
+            let minX = Number.POSITIVE_INFINITY;
+            let minY = Number.POSITIVE_INFINITY;
+            let maxX = Number.NEGATIVE_INFINITY;
+            let maxY = Number.NEGATIVE_INFINITY;
+
+            areas.forEach((area) => {
+                const x = Number(area.x || 0);
+                const y = Number(area.y || 0);
+                const w = Number(area.width || 0);
+                const h = Number(area.height || 0);
+                minX = Math.min(minX, x - 10);
+                minY = Math.min(minY, y - 10);
+                maxX = Math.max(maxX, x + w + 10);
+                maxY = Math.max(maxY, y + h + 10);
+            });
+
+            // Draw zone background
+            ctx.fillStyle = colors.fill;
+            ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+
+            // Draw zone border
+            ctx.strokeStyle = colors.stroke;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+
+            // Draw zone name sign
+            const centerX = (minX + maxX) / 2;
+            const signY = minY - 35;
+            const signWidth = Math.min(clientName.length * 9 + 20, 180);
+            const signHeight = 26;
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+            ctx.fillRect(centerX - signWidth / 2, signY, signWidth, signHeight);
+
+            ctx.strokeStyle = "rgba(255, 255, 150, 0.9)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(centerX - signWidth / 2, signY, signWidth, signHeight);
+
+            // Sign pole
+            ctx.fillStyle = "rgba(120, 90, 60, 0.8)";
+            ctx.fillRect(centerX - 2, signY + signHeight, 4, 16);
+
+            // Zone name text
+            ctx.fillStyle = "rgba(255, 255, 200, 1)";
+            ctx.font = "bold 11px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(clientName.substring(0, 20), centerX, signY + signHeight / 2);
+        });
+
+        // Draw winding roads with increased visibility
+        ctx.globalAlpha = 0.90;
+        ctx.fillStyle = "#9a7f5a";
+
+        // Horizontal winding paths
         for (let i = 1; i <= 3; i += 1) {
-            const y = 120 + (i * 120);
-            ctx.fillRect(18, y - 6, mapWidth - 36, 12);
+            const baseY = 120 + (i * 120);
+            const amplitude = 32;
+            const frequency = 0.012;
+
+            ctx.beginPath();
+            for (let x = 18; x <= mapWidth - 18; x += 2) {
+                const waveOffset = Math.sin(x * frequency) * amplitude;
+                const y = baseY + waveOffset;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineWidth = 14;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.stroke();
         }
 
+        // Vertical winding paths
         for (let i = 1; i <= 4; i += 1) {
-            const x = 120 + (i * 180);
-            ctx.fillRect(x - 6, 20, 12, mapHeight - 40);
+            const baseX = 120 + (i * 180);
+            const amplitude = 28;
+            const frequency = 0.015;
+
+            ctx.beginPath();
+            for (let y = 20; y <= mapHeight - 20; y += 2) {
+                const waveOffset = Math.sin(y * frequency) * amplitude;
+                const x = baseX + waveOffset;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineWidth = 14;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.stroke();
         }
+
+        ctx.globalAlpha = 1.0;
     }
 
     function drawAgent(agent, selectedAgentId) {

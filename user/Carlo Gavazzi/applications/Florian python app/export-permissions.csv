@@ -1,0 +1,7 @@
+Subject Name,Subject Type,Subject Id,Groups,Role,Service,Object Name,Object Type,Object ID,Actions
+Florian python app,application,18bb6d7a-a01f-4d1e-a49f-219842c6b40f,'--,ANALYST,Studio,'--,'--,'--,[Export]
+Florian python app,application,18bb6d7a-a01f-4d1e-a49f-219842c6b40f,'--,ANALYST,Studio,Accounts Payable,SPACE,fc2d2afc-6158-457c-bc45-c460024ed5e2,[Use packages]
+Florian python app,application,18bb6d7a-a01f-4d1e-a49f-219842c6b40f,'--,ANALYST,Studio,[DEV],SPACE,12b4e9a3-eb08-452f-952d-5fb94d08b11c,[Use packages]
+Florian python app,application,18bb6d7a-a01f-4d1e-a49f-219842c6b40f,'--,ANALYST,Compute Live,'--,'--,'--,[All mutation APIs - Use]
+Florian python app,application,18bb6d7a-a01f-4d1e-a49f-219842c6b40f,'--,ANALYST,Data Integration,'--,'--,'--,"[All data pools - Read, All data models - Use]"
+Florian python app,application,18bb6d7a-a01f-4d1e-a49f-219842c6b40f,'--,ANALYST,Admin & Settings,'--,'--,'--,[ANALYST]

@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     gitlab_api_token: str = ""
     uploads_dir: str = "./uploads"
     celonis_shared_dir: str = "./Code from Celonis"
+    trycelonis_catalog_url: str = "https://partners.try.celonis.cloud/try/ui/demo-portal/ui"
+    trycelonis_manifest_path: str = ""
     public_base_url: str = ""
     delivery_file_max_upload_bytes: int = 25 * 1024 * 1024
     local_database_url: str = _default_local_database_url()
