@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Setup Guide | Foundry{% endblock %}
+
+{% block content %}
+<h2>Admin Setup Guide (Step-by-Step)</h2>
+<p class="muted-note">Use this runbook to provision a complete environment with all core, account, and integration features enabled.</p>
+
+<section class="panel">
+    <h3>1) Prepare Environment File</h3>
+    <ol>
+        <li>Copy template to runtime config: <code>Copy-Item .env.example .env</code>.</li>
+        <li>Set a strong JWT secret in <code>FORGE_JWT_SECRET</code>.</li>
+        <li>Set <code>FORGE_PUBLIC_BASE_URL</code> to the URL users open in browser.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>2) Configure Database</h3>
+    <ol>
+        <li>For local setup, keep <code>FORGE_DATABASE_URL=sqlite:///./foundry.db</code>.</li>
+        <li>For Postgres, set <code>FORGE_DATABASE_URL</code> to your server DSN.</li>
+        <li>Decide fallback policy with <code>FORGE_DATABASE_FALLBACK_TO_LOCAL</code>.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>3) Configure SMTP for Account Emails</h3>
+    <ol>
+        <li>Set <code>FORGE_SMTP_HOST</code>, <code>FORGE_SMTP_PORT</code>, <code>FORGE_SMTP_USERNAME</code>, and <code>FORGE_SMTP_PASSWORD</code>.</li>
+        <li>Set sender identity with <code>FORGE_SMTP_FROM_EMAIL</code>.</li>
+        <li>Set transport flags: <code>FORGE_SMTP_STARTTLS</code> and <code>FORGE_SMTP_USE_SSL</code>.</li>
+        <li>Restart app after changing SMTP configuration.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>4) Configure Integrations</h3>
+    <ol>
+        <li>Set <code>FORGE_CELONIS_API_TOKEN</code> for Celonis companion actions.</li>
+        <li>Set <code>FORGE_GITLAB_BASE_URL</code> and <code>FORGE_GITLAB_API_TOKEN</code> for GitLab flows.</li>
+        <li>Keep tokens scoped and rotate regularly.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>5) Start Application</h3>
+    <ol>
+        <li>Run: <code>uvicorn foundry.api.main:app --reload</code>.</li>
+        <li>Open <a href="/health">/health</a> and verify backend + startup mode.</li>
+        <li>Open <a href="/dashboard">Dashboard</a> and confirm UI loads.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>6) Functional Smoke Test</h3>
+    <ol>
+        <li>Register new account at <a href="/register">/register</a>.</li>
+        <li>Verify activation email is delivered and link opens successfully.</li>
+        <li>Trigger reset at <a href="/forgot-password">/forgot-password</a> and validate reset flow.</li>
+        <li>Sign in, open <a href="/account-ui">My Account</a>, and change profile details.</li>
+        <li>Run a Celonis preflight from <a href="/dashboard">Dashboard</a>.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>Fast Links</h3>
+    <p>
+        <a class="link-button" href="/docu/developer.html">Back to Developer Docs</a>
+        <a class="link-button" href="/docu/user.html">Open User Docs</a>
+        <a class="link-button" href="/dashboard">Open Dashboard</a>
+    </p>
+</section>
+{% endblock %}

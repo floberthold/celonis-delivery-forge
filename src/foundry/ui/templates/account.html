@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}My Account | Foundry{% endblock %}
+
+{% block content %}
+<h2>My Account</h2>
+
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+
+<section class="panel login-panel">
+    <form class="form-card" method="post" action="/account-ui/update">
+        <label>Name
+            <input type="text" name="name" value="{{ person.name }}" required>
+        </label>
+        <label>Email
+            <input type="email" name="email" value="{{ person.email }}" required>
+        </label>
+        <label>New Password
+            <input type="password" name="password" minlength="10" placeholder="Leave blank to keep current password">
+        </label>
+        <label>Confirm New Password
+            <input type="password" name="confirm_password" minlength="10" placeholder="Repeat only when changing password">
+        </label>
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <div class="login-guide">
+        <h3>Organization Memberships</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Organization</th>
+                    <th>Slug</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in membership_rows %}
+                <tr>
+                    <td>{{ row.organization_name }}</td>
+                    <td>{{ row.organization_slug }}</td>
+                    <td>{{ row.role }}</td>
+                    <td>{{ row.joined_at }}</td>
+                </tr>
+                {% endfor %}
+                {% if not membership_rows %}
+                <tr>
+                    <td colspan="4">No organization memberships found.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

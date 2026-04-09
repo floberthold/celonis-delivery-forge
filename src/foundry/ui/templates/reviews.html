@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Reviews | Foundry{% endblock %}
+
+{% block content %}
+<h2>Reviews</h2>
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+<table>
+    <thead>
+        <tr>
+            <th>Asset</th>
+            <th>Project</th>
+            <th>Author</th>
+            <th>Reviewer</th>
+            <th>Status</th>
+            <th>Summary</th>
+            <th>Snippet</th>
+            <th>Created</th>
+            <th>Submitted</th>
+            <th>Decision</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <form method="post" action="/reviews-ui/create">
+                <td>
+                    <select name="asset_id" required>
+                        {% for asset in assets %}
+                        <option value="{{ asset.id }}">{{ asset.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="project_id" required>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="author_id" required>
+                        {% for person in people %}
+                        <option value="{{ person.id }}">{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="reviewer_id" required>
+                        {% for person in people %}
+                        <option value="{{ person.id }}">{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>in_review</td>
+                <td><input type="text" name="change_summary" placeholder="Summary" required></td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td><button type="submit">Create</button></td>
+            </form>
+        </tr>
+        {% for row in rows %}
+        {% if edit_id == row.id|string %}
+        <tr>
+            <form method="post" action="/reviews-ui/update">
+                <input type="hidden" name="review_id" value="{{ row.id }}">
+                <td>
+                    <select name="asset_id" required>
+                        {% for asset in assets %}
+                        <option value="{{ asset.id }}" {% if asset.id == row.asset_id %}selected{% endif %}>{{ asset.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="project_id" required>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}" {% if project.id == row.project_id %}selected{% endif %}>{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="author_id" required>
+                        {% for person in people %}
+                        <option value="{{ person.id }}" {% if person.id == row.author_id %}selected{% endif %}>{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="reviewer_id" required>
+                        {% for person in people %}
+                        <option value="{{ person.id }}" {% if person.id == row.reviewer_id %}selected{% endif %}>{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="status" required>
+                        {% for status in review_status_options %}
+                        <option value="{{ status }}" {% if status == row.status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="text" name="change_summary" value="{{ row.change_summary }}" required></td>
+                <td>
+                    <input type="checkbox" name="snippet_worthy" {% if row.snippet_worthy %}checked{% endif %}>
+                </td>
+                <td>{{ row.created_at }}</td>
+                <td>{{ row.submitted_at or '-' }}</td>
+                <td>{{ row.decision_at or '-' }}</td>
+                <td class="actions-cell">
+                    <button type="submit">Save</button>
+                    <a class="link-button" href="/reviews-ui">Cancel</a>
+                </td>
+            </form>
+        </tr>
+        {% else %}
+        <tr>
+            <td>{{ row.asset_name }}</td>
+            <td>{{ row.project_name }}</td>
+            <td>{{ row.author_name }}</td>
+            <td>{{ row.reviewer_name }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.change_summary }}</td>
+            <td>{{ 'yes' if row.snippet_worthy else 'no' }}</td>
+            <td>{{ row.created_at }}</td>
+            <td>{{ row.submitted_at or '-' }}</td>
+            <td>{{ row.decision_at or '-' }}</td>
+            <td class="actions-cell">
+                <a class="link-button" href="/reviews-ui?edit={{ row.id }}">Edit</a>
+                <form method="post" action="/reviews-ui/delete" class="inline-form">
+                    <input type="hidden" name="review_id" value="{{ row.id }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr>
+            <td colspan="11">No reviews found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

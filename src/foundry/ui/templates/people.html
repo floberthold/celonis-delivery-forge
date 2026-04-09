@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}People | Foundry{% endblock %}
+
+{% block content %}
+<h2>People</h2>
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <form method="post" action="/people-ui/create">
+                <td><input type="text" name="name" placeholder="New person" required></td>
+                <td><input type="email" name="email" placeholder="name@example.com" required></td>
+                <td>
+                    <select name="role_global" required>
+                        {% for role in global_role_options %}
+                        <option value="{{ role }}">{{ role }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>-</td>
+                <td>
+                    <input type="password" name="password" placeholder="Password" maxlength="72" required>
+                    <button type="submit">Create</button>
+                </td>
+            </form>
+        </tr>
+        {% for row in rows %}
+        {% if edit_id == row.id|string %}
+        <tr>
+            <form method="post" action="/people-ui/update">
+                <input type="hidden" name="person_id" value="{{ row.id }}">
+                <td><input type="text" name="name" value="{{ row.name }}" required></td>
+                <td><input type="email" name="email" value="{{ row.email }}" required></td>
+                <td>
+                    <select name="role_global" required>
+                        {% for role in global_role_options %}
+                        <option value="{{ role }}" {% if role == row.role_global %}selected{% endif %}>{{ role }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>{{ row.created_at }}</td>
+                <td class="actions-cell">
+                    <input type="password" name="password" placeholder="New password (optional)" maxlength="72">
+                    <button type="submit">Save</button>
+                    <a class="link-button" href="/people-ui">Cancel</a>
+                </td>
+            </form>
+        </tr>
+        {% else %}
+        <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.email }}</td>
+            <td>{{ row.role_global }}</td>
+            <td>{{ row.created_at }}</td>
+            <td class="actions-cell">
+                <a class="link-button" href="/people-ui/{{ row.id }}/overview">Overview</a>
+                <a class="link-button" href="/people-ui?edit={{ row.id }}">Edit</a>
+                <form method="post" action="/people-ui/delete" class="inline-form">
+                    <input type="hidden" name="person_id" value="{{ row.id }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr>
+            <td colspan="5">No people found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

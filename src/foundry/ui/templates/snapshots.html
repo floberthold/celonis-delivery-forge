@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Snapshots – {{ client.name }} | Foundry{% endblock %}
+
+{% block content %}
+<h2>Celonis Snapshots — {{ client.name }}</h2>
+<p class="muted-note">{{ client.tenant_url }}</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+{% if not has_active_connection %}
+<div class="alert error">
+    No active Celonis connection is configured for this client. Open <a href="/dashboard">Dashboard</a> to add or reactivate it.
+    <br>
+    <a href="/onboarding/celonis-setup?client_id={{ client.id }}">Open guided setup wizard</a>
+</div>
+{% endif %}
+
+<div class="section-header">
+    <h3>Snapshot History</h3>
+    <form id="snapshot-trigger-form" method="post" action="/snapshots-ui/{{ client.id }}/trigger">
+        <button id="snapshot-trigger-btn" type="submit" class="btn-primary" {% if not has_active_connection %}disabled title="Create an active Celonis connection on Dashboard first"{% endif %}>Run New Snapshot</button>
+    </form>
+</div>
+
+<div id="snapshot-trigger-progress" class="snapshot-progress" aria-live="polite" hidden>
+    <div class="snapshot-progress-header">
+        <strong>Starting snapshot...</strong>
+        <span class="muted-note">This can take a while depending on tenant size.</span>
+    </div>
+    <div class="snapshot-progress-track" role="progressbar" aria-label="Snapshot trigger in progress" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Loading">
+        <div class="snapshot-progress-bar"></div>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Packages</th>
+            <th>Data Models</th>
+            <th>Jobs</th>
+            <th>Knowledge Models</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for snap in snapshots %}
+        <tr>
+            <td class="monospace">{{ snap.id | string | truncate(8, True, '') }}</td>
+            <td>
+                <span class="badge badge-{{ snap.status.value }}">{{ snap.status.value }}</span>
+            </td>
+            <td>{{ snap.summary_json.get('packages', '—') }}</td>
+            <td>{{ snap.summary_json.get('data_models', '—') }}</td>
+            <td>{{ snap.summary_json.get('jobs', '—') }}</td>
+            <td>{{ snap.summary_json.get('knowledge_models', '—') }}</td>
+            <td>{{ snap.started_at or '—' }}</td>
+            <td>{{ snap.finished_at or '—' }}</td>
+            <td>
+                <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/detail">Detail</a>
+                <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/download">ZIP</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">No snapshots yet. Click "Run New Snapshot" to pull from Celonis.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/clients-ui/{{ client.id }}/overview">← Back to Client Overview</a></p>
+
+<script>
+(() => {
+    const form = document.getElementById("snapshot-trigger-form");
+    const button = document.getElementById("snapshot-trigger-btn");
+    const progress = document.getElementById("snapshot-trigger-progress");
+    if (!form || !button || !progress) {
+        return;
+    }
+    form.addEventListener("submit", () => {
+        button.disabled = true;
+        button.textContent = "Starting...";
+        progress.hidden = false;
+    });
+})();
+</script>
+{% endblock %}

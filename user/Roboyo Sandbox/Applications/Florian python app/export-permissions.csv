@@ -1,0 +1,12 @@
+Subject Name,Subject Type,Subject Id,Groups,Role,Service,Object Name,Object Type,Object ID,Actions
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Studio,Python Test - Technical Interview - EMail Routing AI Classifier,PACKAGE,1c4e2cc2-6b77-4e50-a154-0054399199fd,"[Delete, Use, Edit, Manage]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Studio,'--,'--,'--,"[All spaces - Edit, Export]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Studio,Floboyo - DACH Florian Berthold,SPACE,819029cd-f0c0-477a-9a45-aa31edc89b18,"[Use packages, Edit]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Compute Live,'--,'--,'--,[All mutation APIs - Use]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Storage Manager,'--,'--,'--,[All buckets - Read]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Data Integration,'--,'--,'--,[All data pools - Read]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Data Integration,Assets - Florian Berthold,DATA_POOL,6012b3de-ae84-44bf-9e6d-a2d83acf663b,"[Read, Use data models, Edit, Manage, Use continuous push API, Use push API]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Machine Learning,'--,'--,'--,"[All apps - Read configuration, All apps - Use]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Admin & Settings,'--,'--,'--,"[Platform adoption - Use API, Audit logs - Use API, Users - Use API, Login history - Use API]"
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Admin & Settings,'--,'--,'--,[ANALYST]
+Florian python app,application,598eb331-cedd-4904-a6d3-9d07ca4dd11f,'--,ANALYST,Agent Service,'--,'--,'--,"[All agents - Read, All agents - Create]"

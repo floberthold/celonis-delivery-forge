@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Celonis Delivery Forge Companion",
+  "version": "0.1.0",
+  "description": "Injects optional companion controls and forwards actions to the Foundry backend.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://*.celonis.cloud/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.celonis.cloud/*"],
+      "js": ["src/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Foundry Companion"
+  }
+}

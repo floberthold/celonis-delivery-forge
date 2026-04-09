@@ -1,0 +1,12 @@
+[submodule "external resources/Code by Florian/pyCelonis-tools"]
+	path = external resources/Code by Florian/pyCelonis-tools
+	url = https://roboyo@dev.azure.com/roboyo/Process%20Mining%20Community/_git/pyCelonis-tools
+	branch = main
+[submodule "external resources/Code by Florian/pyCelonis%20-%20for%20Fuchs"]
+	path = external resources/Code by Florian/pyCelonis%20-%20for%20Fuchs
+	url = https://roboyo@dev.azure.com/roboyo/Fuchs%20Petrolub%20SE/_git/pyCelonis%20-%20for%20Fuchs
+	branch = main
+[submodule "external resources/Code by Florian/pyCelonis%20-%20OCPM%20migration%20tool"]
+	path = external resources/Code by Florian/pyCelonis%20-%20OCPM%20migration%20tool
+	url = https://roboyo@dev.azure.com/roboyo/Process%20Mining%20Community/_git/pyCelonis%20-%20OCPM%20migration%20tool
+	branch = main

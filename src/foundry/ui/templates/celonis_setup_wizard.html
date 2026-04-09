@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Celonis Setup Wizard | Foundry{% endblock %}
+
+{% block content %}
+<h2>Celonis Tenant Setup Wizard</h2>
+<p class="muted-note">Set up a tenant step by step before running extractions.</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="panel" style="margin-bottom:0.9rem">
+    <h3>Progress</h3>
+    <ol>
+        <li>{% if step_client_ready %}Done{% else %}Pending{% endif %} - Select or create client</li>
+        <li>{% if step_connection_ready %}Done{% else %}Pending{% endif %} - Save active connection</li>
+        <li>{% if step_token_ready %}Done{% else %}Pending{% endif %} - Configure token</li>
+        <li>{% if preflight_rows %}Done{% else %}Pending{% endif %} - Run preflight checks</li>
+        <li>{% if step_validation_ready %}Done{% else %}Pending{% endif %} - Ready for extraction</li>
+    </ol>
+    <p class="muted-note">Next suggested step: {{ next_step }}</p>
+</section>
+
+<section class="forms-grid">
+    <form class="panel form-card" method="post" action="/onboarding/celonis-setup/create-client">
+        <h3>Step 1 - Create Client</h3>
+        <label>Name<input name="name" required></label>
+        <label>Tenant URL<input name="tenant_url" placeholder="https://team.eu-1.celonis.cloud" required></label>
+        <label>Sensitivity
+            <select name="sensitivity_level">
+                <option value="low">low</option>
+                <option value="medium" selected>medium</option>
+                <option value="high">high</option>
+            </select>
+        </label>
+        <button type="submit">Create Client</button>
+    </form>
+
+    <form class="panel form-card" method="get" action="/onboarding/celonis-setup">
+        <h3>Step 1 - Select Existing Client</h3>
+        <label>Client
+            <select name="client_id">
+                {% for row in clients %}
+                <option value="{{ row.id }}" {% if selected_client and selected_client.id == row.id %}selected{% endif %}>{{ row.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Use Client</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/onboarding/celonis-setup/save-connection">
+        <h3>Step 2 - Save Connection</h3>
+        {% if selected_client %}
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <label>Selected Client<input value="{{ selected_client.name }}" disabled></label>
+        <label>Tenant Base URL
+            <input name="tenant_base_url" value="{{ active_connection.tenant_base_url if active_connection else selected_client.tenant_url }}" placeholder="https://team.eu-1.celonis.cloud" required>
+        </label>
+        <button type="submit">Save Connection</button>
+        {% else %}
+        <p class="muted-note">Create or select a client first.</p>
+        {% endif %}
+    </form>
+
+    <form class="panel form-card" method="post" action="/onboarding/celonis-setup/save-token">
+        <h3>Step 3 - Configure Token</h3>
+        {% if selected_client %}
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <label>Celonis API Token (per-user)
+            <input type="password" name="token_value" placeholder="Paste token to save; leave empty to clear">
+        </label>
+        <p class="muted-note">Current user token: {% if user_token_present %}present{% else %}not set{% endif %}</p>
+        <p class="muted-note">Environment token fallback: {% if env_token_configured %}configured{% else %}not configured{% endif %}</p>
+        <button type="submit">Save/Clear Token</button>
+        {% else %}
+        <p class="muted-note">Create or select a client first.</p>
+        {% endif %}
+    </form>
+
+    <form class="panel form-card" method="post" action="/onboarding/celonis-setup/run-preflight">
+        <h3>Step 4 - Validate Connectivity</h3>
+        {% if selected_client %}
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <p class="muted-note">Checks run across: core, process-mining, data-integration, studio, apps.</p>
+        <button type="submit">Run Preflight Batch</button>
+        {% else %}
+        <p class="muted-note">Create or select a client first.</p>
+        {% endif %}
+    </form>
+</section>
+
+<section class="panel" style="margin-top:0.8rem">
+    <h3>Step 5 - Ready Summary</h3>
+    {% if selected_client %}
+    <p>Client: <strong>{{ selected_client.name }}</strong></p>
+    <p>Connection: {% if step_connection_ready %}active{% else %}missing{% endif %}</p>
+    <p>Token source: {% if user_token_present %}user token{% elif env_token_configured %}env fallback{% else %}missing{% endif %}</p>
+
+    {% if preflight_rows %}
+    <p class="muted-note">Authorized services: {{ preflight_authorized_count }}/{{ preflight_total }}</p>
+    <table>
+        <thead>
+            <tr><th>Service</th><th>Status</th><th>HTTP</th><th>Probe URL</th><th>Remediation</th></tr>
+        </thead>
+        <tbody>
+            {% for row in preflight_rows %}
+            <tr>
+                <td>{{ row.service }}</td>
+                <td><span class="badge badge-{{ row.permission_status }}">{{ row.permission_status }}</span></td>
+                <td>{{ row.status_code or '-' }}</td>
+                <td class="monospace small">{{ row.probe_url }}</td>
+                <td class="muted-note">{{ row.remediation }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="muted-note">No preflight run yet.</p>
+    {% endif %}
+
+    {% if preflight_all_authorized %}
+    <div class="alert success">Setup complete. You can start extractions now.</div>
+    {% elif preflight_limited_scope %}
+    <div class="alert success">Setup usable with limited scope. Snapshot extraction will run, but uncovered services may return partial results.</div>
+    {% else %}
+    <div class="alert error">Setup not complete yet. Follow the pending step shown above.</div>
+    {% endif %}
+
+    <p><a href="/snapshots-ui/{{ selected_client.id }}">Open Snapshot History</a></p>
+    {% else %}
+    <p class="muted-note">No client selected yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

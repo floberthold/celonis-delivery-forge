@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Foundry{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<!-- Welcome Section -->
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Welcome to {{ active_organization.name }}</h3>
+    <p class="muted-note">Your delivery platform for managing Celonis implementations. Use the navigation below to get started.</p>
+</section>
+
+<!-- Quick Stats Section -->
+<section class="cards" style="margin-bottom: 1.5rem;">
+    <div class="card">
+        <h3>Clients</h3>
+        <p class="metric">{{ clients_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Projects</h3>
+        <p class="metric">{{ projects_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Team Members</h3>
+        <p class="metric">{{ team_member_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Assets</h3>
+        <p class="metric">{{ assets_count }}</p>
+    </div>
+</section>
+
+<!-- Quick Navigation Section -->
+<section style="margin-bottom: 1.5rem;">
+    <h3 style="margin-bottom: 1rem;">Quick Navigation</h3>
+    <div class="quicknav-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+        <a href="/projects-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+            <strong>Projects</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Manage delivery projects</p>
+        </a>
+        <a href="/assets-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+            <strong>Assets</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Track Celonis content</p>
+        </a>
+        <a href="/reviews-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+            <strong>Reviews</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Quality assurance</p>
+        </a>
+        <a href="/orchestration-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+            <strong>Operations</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Manage tasks & quests</p>
+        </a>
+        <a href="/people-ui" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+            <strong>Admin</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Setup & configuration</p>
+        </a>
+        <a href="/docs-site/user/" class="quicknav-card" style="display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center; text-decoration: none; color: inherit; transition: all 0.2s;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📚</div>
+            <strong>Docs</strong>
+            <p class="muted-note" style="font-size: 0.9rem; margin: 0.5rem 0 0 0;">Help & guides</p>
+        </a>
+    </div>
+</section>
+
+<!-- Getting Started Section -->
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Getting Started</h3>
+    <ul style="margin: 0; padding-left: 1.5rem;">
+        <li><strong>New to Foundry?</strong> Visit <a href="/docs-site/user/">User Docs</a> for onboarding guides.</li>
+        <li><strong>Need to set up Celonis?</strong> Go to <a href="/tenant-ui">Admin → Tenant</a> to configure your connection.</li>
+        <li><strong>Creating your first project?</strong> Head to <a href="/projects-ui">Projects</a> and click the create form.</li>
+        <li><strong>Team management?</strong> Use <a href="/people-ui">Admin → People</a> to add team members and clients.</li>
+    </ul>
+</section>
+
+<!-- Additional Metrics -->
+<section class="cards">
+    <div class="card">
+        <h3>Reviews</h3>
+        <p class="metric">{{ reviews_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Activities</h3>
+        <p class="metric">{{ timeline_count }}</p>
+    </div>
+</section>
+
+{% if celonis_preflight_rows %}
+<section class="panel" style="margin-top: 1.5rem;">
+    <h3>Celonis Preflight History</h3>
+    <p class="muted-note">Most recent preflight batch{% if latest_preflight_run_id %}: run {{ latest_preflight_run_id }}{% endif %}</p>
+    <table class="table compact-table">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Status</th>
+                <th>HTTP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in celonis_preflight_rows %}
+            <tr>
+                <td>{{ row.service }}</td>
+                <td>
+                    <span class="celonis-status-badge celonis-status-{{ row.permission_status }}">{{ row.permission_status }}</span>
+                </td>
+                <td>{{ row.status_code if row.status_code is not none else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+<style>
+.quicknav-grid a:hover {
+    background-color: #f5f5f5;
+    border-color: #0066cc;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+}
+</style>
+{% endblock %}

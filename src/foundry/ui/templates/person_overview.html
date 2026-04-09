@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Person Overview | Foundry{% endblock %}
+
+{% block content %}
+<h2>Person Overview: {{ person.name }}</h2>
+<p class="muted-note">{{ person.email }} · {{ person.role_global.value }}</p>
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="cards">
+    <article class="card"><h3>Projects</h3><p class="metric">{{ projects|length }}</p></article>
+    <article class="card"><h3>Assets</h3><p class="metric">{{ assets|length }}</p></article>
+    <article class="card"><h3>Reviews</h3><p class="metric">{{ reviews|length }}</p></article>
+    <article class="card"><h3>Todos</h3><p class="metric">{{ todo_rows|length }}</p></article>
+</div>
+
+<h3>Connected Projects</h3>
+<table>
+    <thead><tr><th>Project</th><th>Client</th><th>Status</th><th>Role</th><th>Start</th><th>Overview</th></tr></thead>
+    <tbody>
+        {% for row in membership_rows %}
+        <tr>
+            <td>{{ row.project_name }}</td>
+            <td>{{ row.client_name }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.role }}</td>
+            <td>{{ row.start_date }}</td>
+            <td><a class="link-button" href="/projects-ui/{{ row.project_id }}/overview">Open</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No project memberships found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Connected Assets</h3>
+<table>
+    <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Project</th><th>Created</th></tr></thead>
+    <tbody>
+        {% for asset in assets %}
+        <tr>
+            <td>{{ asset.name }}</td>
+            <td>{{ asset.type.value }}</td>
+            <td>{{ asset.status.value }}</td>
+            <td>{{ project_name_by_id.get(asset.project_id, '-') }}</td>
+            <td>{{ asset.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No assets found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Connected Reviews</h3>
+<table>
+    <thead><tr><th>ID</th><th>Asset</th><th>Project</th><th>Status</th><th>Created</th></tr></thead>
+    <tbody>
+        {% for review in reviews %}
+        <tr>
+            <td>{{ review.id }}</td>
+            <td>{{ asset_name_by_id.get(review.asset_id, '-') }}</td>
+            <td>{{ project_name_by_id.get(review.project_id, '-') }}</td>
+            <td>{{ review.status.value }}</td>
+            <td>{{ review.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No reviews found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="section-header">
+    <h3>Todo List</h3>
+    <a class="link-button" href="/todos-ui">Open Todo Workspace</a>
+</div>
+<table>
+    <thead><tr><th>Title</th><th>Description</th><th>Status</th><th>Priority</th><th>Due</th><th>Assignee</th><th>Actions</th></tr></thead>
+    <tbody>
+        <tr>
+            <form method="post" action="/todos-ui/create">
+                <input type="hidden" name="redirect_to" value="/people-ui/{{ person.id }}/overview">
+                <input type="hidden" name="person_id" value="{{ person.id }}">
+                <input type="hidden" name="created_by" value="{{ person.id }}">
+                <td><input type="text" name="title" placeholder="New todo" required></td>
+                <td><input type="text" name="description" placeholder="Description"></td>
+                <td>open</td>
+                <td>
+                    <select name="priority" required>
+                        {% for option in todo_priority_options %}
+                        <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="datetime-local" name="due_at"></td>
+                <td>
+                    <select name="assignee_id">
+                        <option value="">-</option>
+                        {% for row in people %}
+                        <option value="{{ row.id }}">{{ row.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><button type="submit">Create</button></td>
+            </form>
+        </tr>
+        {% for row in todo_rows %}
+        {% if edit_todo_id == row.id|string %}
+        <tr>
+            <form method="post" action="/todos-ui/update">
+                <input type="hidden" name="todo_id" value="{{ row.id }}">
+                <input type="hidden" name="redirect_to" value="/people-ui/{{ person.id }}/overview">
+                <td><input type="text" name="title" value="{{ row.title }}" required></td>
+                <td><input type="text" name="description" value="{{ row.description or '' }}"></td>
+                <td>
+                    <select name="status" required>
+                        {% for option in todo_status_options %}
+                        <option value="{{ option }}" {% if option == row.status %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="priority" required>
+                        {% for option in todo_priority_options %}
+                        <option value="{{ option }}" {% if option == row.priority %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="datetime-local" name="due_at" value="{{ row.due_at.strftime('%Y-%m-%dT%H:%M') if row.due_at else '' }}"></td>
+                <td>
+                    <select name="assignee_id">
+                        <option value="">-</option>
+                        {% for person_row in people %}
+                        <option value="{{ person_row.id }}" {% if person_row.id == row.assignee_id %}selected{% endif %}>{{ person_row.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="actions-cell"><button type="submit">Save</button><a class="link-button" href="/people-ui/{{ person.id }}/overview">Cancel</a></td>
+            </form>
+        </tr>
+        {% else %}
+        <tr>
+            <td>{{ row.title }}</td>
+            <td>{{ row.description or '-' }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.priority }}</td>
+            <td>{{ row.due_at or '-' }}</td>
+            <td>{{ row.assignee_name }}</td>
+            <td class="actions-cell">
+                <a class="link-button" href="/todos-ui?selected={{ row.id }}">Open</a>
+                <a class="link-button" href="/people-ui/{{ person.id }}/overview?edit_todo={{ row.id }}">Edit</a>
+                <form method="post" action="/todos-ui/delete" class="inline-form">
+                    <input type="hidden" name="todo_id" value="{{ row.id }}">
+                    <input type="hidden" name="redirect_to" value="/people-ui/{{ person.id }}/overview">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr><td colspan="7">No todos found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Action Timeline</h3>
+<table>
+    <thead><tr><th>Timestamp</th><th>Action</th><th>Entity</th><th>Actor</th><th>Metadata</th></tr></thead>
+    <tbody>
+        {% for row in timeline_rows %}
+        <tr>
+            <td>{{ row.timestamp }}</td>
+            <td>{{ row.action }}</td>
+            <td>{{ row.entity_type }} · {{ row.entity_id }}</td>
+            <td>{{ row.actor_name }}</td>
+            <td>{{ row.metadata_json }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No timeline entries found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

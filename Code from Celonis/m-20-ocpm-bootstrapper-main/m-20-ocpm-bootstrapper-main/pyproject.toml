@@ -1,0 +1,66 @@
+[build-system]
+requires = [ "poetry-core",]
+build-backend = "poetry.core.masonry.api"
+package-mode = false
+
+[tool.poetry]
+name = "cloud-pig-compability-wrapper"
+version = "0.0.1"
+description = ""
+authors = []
+[[tool.poetry.source]]
+name = "celoai"
+url = "https://celonis-prod-867928363078.d.codeartifact.eu-central-1.amazonaws.com/pypi/CeloAI/simple/"
+priority = "supplemental"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-core-fast-api = "0.19.0.dev2"
+python-core-internal-client = "0.19.0.dev2"
+python-core-logging = "0.19.0.dev2"
+python-core-persistence = "0.19.0.dev2"
+python-core-web-security = "0.19.0.dev2"
+python-core-rabbit-mq = "0.19.0.dev2"
+python-core-vector = "0.19.0.dev2"
+python-core-caching = "0.19.0.dev2"
+
+[tool.coverage.paths]
+source = [ "app",]
+
+[tool.coverage.run]
+relative_files = true
+branch = true
+parallel = true
+source = [ "app",]
+omit = []
+
+[tool.coverage.report]
+show_missing = true
+precision = 2
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.pylint.MASTER]
+ignore = [ "build", "docs",]
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = [ "import-error", "missing-module-docstring", "missing-function-docstring", "too-few-public-methods", "missing-class-docstring", "wrong-import-order", "fixme",]
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "DEBUG"
+asyncio_mode = "auto"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^2.20.0"
+toml = "^0.10.2"
+celonis-openapi-generator = "0.39.0"
+python-core-testing = "0.19.0.dev2"
+python-core-tooling = "0.19.0.dev2"
+python-core-persistence-testing = "0.19.0.dev2"
+python-core-web-security-testing = "0.19.0.dev2"
+python-core-rabbit-mq-testing = "0.19.0.dev2"
+python-core-vector-testing = "0.19.0.dev2"
+python-core-config-testing = "0.19.0.dev2"
+python-core-caching-testing = "0.19.0.dev2"

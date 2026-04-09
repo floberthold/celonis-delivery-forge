@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Setup | Foundry{% endblock %}
+
+{% block content %}
+<h2>Tenant Setup</h2>
+
+<!-- Celonis Tenant Setup Section -->
+<section class="panel" style="margin-bottom:1.5rem">
+    <h3>Celonis Tenant Setup</h3>
+    <p class="muted-note">Use the guided wizard to configure client, connection, token, and preflight before extraction.</p>
+    <a class="link-button" href="/onboarding/celonis-setup">Open Setup Wizard</a>
+</section>
+
+<section class="panel">
+    <h3>Workspace IDE</h3>
+    <p class="muted-note">Open the dedicated IDE page to work with multiple Celonis windows in parallel.</p>
+    <a class="link-button" href="/workspace-ui">Open Workspace IDE</a>
+</section>
+{% endblock %}

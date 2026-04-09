@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Repository CI/CD | Foundry{% endblock %}
+
+{% block content %}
+<h2>Repository: {{ repo.name }}</h2>
+<p class="muted-note">
+    Project: <a href="/projects-ui/{{ project.id }}/overview">{{ project.name }}</a>
+    {% if client %}· Client: <a href="/clients-ui/{{ client.id }}/overview">{{ client.name }}</a>{% endif %}
+</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="cards">
+    <article class="card"><h3>Path</h3><p class="metric">{{ repo.repo_path }}</p></article>
+    <article class="card"><h3>Default Branch</h3><p class="metric">{{ repo.default_branch }}</p></article>
+    <article class="card"><h3>Active</h3><p class="metric">{{ "yes" if repo.is_active else "no" }}</p></article>
+    <article class="card"><h3>Runs</h3><p class="metric">{{ run_rows|length }}</p></article>
+</div>
+
+<h3>Trigger Pipeline</h3>
+<form method="post" action="/gitlab-ui/repos/{{ repo.id }}/trigger" class="inline-form">
+    <input type="hidden" name="redirect_to" value="/gitlab-ui/{{ repo.id }}/overview">
+    <input type="text" name="ref" value="{{ repo.default_branch }}" placeholder="Branch or tag">
+    <button type="submit" {% if not repo.is_active %}disabled{% endif %}>Run Pipeline</button>
+</form>
+
+<h3>Webhook</h3>
+<p class="muted-note">Set GitLab pipeline webhook URL to <code>/gitlab/webhooks/{{ repo.id }}</code> on your public base URL.</p>
+
+<h3>Pipeline History</h3>
+<table>
+    <thead><tr><th>Pipeline ID</th><th>Ref</th><th>Status</th><th>Triggered By</th><th>Triggered At</th><th>Updated</th><th>Link</th></tr></thead>
+    <tbody>
+        {% for row in run_rows %}
+        <tr>
+            <td>{{ row.pipeline_id }}</td>
+            <td>{{ row.ref }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.triggered_by_name }}</td>
+            <td>{{ row.triggered_at }}</td>
+            <td>{{ row.updated_at }}</td>
+            <td>
+                {% if row.web_url %}
+                <a class="link-button" target="_blank" rel="noopener noreferrer" href="{{ row.web_url }}">Open</a>
+                {% else %}
+                -
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No pipeline runs yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

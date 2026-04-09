@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}Todos | Foundry{% endblock %}
+
+{% block content %}
+<h2>Todo Workspace</h2>
+<p class="muted-note">Cross-scope planning board with inline collaboration, documents, and changelog detail.</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="panel todo-toolbar">
+    <div>
+        <h3>Views</h3>
+        <div class="segmented-actions">
+            <a class="link-button {% if view_mode == 'board' %}is-active{% endif %}" href="{{ board_view_url }}">Board</a>
+            <a class="link-button {% if view_mode == 'list' %}is-active{% endif %}" href="{{ list_view_url }}">List</a>
+        </div>
+    </div>
+    <div class="todo-toolbar-summary">
+        <span class="status-pill open">{{ board_columns[0].rows|length }} open</span>
+        <span class="status-pill in_progress">{{ board_columns[1].rows|length }} in progress</span>
+        <span class="status-pill done">{{ board_columns[2].rows|length }} done</span>
+        <span class="muted-note">{{ todo_rows|length }} total todos</span>
+    </div>
+</section>
+
+<section class="panel todo-create-panel">
+    <form method="post" action="/todos-ui/create" class="todo-create-form">
+        <input type="hidden" name="redirect_to" value="{{ board_view_url if view_mode == 'board' else list_view_url }}">
+        <div class="section-header">
+            <h3>Create Todo</h3>
+        </div>
+        <div class="todo-form-grid">
+            <label>Title<input type="text" name="title" required></label>
+            <label>Short Description<input type="text" name="description" placeholder="One-line summary"></label>
+            <label>Scope
+                <select name="scope_ref" required>
+                    <option value="">Select scope</option>
+                    {% for group in scope_groups %}
+                    <optgroup label="{{ group.label }}">
+                        {% for option in group.options %}
+                        <option value="{{ option.value }}">{{ option.label }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Assignee
+                <select name="assignee_id">
+                    <option value="">-</option>
+                    {% for person in people %}
+                    <option value="{{ person.id }}">{{ person.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Priority
+                <select name="priority">
+                    {% for option in todo_priority_options %}
+                    <option value="{{ option }}">{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Due At<input type="datetime-local" name="due_at"></label>
+        </div>
+        <label>Long Description
+            <textarea name="long_description_markdown" rows="5" placeholder="Markdown supported"></textarea>
+        </label>
+        <button type="submit">Create Todo</button>
+    </form>
+</section>
+
+<section class="todo-workspace">
+    <div class="todo-main-area">
+        {% if view_mode == 'board' %}
+        <div class="todo-board">
+            {% for column in board_columns %}
+            <section class="todo-column">
+                <div class="todo-column-header">
+                    <h3>{{ column.label }}</h3>
+                    <span>{{ column.rows|length }}</span>
+                </div>
+                <div class="todo-column-body">
+                    {% for row in column.rows %}
+                    <a class="todo-card {% if selected_row and selected_row.id == row.id %}is-selected{% endif %}" href="{{ row.selected_url }}" data-preserve-scroll-select="true">
+                        <div class="todo-card-topline">
+                            <span class="priority-badge {{ row.priority }}">{{ row.priority }}</span>
+                            <span class="todo-meta-text">{{ row.comment_count }} comments</span>
+                        </div>
+                        <h4>{{ row.title }}</h4>
+                        <p>{{ row.description or 'No short description yet.' }}</p>
+                        <div class="todo-tag-row">
+                            {% for tag_name in row.tag_names %}
+                            <span class="tag-chip">{{ tag_name }}</span>
+                            {% endfor %}
+                        </div>
+                        <dl class="todo-card-meta">
+                            <div><dt>Scope</dt><dd>{{ row.scope_label }}</dd></div>
+                            <div><dt>Assignee</dt><dd>{{ row.assignee_name }}</dd></div>
+                            <div><dt>Due</dt><dd>{{ row.due_at or '-' }}</dd></div>
+                        </dl>
+                    </a>
+                    {% else %}
+                    <div class="panel muted-panel">No todos in this column.</div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="panel">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Scope</th>
+                        <th>Assignee</th>
+                        <th>Due</th>
+                        <th>Collaboration</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in todo_rows %}
+                    <tr>
+                        <td>
+                            <strong>{{ row.title }}</strong><br>
+                            <span class="muted-note">{{ row.description or 'No short description yet.' }}</span>
+                        </td>
+                        <td><span class="status-pill {{ row.status }}">{{ row.status }}</span></td>
+                        <td><span class="priority-badge {{ row.priority }}">{{ row.priority }}</span></td>
+                        <td><a href="{{ row.scope_href }}">{{ row.scope_label }}</a></td>
+                        <td>{{ row.assignee_name }}</td>
+                        <td>{{ row.due_at or '-' }}</td>
+                        <td>{{ row.tag_names|length }} tags · {{ row.link_count }} links · {{ row.document_count }} docs</td>
+                        <td><a class="link-button" href="{{ row.selected_url }}" data-preserve-scroll-select="true">Open</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8">No todos found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <aside class="panel todo-detail-panel">
+        {% if selected_todo and selected_row %}
+        <div class="todo-detail-header">
+            <div>
+                <h3>{{ selected_todo.title }}</h3>
+                <p class="muted-note">
+                    <a href="{{ selected_row.scope_href }}">{{ selected_row.scope_label }}</a>
+                    · created by {{ selected_row.created_by_name }}
+                    · assigned to {{ selected_row.assignee_name }}
+                </p>
+            </div>
+            <div class="todo-detail-badges">
+                <span class="status-pill {{ selected_row.status }}">{{ selected_row.status }}</span>
+                <span class="priority-badge {{ selected_row.priority }}">{{ selected_row.priority }}</span>
+            </div>
+        </div>
+
+        <form method="post" action="/todos-ui/update" class="todo-detail-form">
+            <input type="hidden" name="todo_id" value="{{ selected_todo.id }}">
+            <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+            <div class="todo-form-grid">
+                <label>Title<input type="text" name="title" value="{{ selected_todo.title }}" required></label>
+                <label>Short Description<input type="text" name="description" value="{{ selected_todo.description or '' }}"></label>
+                <label>Status
+                    <select name="status">
+                        {% for option in todo_status_options %}
+                        <option value="{{ option }}" {% if option == selected_todo.status.value %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Priority
+                    <select name="priority">
+                        {% for option in todo_priority_options %}
+                        <option value="{{ option }}" {% if option == selected_todo.priority.value %}selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Assignee
+                    <select name="assignee_id">
+                        <option value="">-</option>
+                        {% for person in people %}
+                        <option value="{{ person.id }}" {% if person.id == selected_todo.assignee_id %}selected{% endif %}>{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Due At<input type="datetime-local" name="due_at" value="{{ selected_todo.due_at.strftime('%Y-%m-%dT%H:%M') if selected_todo.due_at else '' }}"></label>
+            </div>
+            <label>Long Description
+                <textarea name="long_description_markdown" rows="8">{{ selected_todo.long_description_markdown or '' }}</textarea>
+            </label>
+            <button type="submit">Save Todo</button>
+        </form>
+
+        <form method="post" action="/todos-ui/delete" class="inline-form">
+            <input type="hidden" name="todo_id" value="{{ selected_todo.id }}">
+            <input type="hidden" name="redirect_to" value="/todos-ui?view={{ view_mode }}">
+            <button type="submit">Delete Todo</button>
+        </form>
+
+        <section class="todo-detail-section">
+            <h4>Rendered Description</h4>
+            <div class="markdown-body">
+                {% if selected_todo.long_description_markdown %}
+                {{ selected_todo.long_description_markdown|render_markdown }}
+                {% else %}
+                <p class="muted-note">No long description yet.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="todo-detail-section">
+            <div class="section-header"><h4>Tags</h4></div>
+            <div class="todo-tag-row detail-tags">
+                {% for tag in selected_tags %}
+                <form method="post" action="/todos-ui/tags/delete" class="tag-chip tag-chip-form">
+                    <input type="hidden" name="tag_id" value="{{ tag.id }}">
+                    <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+                    <span>{{ tag.name }}</span>
+                    <button type="submit">x</button>
+                </form>
+                {% else %}
+                <p class="muted-note">No tags yet.</p>
+                {% endfor %}
+            </div>
+            <form method="post" action="/todos-ui/tags/create" class="inline-stack-form">
+                <input type="hidden" name="todo_id" value="{{ selected_todo.id }}">
+                <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+                <input type="text" name="name" placeholder="Add tag" required>
+                <button type="submit">Add Tag</button>
+            </form>
+        </section>
+
+        <section class="todo-detail-section">
+            <div class="section-header"><h4>Links</h4></div>
+            <ul class="detail-list">
+                {% for link in selected_links %}
+                <li>
+                    <div>
+                        <a href="{{ link.normalized_url }}" target="_blank" rel="noopener noreferrer">{{ link.label or link.url }}</a>
+                        {% if link.label %}
+                        <span class="muted-note">{{ link.url }}</span>
+                        {% endif %}
+                    </div>
+                    <form method="post" action="/todos-ui/links/delete" class="inline-form">
+                        <input type="hidden" name="link_id" value="{{ link.id }}">
+                        <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+                        <button type="submit">Remove</button>
+                    </form>
+                </li>
+                {% else %}
+                <li>No links yet.</li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="/todos-ui/links/create" class="inline-stack-form">
+                <input type="hidden" name="todo_id" value="{{ selected_todo.id }}">
+                <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+                <input type="text" name="label" placeholder="Label">
+                <input type="url" name="url" placeholder="https://..." required>
+                <button type="submit">Add Link</button>
+            </form>
+        </section>
+
+        <section class="todo-detail-section">
+            <div class="section-header"><h4>Documents</h4></div>
+            <ul class="detail-list">
+                {% for document in selected_documents %}
+                <li>
+                    <div>
+                        {% if document.source_type == 'file' %}
+                        <a href="{{ document.download_url }}" target="_blank" rel="noopener noreferrer">{{ document.title }}</a>
+                        <span class="muted-note">{{ document.original_filename or 'uploaded file' }}</span>
+                        {% else %}
+                        <a href="{{ document.normalized_url }}" target="_blank" rel="noopener noreferrer">{{ document.title }}</a>
+                        {% endif %}
+                    </div>
+                    <form method="post" action="/todos-ui/documents/delete" class="inline-form">
+                        <input type="hidden" name="document_id" value="{{ document.id }}">
+                        <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+                        <button type="submit">Remove</button>
+                    </form>
+                </li>
+                {% else %}
+                <li>No documents yet.</li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="/todos-ui/documents/create" enctype="multipart/form-data" class="inline-stack-form document-form">
+                <input type="hidden" name="todo_id" value="{{ selected_todo.id }}">
+                <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+                <input type="text" name="title" placeholder="Document title">
+                <input type="url" name="document_url" placeholder="https://...">
+                <input type="file" name="upload">
+                <button type="submit">Add Document</button>
+            </form>
+        </section>
+
+        <section class="todo-detail-section">
+            <div class="section-header"><h4>Comments</h4></div>
+            <form method="post" action="/todos-ui/comments/create" class="comment-form">
+                <input type="hidden" name="todo_id" value="{{ selected_todo.id }}">
+                <input type="hidden" name="redirect_to" value="{{ detail_redirect }}">
+                <textarea name="content" rows="4" placeholder="Add collaboration notes, decisions, or blockers" required></textarea>
+                <button type="submit">Add Comment</button>
+            </form>
+            <ul class="comment-list">
+                {% for comment in selected_comments %}
+                <li>
+                    <div class="comment-meta">{{ comment.author_name }} · {{ comment.created_at }}</div>
+                    <div class="markdown-body">{{ comment.content|render_markdown }}</div>
+                </li>
+                {% else %}
+                <li>No comments yet.</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="todo-detail-section">
+            <div class="section-header"><h4>Changelog</h4></div>
+            <ul class="detail-list changelog-list">
+                {% for entry in selected_activity %}
+                <li>
+                    <div>
+                        <strong>{{ entry.action }}</strong>
+                        <div class="muted-note">{{ entry.actor_name }} · {{ entry.timestamp }}</div>
+                    </div>
+                    <code>{{ entry.metadata_json }}</code>
+                </li>
+                {% else %}
+                <li>No changelog entries yet.</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% else %}
+        <h3>Todo Detail</h3>
+        <p class="muted-note">Select a todo from the board or list to inspect metadata, collaboration, and activity.</p>
+        {% endif %}
+    </aside>
+</section>
+{% endblock %}

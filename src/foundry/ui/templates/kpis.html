@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}KPI Editor | Foundry{% endblock %}
+
+{% block content %}
+<h2>KPI Editor</h2>
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="kpi-editor-layout">
+    <div>
+        <div class="panel">
+            <h3>New KPI</h3>
+            <form method="post" action="/kpis-ui/create" class="form-card">
+                <label>Name
+                    <input type="text" name="name" placeholder="KPI name" required>
+                </label>
+                <label>Description
+                    <textarea name="description" rows="2" placeholder="Optional"></textarea>
+                </label>
+                <label>Project
+                    <select name="project_id" required>
+                        <option value="">- select -</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Client
+                    <select name="client_id" required>
+                        <option value="">- select -</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}">{{ client.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Initial PQL Formula
+                    <textarea name="pql_formula" class="pql-editor" rows="3" placeholder="ROUND(SUM(...))"></textarea>
+                </label>
+                <button type="submit">Create KPI</button>
+            </form>
+        </div>
+
+        <div class="panel" style="margin-top:0.8rem">
+            <h3>All KPIs ({{ kpis|length }})</h3>
+            {% if kpis %}
+            <ul class="kpi-list">
+                {% for kpi in kpis %}
+                <li class="kpi-list-item {% if selected_kpi and selected_kpi.id == kpi.id %}kpi-list-item--active{% endif %}">
+                    <a href="/kpis-ui/{{ kpi.id }}">
+                        <span class="kpi-list-name">{{ kpi.name }}</span>
+                        <span class="kpi-status-badge kpi-status-{{ kpi.status.value }}">{{ kpi.status.value }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted-note">No KPIs yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div>
+        {% if selected_kpi %}
+        <div class="panel">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">
+                <h3 style="margin:0">{{ selected_kpi.name }}</h3>
+                <span class="kpi-status-badge kpi-status-{{ selected_kpi.status.value }}">{{ selected_kpi.status.value }}</span>
+            </div>
+
+            <form method="post" action="/kpis-ui/{{ selected_kpi.id }}/save" class="form-card">
+                <label>Name
+                    <input type="text" name="name" value="{{ selected_kpi.name }}" required>
+                </label>
+                <label>Description
+                    <textarea name="description" rows="2">{{ selected_kpi.description or "" }}</textarea>
+                </label>
+                <label>Data Model
+                    <input type="text" name="data_model" value="{{ selected_kpi.data_model or "" }}" placeholder="e.g. AP_OBJ">
+                </label>
+                <label>Celonis URL
+                    <input type="url" name="celonis_url" value="{{ selected_kpi.celonis_url or "" }}" placeholder="https://...">
+                </label>
+                <label>Asset Identifier
+                    <input type="text" name="asset_identifier" value="{{ selected_kpi.asset_identifier or "" }}">
+                </label>
+                <label>Owner
+                    <select name="owner_id">
+                        <option value="">- none -</option>
+                        {% for person in people %}
+                        <option value="{{ person.id }}"{% if selected_kpi.owner_id == person.id %} selected{% endif %}>{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit">Save Metadata</button>
+            </form>
+
+            <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+                <span style="font-weight:600;font-size:0.88rem">Status:</span>
+                {% for status in kpi_status_options %}
+                {% if status != selected_kpi.status.value %}
+                <form method="post" action="/kpis-ui/{{ selected_kpi.id }}/status" class="inline-form">
+                    <input type="hidden" name="status" value="{{ status }}">
+                    <button type="submit">-> {{ status }}</button>
+                </form>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <div style="margin-top:0.6rem">
+                <form method="post" action="/kpis-ui/{{ selected_kpi.id }}/delete" class="inline-form" onsubmit="return confirm('Delete this KPI and all its versions?')">
+                    <button type="submit" class="btn-danger">Delete KPI</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:0.8rem">
+            <h3>PQL Formula</h3>
+            <form method="post" action="/kpis-ui/{{ selected_kpi.id }}/save-formula" class="form-card">
+                <label>Formula
+                    <textarea class="pql-editor" name="pql_formula" rows="8" placeholder="ROUND(SUM(...))">{{ selected_kpi.pql_formula or "" }}</textarea>
+                </label>
+                <label>Change Note
+                    <input type="text" name="change_note" placeholder="What changed in this version?">
+                </label>
+                <button type="submit">Save as New Version</button>
+            </form>
+
+            {% if versions %}
+            <h4 style="margin-top:1rem;margin-bottom:0.4rem">Version History</h4>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Author</th><th>Formula preview</th><th>Note</th><th>Saved</th></tr>
+                </thead>
+                <tbody>
+                    {% for version in versions %}
+                    <tr>
+                        <td>{{ version.version }}</td>
+                        <td>{{ author_names.get(version.author_id|string, "-") }}</td>
+                        <td><code>{{ (version.pql_formula or "")[:80] }}{% if (version.pql_formula or "")|length > 80 %}...{% endif %}</code></td>
+                        <td>{{ version.change_note or "-" }}</td>
+                        <td>{{ version.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+
+        {% if selected_kpi.celonis_url %}
+        <div class="panel" style="margin-top:0.8rem">
+            <div class="workspace-toolbar">
+                <label>Celonis Link</label>
+                <a class="link-button" href="{{ selected_kpi.celonis_url }}" target="_blank" rel="noopener noreferrer">Open in Celonis ↗</a>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="panel kpi-empty-pane">
+            <p class="muted-note">Select a KPI from the list to open the editor, or create one.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

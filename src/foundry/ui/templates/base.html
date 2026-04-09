@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Foundry UI{% endblock %}</title>
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <header class="site-header">
+        {% set current_path = request.url.path if request and request.url else "" %}
+        {% set operations_active = current_path.startswith('/orchestration-ui') or current_path.startswith('/client-health-ui') or current_path.startswith('/timeline-ui') or current_path.startswith('/kpis-ui') or current_path.startswith('/celonis-credentials-ui') or current_path.startswith('/celonis-discovery-ui') or current_path.startswith('/celonis-deployments-ui') %}
+        {% set admin_active = current_path.startswith('/people-ui') or current_path.startswith('/clients-ui') or current_path.startswith('/templates-ui') or current_path.startswith('/files-ui') or current_path.startswith('/tenant-ui') or current_path.startswith('/workspace-ui') or current_path.startswith('/celonis-token-admin-ui') %}
+        {% set utility_active = current_path.startswith('/account-ui') or current_path.startswith('/docs-site/user') or current_path.startswith('/docs-site/developer') %}
+        <div class="container site-header-shell">
+            <div class="header-main">
+                <div class="header-topline">
+                    <h1 class="brand">Celonis Delivery Forge</h1>
+                    <button
+                        type="button"
+                        class="nav-toggle"
+                        data-nav-toggle
+                        aria-expanded="false"
+                        aria-controls="site-nav-panel"
+                        aria-label="Toggle navigation"
+                    >
+                        Menu
+                    </button>
+                </div>
+                <div class="site-nav-panel" id="site-nav-panel" data-nav-panel>
+                    <nav class="primary-nav" aria-label="Primary navigation">
+                        <a href="/dashboard" class="primary-nav-link{% if current_path.startswith('/dashboard') %} is-active{% endif %}"{% if current_path.startswith('/dashboard') %} aria-current="page"{% endif %}>Dashboard</a>
+                        <a href="/projects-ui" class="primary-nav-link{% if current_path.startswith('/projects-ui') %} is-active{% endif %}"{% if current_path.startswith('/projects-ui') %} aria-current="page"{% endif %}>Projects</a>
+                        <a href="/assets-ui" class="primary-nav-link{% if current_path.startswith('/assets-ui') %} is-active{% endif %}"{% if current_path.startswith('/assets-ui') %} aria-current="page"{% endif %}>Assets</a>
+                        <a href="/reviews-ui" class="primary-nav-link{% if current_path.startswith('/reviews-ui') %} is-active{% endif %}"{% if current_path.startswith('/reviews-ui') %} aria-current="page"{% endif %}>Reviews</a>
+                        <a href="/todos-ui" class="primary-nav-link{% if current_path.startswith('/todos-ui') %} is-active{% endif %}"{% if current_path.startswith('/todos-ui') %} aria-current="page"{% endif %}>Todos</a>
+                        <div class="nav-dropdown" data-dropdown>
+                            <button
+                                type="button"
+                                class="nav-dropdown-toggle{% if operations_active %} is-active{% endif %}"
+                                data-dropdown-toggle
+                                aria-expanded="false"
+                                aria-controls="nav-dropdown-operations"
+                            >
+                                Operations
+                            </button>
+                            <div class="nav-dropdown-menu" id="nav-dropdown-operations" role="menu">
+                                <a href="/orchestration-ui" class="secondary-nav-link{% if current_path.startswith('/orchestration-ui') %} is-active{% endif %}"{% if current_path.startswith('/orchestration-ui') %} aria-current="page"{% endif %}>Orchestration</a>
+                                <a href="/client-health-ui" class="secondary-nav-link{% if current_path.startswith('/client-health-ui') %} is-active{% endif %}"{% if current_path.startswith('/client-health-ui') %} aria-current="page"{% endif %}>Health</a>
+                                <a href="/timeline-ui" class="secondary-nav-link{% if current_path.startswith('/timeline-ui') %} is-active{% endif %}"{% if current_path.startswith('/timeline-ui') %} aria-current="page"{% endif %}>Timeline</a>
+                                <a href="/kpis-ui" class="secondary-nav-link{% if current_path.startswith('/kpis-ui') %} is-active{% endif %}"{% if current_path.startswith('/kpis-ui') %} aria-current="page"{% endif %}>KPI Editor</a>
+                                                            <a href="/celonis-credentials-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-credentials-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-credentials-ui') %} aria-current="page"{% endif %}>Celonis Credentials</a>
+                                                            <a href="/celonis-discovery-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-discovery-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-discovery-ui') %} aria-current="page"{% endif %}>Tenant Discovery</a>
+                                                            <a href="/celonis-deployments-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-deployments-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-deployments-ui') %} aria-current="page"{% endif %}>Deployments</a>
+                            </div>
+                        </div>
+                        <div class="nav-dropdown" data-dropdown>
+                            <button
+                                type="button"
+                                class="nav-dropdown-toggle{% if admin_active %} is-active{% endif %}"
+                                data-dropdown-toggle
+                                aria-expanded="false"
+                                aria-controls="nav-dropdown-admin"
+                            >
+                                Admin
+                            </button>
+                            <div class="nav-dropdown-menu" id="nav-dropdown-admin" role="menu">
+                                <a href="/people-ui" class="secondary-nav-link{% if current_path.startswith('/people-ui') %} is-active{% endif %}"{% if current_path.startswith('/people-ui') %} aria-current="page"{% endif %}>People</a>
+                                <a href="/clients-ui" class="secondary-nav-link{% if current_path.startswith('/clients-ui') %} is-active{% endif %}"{% if current_path.startswith('/clients-ui') %} aria-current="page"{% endif %}>Clients</a>
+                                <a href="/templates-ui" class="secondary-nav-link{% if current_path.startswith('/templates-ui') %} is-active{% endif %}"{% if current_path.startswith('/templates-ui') %} aria-current="page"{% endif %}>Templates</a>
+                                <a href="/files-ui" class="secondary-nav-link{% if current_path.startswith('/files-ui') %} is-active{% endif %}"{% if current_path.startswith('/files-ui') %} aria-current="page"{% endif %}>Files</a>
+                                <a href="/celonis-token-admin-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-token-admin-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-token-admin-ui') %} aria-current="page"{% endif %}>Celonis Tokens</a>
+                                <a href="/tenant-ui" class="secondary-nav-link{% if current_path.startswith('/tenant-ui') %} is-active{% endif %}"{% if current_path.startswith('/tenant-ui') %} aria-current="page"{% endif %}>Tenant</a>
+                                <a href="/workspace-ui" class="secondary-nav-link{% if current_path.startswith('/workspace-ui') %} is-active{% endif %}"{% if current_path.startswith('/workspace-ui') %} aria-current="page"{% endif %}>Workspace IDE</a>
+                            </div>
+                        </div>
+                        <div class="nav-dropdown" data-dropdown>
+                            <button
+                                type="button"
+                                class="nav-dropdown-toggle{% if utility_active %} is-active{% endif %}"
+                                data-dropdown-toggle
+                                aria-expanded="false"
+                                aria-controls="nav-dropdown-utility"
+                            >
+                                Utility
+                            </button>
+                            <div class="nav-dropdown-menu" id="nav-dropdown-utility" role="menu">
+                                <a href="/account-ui" class="secondary-nav-link{% if current_path.startswith('/account-ui') %} is-active{% endif %}"{% if current_path.startswith('/account-ui') %} aria-current="page"{% endif %}>My Account</a>
+                                <a href="/docs-site/user/" class="secondary-nav-link{% if current_path.startswith('/docs-site/user') %} is-active{% endif %}"{% if current_path.startswith('/docs-site/user') %} aria-current="page"{% endif %}>User Docs</a>
+                                <a href="/docs-site/developer/" class="secondary-nav-link{% if current_path.startswith('/docs-site/developer') %} is-active{% endif %}"{% if current_path.startswith('/docs-site/developer') %} aria-current="page"{% endif %}>Developer Docs</a>
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+            <div class="auth-badge">
+                {% if current_person %}
+                <span>Signed in: {{ current_person.name }} ({{ current_person.email }})</span>
+                <form method="post" action="/logout" class="inline-form">
+                    <button type="submit">Logout</button>
+                </form>
+                {% else %}
+                <span>Not signed in</span>
+                <a href="/login">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    <main class="container main-content">
+        {% block content %}{% endblock %}
+    </main>
+    <script>
+        (function () {
+            const toggle = document.querySelector("[data-nav-toggle]");
+            const panel = document.querySelector("[data-nav-panel]");
+            const dropdownRoots = Array.from(document.querySelectorAll("[data-dropdown]"));
+            const dropdownToggles = Array.from(document.querySelectorAll("[data-dropdown-toggle]"));
+            const todosScrollStorageKey = "todos-ui-scroll-y";
+
+            if (window.location.pathname === "/todos-ui") {
+                const savedScrollY = window.sessionStorage.getItem(todosScrollStorageKey);
+                if (savedScrollY !== null) {
+                    const scrollY = Number.parseInt(savedScrollY, 10);
+                    if (!Number.isNaN(scrollY)) {
+                        window.requestAnimationFrame(() => {
+                            window.requestAnimationFrame(() => {
+                                window.scrollTo(0, scrollY);
+                                window.sessionStorage.removeItem(todosScrollStorageKey);
+                            });
+                        });
+                    } else {
+                        window.sessionStorage.removeItem(todosScrollStorageKey);
+                    }
+                }
+
+                document.addEventListener("click", (event) => {
+                    const target = event.target;
+                    if (!(target instanceof Element)) {
+                        return;
+                    }
+                    const selectionLink = target.closest("a[data-preserve-scroll-select='true']");
+                    if (!selectionLink) {
+                        return;
+                    }
+                    window.sessionStorage.setItem(todosScrollStorageKey, String(window.scrollY));
+                });
+            }
+
+            if (!toggle || !panel) {
+                return;
+            }
+
+            const desktopMediaQuery = window.matchMedia("(min-width: 981px)");
+
+            const setExpanded = (expanded) => {
+                toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+                panel.classList.toggle("is-open", expanded);
+            };
+
+            const setDropdownExpanded = (root, expanded) => {
+                const rootToggle = root.querySelector("[data-dropdown-toggle]");
+                if (!rootToggle) {
+                    return;
+                }
+                rootToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+                root.classList.toggle("is-open", expanded);
+            };
+
+            const closeAllDropdowns = () => {
+                dropdownRoots.forEach((root) => setDropdownExpanded(root, false));
+            };
+
+            toggle.addEventListener("click", () => {
+                const expanded = toggle.getAttribute("aria-expanded") === "true";
+                setExpanded(!expanded);
+            });
+
+            dropdownToggles.forEach((dropdownToggle) => {
+                dropdownToggle.addEventListener("click", () => {
+                    const root = dropdownToggle.closest("[data-dropdown]");
+                    if (!root) {
+                        return;
+                    }
+                    const expanded = dropdownToggle.getAttribute("aria-expanded") === "true";
+                    if (desktopMediaQuery.matches) {
+                        closeAllDropdowns();
+                    }
+                    setDropdownExpanded(root, !expanded);
+                });
+            });
+
+            document.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Node)) {
+                    return;
+                }
+                if (!target.closest("[data-dropdown]")) {
+                    closeAllDropdowns();
+                }
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key !== "Escape") {
+                    return;
+                }
+                closeAllDropdowns();
+                if (!desktopMediaQuery.matches) {
+                    setExpanded(false);
+                }
+            });
+
+            window.addEventListener("resize", () => {
+                if (window.innerWidth > 920) {
+                    setExpanded(false);
+                }
+                closeAllDropdowns();
+            });
+        })();
+    </script>
+</body>
+</html>

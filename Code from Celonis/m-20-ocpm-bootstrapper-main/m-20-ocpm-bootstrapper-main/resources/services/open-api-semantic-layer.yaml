@@ -1,0 +1,7046 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8075/semantic-layer
+  description: Generated server url
+paths:
+  /api/semantic-models/{modelEntityId}/no-validation:
+    put:
+      tags:
+      - yaml-metadata-controller
+      operationId: saveWithNoValidation
+      parameters:
+      - name: modelEntityId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YamlMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ContentNodeTransport'
+  /api/knowledge-model/{layerAssetId}/variables/{variableId}:
+    put:
+      tags:
+      - variable-controller
+      operationId: update
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: variableId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VariableMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/VariableMetadata'
+    delete:
+      tags:
+      - variable-controller
+      operationId: delete
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: variableId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/records/{recordId}:
+    put:
+      tags:
+      - record-controller
+      operationId: update_1
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessRecordMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BusinessRecordMetadata'
+    delete:
+      tags:
+      - record-controller
+      operationId: delete_2
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/flags/{flagId}:
+    put:
+      tags:
+      - flag-controller
+      operationId: update_2
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: flagId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlagAnomalyTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PqlBaseMetadata'
+    delete:
+      tags:
+      - flag-controller
+      operationId: delete_4
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: flagId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/augmented-attributes/{attributeId}:
+    put:
+      tags:
+      - augmented-attribute-controller
+      operationId: update_3
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: attributeId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AugmentedAttributeMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AugmentedAttributeMetadata'
+    delete:
+      tags:
+      - augmented-attribute-controller
+      operationId: delete_5
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: attributeId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/attributes/{attributeId}:
+    put:
+      tags:
+      - attribute-controller
+      operationId: update_4
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: attributeId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AttributeMetadata'
+    delete:
+      tags:
+      - attribute-controller
+      operationId: delete_6
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: attributeId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/kpis/{kpiId}:
+    put:
+      tags:
+      - kpi-controller
+      operationId: update_5
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: kpiId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/KpiMetadata'
+    delete:
+      tags:
+      - kpi-controller
+      operationId: delete_7
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: kpiId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/filters/{filterId}:
+    put:
+      tags:
+      - filter-controller
+      operationId: update_6
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: filterId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FilterMetadata'
+    delete:
+      tags:
+      - filter-controller
+      operationId: delete_8
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: filterId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/event-logs/{eventLogId}:
+    put:
+      tags:
+      - event-log-controller
+      operationId: update_7
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: eventLogId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventLogTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SingleEventLogMetadata'
+    delete:
+      tags:
+      - event-log-controller
+      operationId: delete_9
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: eventLogId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/actions/{actionId}:
+    put:
+      tags:
+      - action-controller
+      operationId: update_8
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: actionId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ActionMetadata'
+    delete:
+      tags:
+      - action-controller
+      operationId: delete_10
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: actionId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/internal/layers/{metadataId}/kpi-metadata/{kpiId}/targets/{targetId}:
+    put:
+      tags:
+      - kpi-target-metadata-internal-controller
+      operationId: updateTarget
+      parameters:
+      - name: metadataId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: kpiId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: targetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TargetMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TargetMetadata'
+    delete:
+      tags:
+      - kpi-target-metadata-internal-controller
+      operationId: deleteTarget
+      parameters:
+      - name: metadataId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: kpiId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: targetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+  /api/semantic-models:
+    post:
+      tags:
+      - yaml-metadata-controller
+      operationId: save
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YamlMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ContentNodeTransport'
+  /api/process-workspace/layers/extension:
+    post:
+      tags:
+      - process-workspace-layer-controller
+      operationId: getFinalWithAutogeneratedBase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalWithAutogeneratedBaseRequest'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FinalLayerTransport'
+  /api/logging/frontend:
+    post:
+      tags:
+      - frontend-logger-controller
+      operationId: log
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontendLogTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+  /api/layers/{idName}/query:
+    post:
+      tags:
+      - layer-based-query-controller
+      operationId: query
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: isDraft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayerBasedQueryRequest'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TableResponse'
+  /api/layers/{idName}/query/batch:
+    post:
+      tags:
+      - layer-based-query-controller
+      operationId: batchQuery
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: isDraft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayerBasedBatchQueryRequest'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TableResponse'
+  /api/layer/{idName}/validate-pql:
+    post:
+      tags:
+      - layer-controller
+      operationId: validatePql
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: rootKey
+        in: query
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YamlMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PqlErrorTransport'
+  /api/layer/{idName}/final:
+    post:
+      tags:
+      - layer-controller
+      operationId: findOneWithOptions
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalModelOptions'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FinalLayerTransport'
+  /api/layer/{idName}/base:
+    post:
+      tags:
+      - layer-controller
+      operationId: findBaseForNodeByIdName
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalModelOptions'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FinalLayerTransport'
+  /api/layer/final:
+    post:
+      tags:
+      - layer-controller
+      operationId: buildFinalModel
+      parameters:
+      - name: rootKey
+        in: query
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YamlMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FinalLayerTransport'
+  /api/knowledge-model/{layerAssetId}/variables:
+    post:
+      tags:
+      - variable-controller
+      operationId: create
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VariableMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/VariableMetadata'
+  /api/knowledge-model/{layerAssetId}/records:
+    post:
+      tags:
+      - record-controller
+      operationId: create_1
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessRecordMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BusinessRecordMetadata'
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/identifier/upsert:
+    post:
+      tags:
+      - record-identifier-controller
+      operationId: upsert
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PqlBaseMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PqlBaseMetadata'
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/flags:
+    post:
+      tags:
+      - flag-controller
+      operationId: create_2
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlagAnomalyTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PqlBaseMetadata'
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/augmented-attributes:
+    post:
+      tags:
+      - augmented-attribute-controller
+      operationId: create_3
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AugmentedAttributeMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AugmentedAttributeMetadata'
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/attributes:
+    post:
+      tags:
+      - attribute-controller
+      operationId: create_4
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AttributeMetadata'
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/attributes/upsert:
+    post:
+      tags:
+      - attribute-controller
+      operationId: upsert_1
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AttributeMetadata'
+      deprecated: true
+  /api/knowledge-model/{layerAssetId}/records/upsert:
+    post:
+      tags:
+      - record-controller
+      operationId: upsert_2
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessRecordMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BusinessRecordMetadata'
+      deprecated: true
+  /api/knowledge-model/{layerAssetId}/kpis:
+    post:
+      tags:
+      - kpi-controller
+      operationId: create_5
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/KpiMetadata'
+  /api/knowledge-model/{layerAssetId}/kpis/upsert:
+    post:
+      tags:
+      - kpi-controller
+      operationId: upsert_3
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/KpiMetadata'
+      deprecated: true
+  /api/knowledge-model/{layerAssetId}/filters:
+    post:
+      tags:
+      - filter-controller
+      operationId: create_6
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FilterMetadata'
+  /api/knowledge-model/{layerAssetId}/filters/upsert:
+    post:
+      tags:
+      - filter-controller
+      operationId: upsert_4
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FilterMetadata'
+      deprecated: true
+  /api/knowledge-model/{layerAssetId}/event-logs:
+    post:
+      tags:
+      - event-log-controller
+      operationId: create_7
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventLogTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/SingleEventLogMetadata'
+  /api/knowledge-model/{layerAssetId}/actions:
+    post:
+      tags:
+      - action-controller
+      operationId: create_8
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ActionMetadata'
+  /api/knowledge-model/resolve-query:
+    post:
+      tags:
+      - layer-compute-controller
+      operationId: resolveQuery
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayerComputeTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PostBatchQueryTransport'
+  /api/knowledge-model/phoenix-compute:
+    post:
+      tags:
+      - layer-compute-controller
+      operationId: phoenixCompute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayerPhoenixComputeTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TableResponse'
+  /api/knowledge-model/compute:
+    post:
+      tags:
+      - layer-compute-controller
+      operationId: compute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayerComputeTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DataCommandBatchListResult'
+  /api/knowledge-model/by-data-model:
+    post:
+      tags:
+      - knowledge-model-with-data-model-controller
+      operationId: create_9
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeModelWithDataModelTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LayerTransport'
+  /api/internal/validation/for-process-type:
+    post:
+      tags:
+      - process-type-validation-internal-controller
+      operationId: validateDataModelForProcessType
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessTypeValidationRequest'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProcessTypeValidationResponse'
+  /api/internal/v2/clone:
+    post:
+      tags:
+      - clone-internal-controller
+      operationId: clone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloneRequestTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CloneResultTransport'
+  /api/internal/teams/{teamId}/erase:
+    post:
+      tags:
+      - team-eraser-internal-controller
+      operationId: eraseTenant
+      parameters:
+      - name: teamId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EraserLogMessageTransport'
+  /api/internal/layers/{metadataId}/kpi-metadata/{kpiId}/targets:
+    post:
+      tags:
+      - kpi-target-metadata-internal-controller
+      operationId: addTarget
+      parameters:
+      - name: metadataId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: kpiId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TargetMetadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TargetMetadata'
+  /api/internal/layers/{metadataId}/kpi-metadata/{kpiId}/prioritize:
+    post:
+      tags:
+      - kpi-metadata-internal-controller
+      operationId: prioritizeKPI
+      parameters:
+      - name: metadataId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: kpiId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/{metadataId}/kpi-metadata/remove-prioritization:
+    post:
+      tags:
+      - kpi-metadata-internal-controller
+      operationId: removePriority
+      parameters:
+      - name: metadataId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/{id}/get-by-options:
+    post:
+      tags:
+      - layer-internal-controller
+      operationId: findOneWithOptions_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalModelOptions'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/{idName}/query:
+    post:
+      tags:
+      - layer-based-query-internal-controller
+      operationId: query_1
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: isDraft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayerBasedQueryRequest'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TableResponse'
+  /api/internal/layers/{idName}/query/batch:
+    post:
+      tags:
+      - layer-based-query-internal-controller
+      operationId: batchQuery_1
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: isDraft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayerBasedBatchQueryRequest'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TableResponse'
+  /api/internal/layers/by-ids:
+    post:
+      tags:
+      - layer-internal-controller
+      operationId: findAllByIds
+      parameters:
+      - name: draftMode
+        in: query
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/by-data-model/{dataModelId}:
+    post:
+      tags:
+      - layer-internal-controller
+      operationId: findAllByDataModelId
+      parameters:
+      - name: dataModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalModelOptions'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerTransport'
+  /api/export-data-queries:
+    post:
+      tags:
+      - exporting-controller
+      operationId: start
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportingJobConfigurationTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExportInitializationTransport'
+  /api/data-models/by-knowledge-model-id/{knowledgeModelId}/reload:
+    post:
+      tags:
+      - data-model-controller
+      operationId: reloadByKnowledgeModelId
+      parameters:
+      - name: knowledgeModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DataModelTransport'
+  /api/compute-query:
+    post:
+      tags:
+      - compute-controller
+      operationId: computeQuery
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComputeQueryTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TableResult'
+  /api/compute-query/by-knowledge-model-id/{knowledgeModelId}:
+    post:
+      tags:
+      - compute-controller
+      operationId: computeQueryByKnowledgeModelId
+      parameters:
+      - name: knowledgeModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComputeQueryTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TableResult'
+  /api/compute-query/batch:
+    post:
+      tags:
+      - compute-controller
+      operationId: computeBatchQueries
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComputeBatchQueryTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComputeQueryResult'
+  /api/compute-query/batch/by-semantic-model:
+    post:
+      tags:
+      - compute-controller
+      operationId: queryBatchForSemanticModel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchQueryTransport'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DataCommandBatchListResult'
+  /favicon.ico:
+    get:
+      tags:
+      - favicon-controller
+      operationId: returnNoFavicon
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+  /api/views/by-root-key/{rootKey}:
+    get:
+      tags:
+      - views-controller
+      operationId: findAllViewsByRootKey
+      parameters:
+      - name: rootKey
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentNodeTransport'
+  /api/semantic-models/{rootKey}/{key}/usages:
+    get:
+      tags:
+      - yaml-metadata-controller
+      operationId: findObjectUsage
+      parameters:
+      - name: rootKey
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: targetObjectId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: targetObjectType
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeUsageTransport'
+  /api/semantic-models/{id}:
+    get:
+      tags:
+      - yaml-metadata-controller
+      operationId: findOne
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ContentNodeTransport'
+  /api/semantic-models/{id}/content:
+    get:
+      tags:
+      - yaml-metadata-controller
+      operationId: findOneYamlTransport
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LayerYamlTransport'
+  /api/semantic-models/by-root-with-key/{rootWithKey}:
+    get:
+      tags:
+      - yaml-metadata-controller
+      operationId: findOneByRootWithKey
+      parameters:
+      - name: rootWithKey
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ContentNodeTransport'
+  /api/semantic-models/bases:
+    get:
+      tags:
+      - yaml-metadata-controller
+      operationId: getBaseModels
+      parameters:
+      - name: rootKey
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerBaseTransport'
+  /api/public/features/global:
+    get:
+      tags:
+      - feature-toggle-controller
+      operationId: findAll
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Feature'
+  /api/public/authentication/status:
+    get:
+      tags:
+      - cloud-authentication-controller
+      operationId: status
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: boolean
+  /api/process-workspace/layers/extension/{layerKey}:
+    get:
+      tags:
+      - process-workspace-layer-controller
+      operationId: getFinalWithAutogeneratedBaseFromKey
+      parameters:
+      - name: layerKey
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FinalLayerTransport'
+  /api/process-workspace/layers/data-model-sneak-peek/{dataModelId}:
+    get:
+      tags:
+      - process-workspace-layer-controller
+      operationId: getDataModelSneakPeek
+      parameters:
+      - name: dataModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LayerTransport'
+  /api/process-workspace/layers/by-process-workspace-id/{processWorkspaceId}:
+    get:
+      tags:
+      - process-workspace-layer-controller
+      operationId: getByProcessWorkspaceId
+      parameters:
+      - name: processWorkspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ValidatedKnowledgeRepository'
+  /api/process-workspace/analysis/pql-entities:
+    get:
+      tags:
+      - process-workspace-analysis-controller
+      operationId: getPqlEntities
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProcessWorkspacePqlEntityTransport'
+  /api/pm/nodes/{rootKey}/assigned-data-models:
+    get:
+      tags:
+      - content-node-controller
+      operationId: getAssignedDataModelsByRootKey
+      parameters:
+      - name: rootKey
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudioDataModelTransport'
+  /api/pm/nodes/{key}/variables:
+    get:
+      tags:
+      - content-node-controller
+      operationId: getNodeVariables
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VariableDefinition'
+  /api/pm/nodes/{key}/variables-assignments:
+    get:
+      tags:
+      - content-node-controller
+      operationId: getNodeVariablesAssignments
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VariableAssignment'
+  /api/model-consumers/{idName}:
+    get:
+      tags:
+      - layer-consumer-controller
+      operationId: findAllByLayerId
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SemanticLayerConsumer'
+  /api/layers/{knowledgeModelKey}/records/{id}/pql-query:
+    get:
+      tags:
+      - business-record-metadata-controller
+      operationId: findRecordPql
+      parameters:
+      - name: knowledgeModelKey
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: queryOffset
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: queryLimit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: attributesLimit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BusinessRecordMetadataPql'
+  /api/layers/{knowledgeModelKey}/records/{id}/identifier/columns:
+    get:
+      tags:
+      - business-record-metadata-controller
+      operationId: getRecordIdentifierColumns
+      parameters:
+      - name: knowledgeModelKey
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataModelColumn'
+  /api/layer/{idName}:
+    get:
+      tags:
+      - layer-controller
+      operationId: findOne_1
+      parameters:
+      - name: idName
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FinalLayerTransport'
+  /api/layer/final-base:
+    get:
+      tags:
+      - layer-controller
+      operationId: buildFinalBaseModel
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FinalLayerTransport'
+  /api/layer/by-root-key/{rootKey}:
+    get:
+      tags:
+      - layer-controller
+      operationId: findAllByRootKey
+      parameters:
+      - name: rootKey
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draftMode
+        in: query
+        required: true
+        schema:
+          type: boolean
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerTransport'
+  /api/knowledge-model/{layerAssetId}/variables/resolved:
+    get:
+      tags:
+      - variable-controller
+      operationId: findAllResolvedVariables
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VariableMetadata'
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/identifier/validate-uniqueness:
+    get:
+      tags:
+      - record-identifier-controller
+      operationId: validateUniqueness
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ValidationUniqueTransport'
+  /api/internal/root/{rootKey}/layers:
+    get:
+      tags:
+      - layer-internal-controller
+      operationId: findAllByRootKey_1
+      parameters:
+      - name: rootKey
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draftMode
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - name: includeInvalidModels
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerTransport'
+  /api/internal/query/environment/{semanticModelId}:
+    get:
+      tags:
+      - semantic-model-query-internal-controller
+      operationId: getQueryEnvironment
+      parameters:
+      - name: semanticModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/QueryEnvironment'
+  /api/internal/layers:
+    get:
+      tags:
+      - layer-internal-controller
+      operationId: findAll_1
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/{knowledgeModelKey}/records/{id}/pql-query:
+    get:
+      tags:
+      - business-record-metadata-internal-controller
+      operationId: findRecordPql_1
+      parameters:
+      - name: knowledgeModelKey
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: queryOffset
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: queryLimit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: attributesLimit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BusinessRecordMetadataPql'
+  /api/internal/layers/{id}:
+    get:
+      tags:
+      - layer-internal-controller
+      operationId: findOne_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: draft
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/without-permissions:
+    get:
+      tags:
+      - layer-internal-controller
+      operationId: findAllWithoutPermissions
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/filtered-by-permissions:
+    get:
+      tags:
+      - layer-internal-controller
+      operationId: findAllFilteringByPermissions
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LayerTransport'
+  /api/internal/layers/data-model/{id}/identifier/columns:
+    get:
+      tags:
+      - business-record-metadata-internal-controller
+      operationId: extractColumnsFromRecordIdentifierPql
+      parameters:
+      - name: pql
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataModelColumn'
+  /api/export-data-queries/{orderId}/status:
+    get:
+      tags:
+      - exporting-controller
+      operationId: getStatus
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+  /api/export-data-queries/{orderId}/result:
+    get:
+      tags:
+      - exporting-controller
+      operationId: getResult
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+  /api/documentation:
+    get:
+      tags:
+      - documentation-controller
+      operationId: findDocumentation
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DocumentationTransport'
+  /api/data-models:
+    get:
+      tags:
+      - data-model-controller
+      operationId: getAllDataModels
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComputeNodeDescriptor'
+  /api/data-models/{dataModelId}:
+    get:
+      tags:
+      - data-model-controller
+      operationId: getDataModel
+      parameters:
+      - name: dataModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DataModelTransport'
+  /api/data-models/by-knowledge-model-id/{knowledgeModelId}:
+    get:
+      tags:
+      - data-model-controller
+      operationId: getDataModelByKnowledgeModelId
+      parameters:
+      - name: knowledgeModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DataModelTransport'
+  /api/data-models/by-knowledge-model-id/{knowledgeModelId}/load:
+    get:
+      tags:
+      - data-model-controller
+      operationId: getDataModelLoad
+      parameters:
+      - name: knowledgeModelId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/DataModelLoad'
+  /api/knowledge-model/{layerAssetId}/transitions/{transitionId}:
+    delete:
+      tags:
+      - transition-controller
+      operationId: delete_1
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: transitionId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /api/knowledge-model/{layerAssetId}/records/{recordId}/identifier:
+    delete:
+      tags:
+      - record-identifier-controller
+      operationId: delete_3
+      parameters:
+      - name: layerAssetId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: recordId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+  /error:
+    get:
+      tags:
+      - secured-error-controller
+      operationId: error_1
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+    put:
+      tags:
+      - secured-error-controller
+      operationId: error_2
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+    post:
+      tags:
+      - secured-error-controller
+      operationId: error_6
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+    delete:
+      tags:
+      - secured-error-controller
+      operationId: error_3
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+    options:
+      tags:
+      - secured-error-controller
+      operationId: error_4
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+    head:
+      tags:
+      - secured-error-controller
+      operationId: error
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+    patch:
+      tags:
+      - secured-error-controller
+      operationId: error_5
+      responses:
+        "400":
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/FrontendHandledBackendError'
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExceptionReference'
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+components:
+  schemas:
+    ExceptionReference:
+      type: object
+      properties:
+        reference:
+          type: string
+        message:
+          type: string
+        shortMessage:
+          type: string
+    FrontendHandledBackendError:
+      type: object
+      properties:
+        frontendErrorKey:
+          type: string
+        errorInformation:
+          type: object
+    FinalModelOptions:
+      type: object
+      properties:
+        withVariableReplacement:
+          type: boolean
+        withAutogeneratedDataModelData:
+          type: boolean
+        withDefaultValues:
+          type: boolean
+        validatePql:
+          type: boolean
+        withUnknownVariablesValidation:
+          type: boolean
+        withResolvedScopes:
+          type: boolean
+    YamlMetadata:
+      required:
+      - content
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        parentNodeId:
+          type: string
+        finalModelOptions:
+          $ref: '#/components/schemas/FinalModelOptions'
+        content:
+          type: string
+        visualEditorValidation:
+          type: boolean
+    AssetMetadataTransport:
+      type: object
+      properties:
+        usedVariables:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariableDefinition'
+        relatedAssets:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedAsset'
+        assetUsages:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetUsage'
+        metadata:
+          $ref: '#/components/schemas/JsonNode'
+        hidden:
+          type: boolean
+    AssetUsage:
+      type: object
+      properties:
+        objectId:
+          type: string
+        targetObjects:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetUsageMetadata'
+    CascadeType:
+      type: string
+      enum:
+      - DELETE
+    ContentNodeBaseTransport:
+      type: object
+      properties:
+        reference:
+          type: string
+        version:
+          type: string
+        external:
+          type: boolean
+    ContentNodeTransport:
+      type: object
+      properties:
+        permissions:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        tenantId:
+          type: string
+        id:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+        rootNodeKey:
+          type: string
+        base:
+          $ref: '#/components/schemas/ContentNodeBaseTransport'
+        assetType:
+          type: string
+        nodeType:
+          $ref: '#/components/schemas/ContentNodeType'
+        parentNodeKey:
+          type: string
+        parentNodeId:
+          type: string
+        invalidContent:
+          type: boolean
+        serializedContent:
+          type: string
+        serializationType:
+          type: string
+        draftId:
+          type: string
+        workingDraftId:
+          type: string
+        activatedDraftId:
+          type: string
+        showInViewerMode:
+          type: boolean
+        publicAvailable:
+          type: boolean
+        embeddable:
+          type: boolean
+        rootNodeId:
+          type: string
+        order:
+          type: integer
+          format: int32
+        source:
+          type: string
+        assetMetadataTransport:
+          $ref: '#/components/schemas/AssetMetadataTransport'
+        spaceId:
+          type: string
+        changeDate:
+          type: string
+          format: date-time
+        createdById:
+          type: string
+        creationDate:
+          type: string
+          format: date-time
+        createdByName:
+          type: string
+        updatedBy:
+          type: string
+        rootWithKey:
+          type: string
+        objectId:
+          type: string
+        asset:
+          type: boolean
+        root:
+          type: boolean
+        identifier:
+          type: string
+    ContentNodeType:
+      type: string
+      enum:
+      - ASSET
+      - PACKAGE
+      - FOLDER
+      - IMAGE
+    JsonNode:
+      type: object
+    RelatedAsset:
+      type: object
+      properties:
+        objectId:
+          type: string
+        type:
+          type: string
+        relationType:
+          $ref: '#/components/schemas/RelationType'
+        cascadeType:
+          $ref: '#/components/schemas/CascadeType'
+    RelationType:
+      type: string
+      enum:
+      - USES
+      - DEPENDS_ON
+    SourceUsageMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+    TargetUsageMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        sourceObjects:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceUsageMetadata'
+    VariableDefinition:
+      type: object
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        source:
+          type: string
+        runtime:
+          type: boolean
+        metadata:
+          $ref: '#/components/schemas/JsonNode'
+    MetadataType:
+      type: string
+      enum:
+      - KPI
+      - RECORD
+      - VARIABLE
+      - ACTIVITY
+      - FILTER
+      - ACTION
+      - ANOMALY
+      - ATTRIBUTE
+      - NEW_ATTRIBUTE
+      - AUGMENTED_ATTRIBUTE
+      - PRIORITY
+      - FLAG
+      - EVENT_LOG
+      - DATA_TRIGGER
+    ScopeType:
+      type: string
+      enum:
+      - DISABLED
+    VariableMetadata:
+      required:
+      - displayName
+      - value
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        value:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    AttributeMetadata:
+      required:
+      - displayName
+      - pql
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        columnType:
+          type: string
+        unit:
+          type: string
+        format:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    AugmentedAttributeMetadata:
+      required:
+      - columnType
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        possibleValues:
+          type: array
+          items:
+            type: string
+        defaultValue:
+          type: string
+        columnType:
+          type: string
+        pql:
+          type: string
+        unit:
+          type: string
+        format:
+          type: string
+        housekeeping:
+          type: boolean
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    BusinessRecordMetadata:
+      required:
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        augmented:
+          type: boolean
+        identifier:
+          $ref: '#/components/schemas/PqlBaseMetadata'
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeMetadata'
+        newAttributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/NewAttributeMetadata'
+        augmentedAttributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AugmentedAttributeMetadata'
+        flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/PqlBaseMetadata'
+        priorities:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordPriorityMetadata'
+        dataTriggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataTriggerMetadata'
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    DataTriggerMetadata:
+      required:
+      - displayName
+      - filterIds
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        filterIds:
+          type: array
+          items:
+            type: string
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    NewAttributeMetadata:
+      required:
+      - columnType
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        possibleValues:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        defaultValue:
+          type: string
+        columnType:
+          type: string
+        unit:
+          type: string
+        format:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    PqlBaseMetadata:
+      required:
+      - displayName
+      - pql
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+    RecordPriorityMetadata:
+      required:
+      - displayName
+      - pql
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        kpi:
+          type: string
+    AnomalyKpiMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+        kpiId:
+          type: string
+        impactCalculation:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+    FlagAnomalyTransport:
+      type: object
+      properties:
+        flag:
+          $ref: '#/components/schemas/PqlBaseMetadata'
+        kpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnomalyKpiMetadata'
+        knowledgeObjectId:
+          type: string
+    BaseMetadata:
+      required:
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+    KpiBenchmarking:
+      type: object
+      properties:
+        value:
+          type: string
+        action:
+          $ref: '#/components/schemas/KpiBenchmarkingAction'
+        leadingBucket:
+          $ref: '#/components/schemas/PerformanceBucket'
+        exceedingBucket:
+          $ref: '#/components/schemas/PerformanceBucket'
+        achievingBucket:
+          $ref: '#/components/schemas/PerformanceBucket'
+        laggingBucket:
+          $ref: '#/components/schemas/PerformanceBucket'
+    KpiBenchmarkingAction:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        link:
+          type: string
+    KpiDirection:
+      type: string
+      enum:
+      - INCREASE
+      - DECREASE
+      - NEUTRAL
+      - NONE
+    KpiMetadata:
+      required:
+      - displayName
+      - pql
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        unit:
+          type: string
+        format:
+          type: string
+        breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseMetadata'
+        aggregations:
+          type: array
+          items:
+            type: string
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParameterMetadata'
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetMetadata'
+        desiredDirection:
+          $ref: '#/components/schemas/KpiDirection'
+        priority:
+          type: boolean
+        benchmarking:
+          $ref: '#/components/schemas/KpiBenchmarking'
+        type:
+          $ref: '#/components/schemas/MetadataType'
+        benchmarkable:
+          type: boolean
+    ParameterMetadata:
+      required:
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        defaultValue:
+          type: string
+        type:
+          $ref: '#/components/schemas/ParameterType'
+    ParameterType:
+      type: string
+      enum:
+      - VARIABLE
+      - TABLE
+      - INTEGER
+      - TEXT
+      - PQL
+    PerformanceBucket:
+      type: object
+      properties:
+        name:
+          type: string
+        textSnippet:
+          type: string
+        textSnippetActive:
+          type: string
+        upperValue:
+          type: string
+        lowerValue:
+          type: string
+    TargetMetadata:
+      required:
+      - dateUntil
+      - displayName
+      - value
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        value:
+          type: string
+        dateFrom:
+          type: string
+        dateUntil:
+          type: string
+        filters:
+          type: array
+          items:
+            type: string
+    FilterMetadata:
+      required:
+      - displayName
+      - pql
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        global:
+          type: boolean
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    EventLogTransitionTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        eventLogId:
+          type: string
+        type:
+          $ref: '#/components/schemas/TransitionType'
+    EventLogTransport:
+      type: object
+      properties:
+        eventLog:
+          $ref: '#/components/schemas/SingleEventLogMetadata'
+        transitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventLogTransitionTransport'
+    SingleEventLogMetadata:
+      required:
+      - displayName
+      - pql
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        recordId:
+          type: string
+        defaultEventLog:
+          type: boolean
+    TransitionType:
+      type: string
+      enum:
+      - NON_INTERLEAVED
+      - INTERLEAVED
+    ActionInput:
+      type: object
+      properties:
+        name:
+          type: string
+        attribute:
+          type: string
+    ActionMetadata:
+      required:
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        skillId:
+          type: string
+          deprecated: true
+        skillKey:
+          type: string
+        records:
+          type: array
+          items:
+            type: string
+        filters:
+          type: array
+          items:
+            type: string
+        inputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionInput'
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    ActivityMetadata:
+      required:
+      - displayName
+      - value
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        value:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    AlertMetric:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+        pql:
+          type: string
+        message:
+          type: string
+    AnomalyMetadata:
+      required:
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        flag:
+          type: string
+        kpiIds:
+          type: array
+          items:
+            type: string
+        kpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnomalyKpiMetadata'
+        momChange:
+          type: string
+        knowledgeObjectId:
+          type: string
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    EventLogKpi:
+      required:
+      - displayName
+      - eventLogId
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        eventLogId:
+          type: string
+        nodeKpiIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        edgeKpiIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        nodeKpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiWithAlert'
+        edgeKpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiWithAlert'
+    EventLogKpiView:
+      required:
+      - displayName
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        icon:
+          type: string
+        eventLogKpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventLogKpi'
+        transitionKpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventLogTransitionKpi'
+    EventLogMetadata:
+      required:
+      - displayName
+      - pql
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        pql:
+          type: string
+        filterIds:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        type:
+          $ref: '#/components/schemas/MetadataType'
+    EventLogTransition:
+      required:
+      - displayName
+      - firstEventLogId
+      - secondEventLogId
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        firstEventLogId:
+          type: string
+        secondEventLogId:
+          type: string
+        type:
+          $ref: '#/components/schemas/TransitionType'
+    EventLogTransitionKpi:
+      required:
+      - displayName
+      - kpiId
+      - transitionId
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          maxLength: 20
+          minLength: 0
+          type: string
+        description:
+          type: string
+        scope:
+          $ref: '#/components/schemas/ScopeType'
+        internalNote:
+          type: string
+        customAttributes:
+          $ref: '#/components/schemas/JsonNode'
+        autoGenerated:
+          type: boolean
+        transitionId:
+          type: string
+        kpiId:
+          type: string
+    FinalWithAutogeneratedBaseRequest:
+      type: object
+      properties:
+        processWorkspaceId:
+          type: string
+        extensionKnowledgeModel:
+          $ref: '#/components/schemas/LayerTransport'
+    KpiWithAlert:
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          type: string
+        kpiId:
+          type: string
+        icon:
+          type: string
+        alertMetrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertMetric'
+    LayerBase:
+      type: object
+      properties:
+        key:
+          type: string
+        version:
+          type: string
+        appStoreBased:
+          type: boolean
+    LayerKind:
+      type: string
+      enum:
+      - BASE
+      - EXTENSION
+    LayerMetadata:
+      required:
+      - displayName
+      - key
+      type: object
+      properties:
+        key:
+          type: string
+        displayName:
+          type: string
+        version:
+          type: string
+    LayerTransport:
+      required:
+      - base
+      - kind
+      - metadata
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/LayerKind'
+        metadata:
+          $ref: '#/components/schemas/LayerMetadata'
+        base:
+          $ref: '#/components/schemas/LayerBase'
+        dataModelId:
+          type: string
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/BusinessRecordMetadata'
+        kpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiMetadata'
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterMetadata'
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariableMetadata'
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityMetadata'
+        eventLogsMetadata:
+          $ref: '#/components/schemas/NewEventLogMetadata'
+        anomalies:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnomalyMetadata'
+        eventLogs:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventLogMetadata'
+        customObjects:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseMetadata'
+        id:
+          type: string
+        tenantId:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionMetadata'
+        nodeEntityId:
+          type: string
+    NewEventLogMetadata:
+      type: object
+      properties:
+        eventLogs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SingleEventLogMetadata'
+        transitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventLogTransition'
+        kpiViews:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventLogKpiView'
+    FinalLayerTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        layer:
+          $ref: '#/components/schemas/LayerTransport'
+        yamlObject:
+          type: string
+    FrontendLogTransport:
+      required:
+      - stacktrace
+      type: object
+      properties:
+        stacktrace:
+          type: string
+        url:
+          type: string
+    ColumnConfig:
+      type: object
+      properties:
+        id:
+          type: string
+        showAlerts:
+          type: boolean
+        showTasks:
+          type: boolean
+        kpiParameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiParameter'
+    KpiParameter:
+      type: object
+      properties:
+        id:
+          type: string
+        value:
+          type: string
+    LayerBasedQuery:
+      type: object
+      properties:
+        id:
+          type: string
+        columnConfigs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnConfig'
+        filter:
+          $ref: '#/components/schemas/QueryFilter'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        orderBy:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableColumnSorting'
+        includeRecordIdentifiers:
+          type: boolean
+        distinct:
+          type: boolean
+    LayerBasedQueryRequest:
+      type: object
+      properties:
+        layerTransport:
+          $ref: '#/components/schemas/LayerTransport'
+        query:
+          $ref: '#/components/schemas/LayerBasedQuery'
+    Pagination:
+      type: object
+      properties:
+        pageIndex:
+          type: integer
+          format: int64
+        pageSize:
+          type: integer
+          format: int64
+    QueryFilter:
+      type: object
+      properties:
+        pqlFilters:
+          type: array
+          items:
+            type: string
+        taskFilters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskFilter'
+    SortDirection:
+      type: string
+      enum:
+      - ASC
+      - DESC
+    TableColumnSorting:
+      type: object
+      properties:
+        id:
+          type: string
+        direction:
+          $ref: '#/components/schemas/SortDirection'
+    TaskFilter:
+      type: object
+      properties:
+        columnId:
+          type: string
+        recordMetadataId:
+          type: string
+        taskStatuses:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskStatus'
+        assigneeIdentityIds:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        affectTaskCountOnly:
+          type: boolean
+    TaskStatus:
+      type: string
+      enum:
+      - OPEN
+      - IN_PROGRESS
+      - CLOSED
+      - RESOLVED
+      - SNOOZED
+    ColumnHeader:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        shortDisplayName:
+          type: string
+        description:
+          type: string
+        pql:
+          type: string
+        recordMetadataId:
+          type: string
+        dataType:
+          $ref: '#/components/schemas/ColumnType'
+        columnType:
+          $ref: '#/components/schemas/TableColumnType'
+        format:
+          type: string
+        unit:
+          type: string
+        sortDirection:
+          $ref: '#/components/schemas/SortDirection'
+        error:
+          type: string
+        aggregation:
+          type: boolean
+        sortable:
+          type: boolean
+        editable:
+          type: boolean
+        filterable:
+          type: boolean
+    ColumnType:
+      type: string
+      enum:
+      - INTEGER
+      - DATE
+      - TIME
+      - DATETIME
+      - FLOAT
+      - BOOLEAN
+      - STRING
+    RecordAlert:
+      type: object
+      properties:
+        recordId:
+          type: string
+        alertId:
+          type: string
+        description:
+          type: string
+    RecordTask:
+      type: object
+      properties:
+        recordId:
+          type: string
+        taskId:
+          type: string
+        name:
+          type: string
+        label:
+          type: string
+        owner:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+    RowCell:
+      type: object
+      properties:
+        value:
+          type: string
+        formattedValue:
+          type: string
+        type:
+          $ref: '#/components/schemas/ColumnType'
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordAlert'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordTask'
+    TableColumnType:
+      type: string
+      enum:
+      - IDENTIFIER_COLUMN
+      - KPI_COLUMN
+      - RECORD_ATTRIBUTE_COLUMN
+      - RECORD_NEW_ATTRIBUTE_COLUMN
+      - TASK_COUNT_COLUMN
+      - ACTIVE_PRIORITY_COLUMN
+      - EMPTY_COLUMN
+    TableResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        headers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnHeader'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableRow'
+        totalCount:
+          type: integer
+          format: int64
+        error:
+          type: string
+    TableRow:
+      type: object
+      properties:
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/RowCell'
+    LayerBasedBatchQueryRequest:
+      type: object
+      properties:
+        layerTransport:
+          $ref: '#/components/schemas/LayerTransport'
+        queries:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/LayerBasedQuery'
+    PqlErrorTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        regex:
+          type: string
+        startLineNumber:
+          type: integer
+          format: int32
+        startColumnPosition:
+          type: integer
+          format: int32
+        endLineNumber:
+          type: integer
+          format: int32
+        endColumnPosition:
+          type: integer
+          format: int32
+        syntaxError:
+          type: boolean
+    ComputeCallerInfo:
+      type: object
+      properties:
+        objectId:
+          type: string
+        objectType:
+          $ref: '#/components/schemas/ComputeCallerType'
+    ComputeCallerType:
+      type: string
+      enum:
+      - PROCESS_WORKSPACE
+      - KNOWLEDGE_MODEL
+      - VIEW
+      - DATA_MODEL
+    DataCommand:
+      required:
+      - commands
+      type: object
+      properties:
+        cubeId:
+          type: string
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataQuery'
+    DataCommandBatchRequest:
+      type: object
+      properties:
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/Variable'
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataCommandBatchTransport'
+    DataCommandBatchTransport:
+      required:
+      - request
+      type: object
+      properties:
+        id:
+          type: string
+        request:
+          $ref: '#/components/schemas/DataCommand'
+    DataQuery:
+      required:
+      - queries
+      type: object
+      properties:
+        computationId:
+          type: integer
+          format: int64
+        queries:
+          type: array
+          items:
+            type: string
+        isTransient:
+          type: boolean
+    LayerComputeTransport:
+      type: object
+      properties:
+        callerInfo:
+          $ref: '#/components/schemas/ComputeCallerInfo'
+        layer:
+          $ref: '#/components/schemas/LayerTransport'
+        request:
+          $ref: '#/components/schemas/QueryRequest'
+        draft:
+          type: boolean
+    QueryRequest:
+      type: object
+      properties:
+        batchRequest:
+          $ref: '#/components/schemas/DataCommandBatchRequest'
+        filters:
+          type: array
+          items:
+            type: string
+    Variable:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: string
+    DataPermissionRule:
+      type: object
+      properties:
+        values:
+          type: array
+          items:
+            type: string
+        columnId:
+          type: string
+        tableId:
+          type: string
+    DataPermissionStrategy:
+      type: string
+      enum:
+      - AND
+      - OR
+    Kpi:
+      type: object
+      properties:
+        name:
+          type: string
+        template:
+          type: string
+        parameterCount:
+          type: integer
+          format: int32
+        error:
+          type: string
+        formula:
+          type: string
+    KpiInformation:
+      type: object
+      properties:
+        kpis:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Kpi'
+    PostBatchQueryTransport:
+      required:
+      - analysisCommands
+      type: object
+      properties:
+        analysisCommands:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataCommandBatchTransport'
+        queryEnvironment:
+          $ref: '#/components/schemas/QueryEnvironment'
+    QueryEnvironment:
+      type: object
+      properties:
+        acceleratorSessionId:
+          type: string
+        processId:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        loadScript:
+          type: string
+        kpiInfos:
+          $ref: '#/components/schemas/KpiInformation'
+        dataPermissionRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataPermissionRule'
+        dataPermissionStrategy:
+          $ref: '#/components/schemas/DataPermissionStrategy'
+    LayerPhoenixComputeTransport:
+      type: object
+      properties:
+        callerInfo:
+          $ref: '#/components/schemas/ComputeCallerInfo'
+        layer:
+          $ref: '#/components/schemas/LayerTransport'
+        queries:
+          type: array
+          items:
+            $ref: '#/components/schemas/LayerBasedQuery'
+        draft:
+          type: boolean
+    AcceleratorSelectionFilter:
+      type: object
+      properties:
+        defaultInactive:
+          type: boolean
+        kind:
+          $ref: '#/components/schemas/AcceleratorSelectionKind'
+        expression:
+          type: string
+        type:
+          $ref: '#/components/schemas/AcceleratorSelectionType'
+        enabled:
+          type: boolean
+        nullSelected:
+          type: boolean
+        entriesSelected:
+          type: integer
+          format: int64
+        entriesTotal:
+          type: integer
+          format: int64
+        valuesTotal:
+          type: integer
+          format: int64
+        valuesSelected:
+          type: integer
+          format: int64
+        casesTotal:
+          type: integer
+          format: int64
+        casesSelected:
+          type: integer
+          format: int64
+        tableName:
+          type: string
+        dataType:
+          $ref: '#/components/schemas/AcceleratorSelectionType'
+        configuration:
+          type: object
+        pinned:
+          type: boolean
+        temporary:
+          type: boolean
+        id:
+          type: string
+        position:
+          type: integer
+          format: int32
+        volatileFilter:
+          type: boolean
+        name:
+          type: string
+        format:
+          type: string
+        firstSelectedValues:
+          type: array
+          items:
+            type: string
+        firstNonSelectedValues:
+          type: array
+          items:
+            type: string
+    AcceleratorSelectionKind:
+      type: string
+      enum:
+      - SELECTION
+      - FILTER
+    AcceleratorSelectionType:
+      type: string
+      enum:
+      - DATE
+      - INTEGER
+      - FLOAT
+      - STRING
+      - THROUGHPUT
+      - PROCESS
+      - REWORK
+      - ERROR
+      - GENERIC
+    AcceleratorTableStatistics:
+      type: object
+      properties:
+        tableName:
+          type: string
+        tableCount:
+          type: integer
+          format: int32
+        filteredCount:
+          type: integer
+          format: int32
+        caseTable:
+          type: boolean
+        activityTable:
+          type: boolean
+    DataCommandBatchListResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataCommandBatchResultTransport'
+        error:
+          type: string
+        batchListId:
+          type: integer
+          format: int64
+    DataCommandBatchResultTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        result:
+          $ref: '#/components/schemas/PqlMultiResultTransport'
+    ExplainNode:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        inputNodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExplainNode'
+    MessageTransport:
+      type: object
+      properties:
+        translationCode:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TranslationParameter'
+    MissingColumnInfo:
+      type: object
+      properties:
+        columnName:
+          type: string
+        tableName:
+          type: string
+        potentialMeantColumns:
+          type: array
+          items:
+            type: string
+    PqlCompilationExceptionTransport:
+      type: object
+      properties:
+        message:
+          type: string
+    PqlMultiResultTransport:
+      type: object
+      properties:
+        components:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PqlResultTransport'
+        selections:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcceleratorSelectionFilter'
+        tableStatistics:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcceleratorTableStatistics'
+        message:
+          type: string
+        errorMessages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageTransport'
+        pqlCompilationException:
+          $ref: '#/components/schemas/PqlCompilationExceptionTransport'
+        pqlSyntaxException:
+          $ref: '#/components/schemas/PqlSyntaxExceptionTransport'
+        pqlTokenManagerException:
+          $ref: '#/components/schemas/PqlTokenManagerExceptionTransport'
+        missingColumns:
+          type: object
+          additionalProperties:
+            uniqueItems: true
+            type: array
+            items:
+              $ref: '#/components/schemas/MissingColumnInfo'
+    PqlResultQueryStatistics:
+      type: object
+      properties:
+        queryExecutionTimeMs:
+          type: integer
+          format: int64
+        queryCompileTimeMs:
+          type: integer
+          format: int64
+        queryResultSizeInBytes:
+          type: integer
+          format: int32
+    PqlResultTransport:
+      type: object
+      properties:
+        message:
+          type: string
+        errorMessages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageTransport'
+        warnings:
+          type: array
+          items:
+            type: string
+        warningMessages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageTransport'
+        resultIndex:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableResult'
+        queryStatistics:
+          $ref: '#/components/schemas/PqlResultQueryStatistics'
+        loadVersion:
+          type: string
+        augmentationTableUsed:
+          type: boolean
+          deprecated: true
+    PqlSyntaxExceptionTransport:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+        beginColumn:
+          type: integer
+          format: int32
+        beginLine:
+          type: integer
+          format: int32
+        endColumn:
+          type: integer
+          format: int32
+        endLine:
+          type: integer
+          format: int32
+    PqlTokenManagerExceptionTransport:
+      type: object
+      properties:
+        message:
+          type: string
+    TableMetaData:
+      type: object
+      properties:
+        columnName:
+          type: string
+        columnType:
+          type: string
+        expressionLhs:
+          type: string
+        format:
+          type: string
+    TableResult:
+      type: object
+      properties:
+        name:
+          type: string
+        utcTimestamps:
+          type: boolean
+          writeOnly: true
+          deprecated: true
+        explainNodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExplainNode'
+        metaData:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableMetaData'
+        data:
+          type: array
+          items:
+            type: array
+            items:
+              type: object
+        stringHashes:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        rids:
+          type: array
+          deprecated: true
+          items:
+            type: integer
+            format: int32
+        ids:
+          type: array
+          deprecated: true
+          items:
+            type: array
+            items:
+              type: integer
+              format: int32
+        overallCount:
+          type: integer
+          format: int32
+        offset:
+          type: integer
+          format: int32
+        count:
+          type: integer
+          format: int32
+        exportChunks:
+          type: integer
+          format: int32
+        error:
+          type: boolean
+          deprecated: true
+        message:
+          type: string
+          deprecated: true
+        selected:
+          type: array
+          items:
+            type: array
+            items:
+              type: boolean
+        available:
+          type: array
+          items:
+            type: array
+            items:
+              type: boolean
+        hasOthers:
+          type: array
+          items:
+            type: boolean
+        others:
+          type: array
+          items:
+            type: object
+        warnings:
+          type: array
+          deprecated: true
+          items:
+            type: string
+        commonTableName:
+          type: string
+    TranslationParameter:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    DataModelVariableTransport:
+      type: object
+      properties:
+        key:
+          type: string
+        dataModelId:
+          type: string
+        description:
+          type: string
+    KnowledgeModelWithDataModelTransport:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        rootKey:
+          type: string
+        parentNodeId:
+          type: string
+        dataModelVariable:
+          $ref: '#/components/schemas/DataModelVariableTransport'
+    ProcessType:
+      type: string
+      enum:
+      - ACCOUNTS_PAYABLE
+      - GENERIC
+    ProcessTypeValidationRequest:
+      type: object
+      properties:
+        dataModelId:
+          type: string
+        processType:
+          $ref: '#/components/schemas/ProcessType'
+    ProcessTypeValidationResponse:
+      type: object
+      properties:
+        kpiToValidation:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ProcessWorkspaceKpiValidationMessage'
+    ProcessWorkspaceKpiValidationMessage:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/ProcessWorkspaceKpiValidationStatus'
+        pqlErrors:
+          type: string
+    ProcessWorkspaceKpiValidationStatus:
+      type: string
+      enum:
+      - VALID
+      - DIMENSION_ERROR
+      - COMPUTE_ERROR
+      - UNKNOWN_ERROR
+    CloneRequestTransport:
+      type: object
+      properties:
+        sourceTeams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamSlimTransport'
+    TeamSlimTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        domain:
+          type: string
+        cloneData:
+          type: boolean
+    CloneResultTransport:
+      type: object
+      properties:
+        clonedSourceTeams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamSlimTransport'
+        failedSourceTeams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamSlimTransport'
+    EraserLogMessageTransport:
+      type: object
+      properties:
+        teamId:
+          type: string
+        date:
+          type: string
+          format: date-time
+        message:
+          type: string
+    ExportingJobConfigurationTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        jobType:
+          $ref: '#/components/schemas/JobType'
+        title:
+          type: string
+        layerBasedQueryRequest:
+          $ref: '#/components/schemas/LayerBasedQueryRequest'
+        layerIdName:
+          type: string
+        draftLayer:
+          type: boolean
+        userId:
+          type: string
+    JobType:
+      type: string
+      enum:
+      - EXCEL
+      - CSV
+    ExportInitializationTransport:
+      type: object
+      properties:
+        orderId:
+          type: string
+    AutoMergeExecutionMode:
+      type: string
+      enum:
+      - DISTINCT
+      - NON_DISTINCT
+    CalendarDay:
+      type: string
+      enum:
+      - MONDAY
+      - TUESDAY
+      - WEDNESDAY
+      - THURSDAY
+      - FRIDAY
+      - SATURDAY
+      - SUNDAY
+    DataModelCalendarType:
+      type: string
+      enum:
+      - NONE
+      - CUSTOM
+      - FACTORY
+    DataModelColumnTransport:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/ColumnType'
+        primaryKey:
+          type: boolean
+    DataModelConfigurationTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        dataModelId:
+          type: string
+        activityTableId:
+          type: string
+        caseTableId:
+          type: string
+        defaultConfiguration:
+          type: boolean
+        caseIdColumn:
+          type: string
+        activityColumn:
+          type: string
+        timestampColumn:
+          type: string
+        sortingColumn:
+          type: string
+        endTimestampColumn:
+          type: string
+        costColumn:
+          type: string
+        userColumn:
+          type: string
+        useParallelProcess:
+          type: boolean
+        parallelProcessParentColumn:
+          type: string
+        parallelProcessChildColumn:
+          type: string
+    DataModelCustomCalendarEntryTransport:
+      required:
+      - day
+      - endTime
+      - startTime
+      type: object
+      properties:
+        id:
+          type: string
+        day:
+          $ref: '#/components/schemas/CalendarDay'
+        workingDay:
+          type: boolean
+        startTime:
+          type: integer
+          format: int32
+        endTime:
+          type: integer
+          format: int32
+    DataModelCustomCalendarTransport:
+      type: object
+      properties:
+        dataModelId:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataModelCustomCalendarEntryTransport'
+    DataModelFactoryCalendarTransport:
+      required:
+      - tableName
+      type: object
+      properties:
+        tableName:
+          type: string
+        dataSourceId:
+          type: string
+        dataModelId:
+          type: string
+    DataModelForeignKeyColumnTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        sourceColumnName:
+          type: string
+        targetColumnName:
+          type: string
+    DataModelForeignKeyTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        dataModelId:
+          type: string
+        sourceTableId:
+          type: string
+        targetTableId:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataModelForeignKeyColumnTransport'
+    DataModelTableTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        dataModelId:
+          type: string
+        dataSourceId:
+          type: string
+        name:
+          type: string
+        alias:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataModelColumnTransport'
+        useDirectStorage:
+          type: boolean
+        primaryKeys:
+          type: array
+          items:
+            type: string
+        aliasOrName:
+          type: string
+    DataModelTransport:
+      type: object
+      properties:
+        permissions:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        createDate:
+          type: string
+          format: date-time
+        changedDate:
+          type: string
+          format: date-time
+        configurationSkipped:
+          type: boolean
+        poolId:
+          type: string
+        unavailable:
+          type: boolean
+        editable:
+          type: boolean
+        creatorUserId:
+          type: string
+        tables:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataModelTableTransport'
+        foreignKeys:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataModelForeignKeyTransport'
+        processConfigurations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataModelConfigurationTransport'
+        dataModelCalendarType:
+          $ref: '#/components/schemas/DataModelCalendarType'
+        factoryCalendar:
+          $ref: '#/components/schemas/DataModelFactoryCalendarTransport'
+        customCalendar:
+          $ref: '#/components/schemas/DataModelCustomCalendarTransport'
+        originalId:
+          type: string
+        eventlogAutomergeEnabled:
+          type: boolean
+        autoMergeExecutionMode:
+          $ref: '#/components/schemas/AutoMergeExecutionMode'
+        objectId:
+          type: string
+        eventLogCount:
+          type: integer
+          format: int32
+    ComputeQueryTransport:
+      type: object
+      properties:
+        formula:
+          type: string
+        queryType:
+          $ref: '#/components/schemas/QueryType'
+        semanticModelContent:
+          type: string
+        rootKey:
+          type: string
+        semanticModelKey:
+          type: string
+    QueryType:
+      type: string
+      enum:
+      - FORMULA
+      - RAW
+    ComputeBatchQueryTransport:
+      type: object
+      properties:
+        queries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComputeQuery'
+        semanticModelContent:
+          type: string
+        rootKey:
+          type: string
+        semanticModelKey:
+          type: string
+    ComputeQuery:
+      type: object
+      properties:
+        id:
+          type: string
+        formula:
+          type: string
+    ComputeQueryResult:
+      type: object
+      properties:
+        id:
+          type: string
+        tableResult:
+          $ref: '#/components/schemas/TableResult'
+    BatchQueryTransport:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataCommandBatchTransport'
+        semanticModelContent:
+          type: string
+        rootKey:
+          type: string
+    NodeUsageTransport:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        rootKey:
+          type: string
+        name:
+          type: string
+        assetType:
+          type: string
+        sourceObjects:
+          uniqueItems: true
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceUsageMetadata'
+    LayerYamlTransport:
+      type: object
+      properties:
+        yaml:
+          type: string
+        withComments:
+          type: boolean
+    LayerBaseTransport:
+      type: object
+      properties:
+        key:
+          type: string
+        version:
+          type: string
+        appStoreBased:
+          type: boolean
+        name:
+          type: string
+        rootName:
+          type: string
+    Feature:
+      type: object
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+    ValidatedKnowledgeRepository:
+      type: object
+      properties:
+        knowledgeRepository:
+          $ref: '#/components/schemas/LayerTransport'
+        validity:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ProcessWorkspaceKpiValidationMessage'
+    PqlEntity:
+      type: object
+      properties:
+        table:
+          type: string
+        column:
+          type: string
+    ProcessWorkspacePqlEntityTransport:
+      type: object
+      properties:
+        processEntityMap:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              uniqueItems: true
+              type: array
+              items:
+                $ref: '#/components/schemas/PqlEntity'
+    ComputePoolTransport:
+      type: object
+      properties:
+        permissions:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        name:
+          type: string
+        connected:
+          type: boolean
+        objectId:
+          type: string
+    StudioComputeNodeDescriptor:
+      type: object
+      properties:
+        name:
+          type: string
+        dataModelId:
+          type: string
+        poolId:
+          type: string
+    StudioDataModelTransport:
+      type: object
+      properties:
+        node:
+          $ref: '#/components/schemas/StudioComputeNodeDescriptor'
+        loaded:
+          type: boolean
+        dataPool:
+          $ref: '#/components/schemas/ComputePoolTransport'
+    VariableAssignment:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: object
+        type:
+          type: string
+    SemanticLayerConsumer:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        href:
+          type: string
+        source:
+          type: string
+        count:
+          type: integer
+          format: int32
+    BusinessRecordMetadataPql:
+      type: object
+      properties:
+        pql:
+          type: string
+    DataModelColumn:
+      type: object
+      properties:
+        pql:
+          type: string
+        tableName:
+          type: string
+        columnName:
+          type: string
+    ValidationUniqueTransport:
+      type: object
+      properties:
+        unique:
+          type: boolean
+    JobStatus:
+      type: string
+      enum:
+      - RUNNING
+      - DONE
+      - READY
+      - UNDEFINED
+      - CANCELED
+      - NOTRUNNING
+      - DONEWITHERRORS
+    DocumentationItem:
+      type: object
+      properties:
+        title:
+          type: string
+        nameOnEditor:
+          type: string
+        tag:
+          type: string
+        description:
+          type: string
+        link:
+          type: string
+        required:
+          type: boolean
+        requiredFields:
+          type: array
+          items:
+            type: string
+        possibleValues:
+          type: array
+          items:
+            type: string
+        syntax:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentationItemSyntax'
+    DocumentationItemSyntax:
+      type: object
+      properties:
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/SnippetType'
+        example:
+          type: string
+        exampleAsNode:
+          $ref: '#/components/schemas/JsonNode'
+        snippet:
+          type: string
+        snippetAsNode:
+          $ref: '#/components/schemas/JsonNode'
+        hideUseSnippet:
+          type: boolean
+    DocumentationTransport:
+      type: object
+      properties:
+        documentationItemList:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentationItem'
+    SnippetType:
+      type: string
+      enum:
+      - TEXT
+      - JSON
+      - YAML
+    ComputeNodeDescriptor:
+      type: object
+      properties:
+        permissions:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+        dataModelId:
+          type: string
+        poolId:
+          type: string
+        objectId:
+          type: string
+    DataModelLoad:
+      type: object
+      properties:
+        loadStatus:
+          $ref: '#/components/schemas/DataModelLoadStatus'
+        liveDataModelAvailable:
+          type: boolean
+    DataModelLoadStatus:
+      type: string
+      enum:
+      - RUNNING
+      - SUCCESS
+      - ERROR
+      - WARNING
+      - LOST_CONNECTION
+      - CANCELED
+      - CANCELLING

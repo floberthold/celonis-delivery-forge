@@ -1,0 +1,633 @@
+{% extends "base.html" %}
+
+{% block title %}Snapshot Detail | Foundry{% endblock %}
+
+{% block content %}
+<h2>Snapshot Detail</h2>
+<p class="muted-note">
+    Client: <strong>{{ client.name }}</strong> ·
+    Status: <span class="badge badge-{{ snap.status.value }}">{{ snap.status.value }}</span> ·
+    Started: {{ snap.started_at or '—' }} ·
+    Finished: {{ snap.finished_at or '—' }}
+</p>
+
+{% if snap.error_message %}
+<div class="alert error">{{ snap.error_message }}</div>
+{% endif %}
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="section-header">
+    <h3>Clone Bundle</h3>
+    <div>
+        <form id="snapshot-export-form" method="post" action="/snapshots-ui/{{ client.id }}/{{ snap.id }}/export" style="display:inline">
+            <button type="submit" class="btn-primary">Generate Export + Docs</button>
+        </form>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/download">Download ZIP</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/delta" data-snapshot-popup-json="true" data-popup-title="Delta JSON">Delta JSON</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/replay-plan" data-snapshot-popup-json="true" data-popup-title="Replay Plan">Replay Plan</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/coverage" data-snapshot-popup-json="true" data-popup-title="Coverage JSON">Coverage JSON</a>
+        <a class="link-button" href="/snapshots-ui/{{ client.id }}/{{ snap.id }}/coverage/download">Download Coverage</a>
+    </div>
+</div>
+
+<div class="section-header">
+    <h3>Compare Snapshots</h3>
+    <form method="get" action="" style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
+        <input type="hidden" name="tab" value="{{ active_tab }}" />
+        <label for="compare_to">Baseline:</label>
+        <select id="compare_to" name="compare_to">
+            {% if compare_candidates %}
+                {% for candidate in compare_candidates %}
+                <option value="{{ candidate.id }}" {% if compare_to == (candidate.id|string) %}selected{% endif %}>
+                    {{ candidate.id }} · {{ candidate.created_at or '—' }}
+                </option>
+                {% endfor %}
+            {% else %}
+                <option value="">No baseline snapshots</option>
+            {% endif %}
+        </select>
+        {% if client_projects %}
+        <label for="project_id">Project:</label>
+        <select id="project_id" name="project_id">
+            {% for project in client_projects %}
+            <option value="{{ project.id }}" {% if selected_project_id == (project.id|string) %}selected{% endif %}>{{ project.name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <button type="submit" class="btn-small">Apply Compare</button>
+    </form>
+</div>
+
+{% if baseline_snapshot %}
+<p class="muted-note">Comparing current snapshot to baseline <span class="monospace">{{ baseline_snapshot.id }}</span>.</p>
+{% endif %}
+
+<table>
+    <thead>
+        <tr>
+            <th>Family</th>
+            <th>Added</th>
+            <th>Modified</th>
+            <th>Removed</th>
+            <th>Unchanged</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Packages</td>
+            <td>{{ snapshot_diff.packages.counts.added }}</td>
+            <td>{{ snapshot_diff.packages.counts.modified }}</td>
+            <td>{{ snapshot_diff.packages.counts.removed }}</td>
+            <td>{{ snapshot_diff.packages.counts.unchanged }}</td>
+        </tr>
+        <tr>
+            <td>Tasks / Assets</td>
+            <td>{{ snapshot_diff.tasks.counts.added }}</td>
+            <td>{{ snapshot_diff.tasks.counts.modified }}</td>
+            <td>{{ snapshot_diff.tasks.counts.removed }}</td>
+            <td>{{ snapshot_diff.tasks.counts.unchanged }}</td>
+        </tr>
+        <tr>
+            <td>Data Models</td>
+            <td>{{ snapshot_diff.data_models.counts.added }}</td>
+            <td>{{ snapshot_diff.data_models.counts.modified }}</td>
+            <td>{{ snapshot_diff.data_models.counts.removed }}</td>
+            <td>{{ snapshot_diff.data_models.counts.unchanged }}</td>
+        </tr>
+        <tr>
+            <td>Jobs</td>
+            <td>{{ snapshot_diff.jobs.counts.added }}</td>
+            <td>{{ snapshot_diff.jobs.counts.modified }}</td>
+            <td>{{ snapshot_diff.jobs.counts.removed }}</td>
+            <td>{{ snapshot_diff.jobs.counts.unchanged }}</td>
+        </tr>
+        <tr>
+            <td>Knowledge Models</td>
+            <td>{{ snapshot_diff.knowledge_models.counts.added }}</td>
+            <td>{{ snapshot_diff.knowledge_models.counts.modified }}</td>
+            <td>{{ snapshot_diff.knowledge_models.counts.removed }}</td>
+            <td>{{ snapshot_diff.knowledge_models.counts.unchanged }}</td>
+        </tr>
+    </tbody>
+</table>
+
+{% if snap.summary_json.get('export_bundle') %}
+<p class="muted-note">
+    Latest auto-generated docs: {{ snap.summary_json.get('export_bundle', {}).get('docs_path') }}
+</p>
+{% elif snap.summary_json.get('export_bundle_error') %}
+<p class="muted-note">Auto-export warning: {{ snap.summary_json.get('export_bundle_error') }}</p>
+{% endif %}
+
+<div class="tab-bar">
+    <a class="tab-link {% if active_tab == 'tasks' %}active{% endif %}"
+         href="?tab=tasks{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Tasks ({{ tasks|length }})</a>
+    <a class="tab-link {% if active_tab == 'packages' %}active{% endif %}"
+         href="?tab=packages{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Packages ({{ packages|length }})</a>
+    <a class="tab-link {% if active_tab == 'data_models' %}active{% endif %}"
+         href="?tab=data_models{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Data Models ({{ data_models|length }})</a>
+    <a class="tab-link {% if active_tab == 'jobs' %}active{% endif %}"
+         href="?tab=jobs{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Jobs ({{ jobs|length }})</a>
+    <a class="tab-link {% if active_tab == 'knowledge_models' %}active{% endif %}"
+         href="?tab=knowledge_models{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Knowledge Models ({{ knowledge_models|length }})</a>
+     <a class="tab-link {% if active_tab == 'hierarchy' %}active{% endif %}"
+         href="?tab=hierarchy{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Hierarchy</a>
+     <a class="tab-link {% if active_tab == 'diff' %}active{% endif %}"
+         href="?tab=diff{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Git-Style Diff</a>
+</div>
+
+{% if active_tab == 'tasks' %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Package</th>
+            <th>Change</th>
+            <th>PQL (preview)</th>
+            <th>Save</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks %}
+        <tr>
+            <td>{{ task.name }}</td>
+            <td>{{ task.task_type or '—' }}</td>
+            <td>{{ task.package_id or '—' }}</td>
+            <td><span class="badge badge-{{ task.change_type.value }}">{{ task.change_type.value }}</span></td>
+            <td class="monospace small">{{ (task.pql_formula or '')[:80] }}{% if task.pql_formula and task.pql_formula|length > 80 %}…{% endif %}</td>
+            <td>
+                <form method="post" action="/kpi-book-ui/{{ client.id }}/save-from-snapshot/{{ task.id }}">
+                    <button type="submit" class="btn-small">Save to KPI Book</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No tasks captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'packages' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>Key</th><th>Space</th><th>Change</th></tr>
+    </thead>
+    <tbody>
+        {% for pkg in packages %}
+        <tr>
+            <td>{{ pkg.name }}</td>
+            <td class="monospace">{{ pkg.key or '—' }}</td>
+            <td>{{ pkg.space_name or '—' }}</td>
+            <td><span class="badge badge-{{ pkg.change_type.value }}">{{ pkg.change_type.value }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">No packages captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'data_models' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>ID</th><th>Space</th></tr>
+    </thead>
+    <tbody>
+        {% for dm in data_models %}
+        <tr>
+            <td>{{ dm.name }}</td>
+            <td class="monospace">{{ dm.data_model_id }}</td>
+            <td>{{ dm.space_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No data models captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'jobs' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>Job ID</th><th>Pool</th></tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        <tr>
+            <td>{{ job.name }}</td>
+            <td class="monospace">{{ job.job_id }}</td>
+            <td>{{ job.pool_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No jobs captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'knowledge_models' %}
+<table>
+    <thead>
+        <tr><th>Name</th><th>ID</th><th>Space</th></tr>
+    </thead>
+    <tbody>
+        {% for km in knowledge_models %}
+        <tr>
+            <td>{{ km.name }}</td>
+            <td class="monospace">{{ km.km_id }}</td>
+            <td>{{ km.space_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">No knowledge models captured.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% elif active_tab == 'hierarchy' %}
+{% if not client_projects %}
+<div class="alert error">No project mapped to this client. Create a project first to enable app-level asset creation.</div>
+{% endif %}
+
+<div class="snapshot-hierarchy-filterbar">
+    <label>
+        Search
+        <input id="hierarchy-search" type="search" placeholder="Filter spaces, packages, assets, or types" />
+    </label>
+    <label class="snapshot-toggle-chip"><input id="toggle-spaces" type="checkbox" checked /> Spaces</label>
+    <label class="snapshot-toggle-chip"><input id="toggle-packages" type="checkbox" checked /> Packages</label>
+    <label class="snapshot-toggle-chip"><input id="toggle-assets" type="checkbox" checked /> Assets</label>
+    {% for asset_type in hierarchy_asset_types %}
+    <label class="snapshot-toggle-chip"><input class="asset-type-toggle" type="checkbox" value="{{ asset_type }}" checked /> {{ asset_type }}</label>
+    {% endfor %}
+</div>
+
+<p class="muted-note">Studio hierarchy mirrored from the snapshot: spaces contain packages, packages contain package assets such as KPIs, views, annotation builders, action flows, and similar objects.</p>
+
+{% for space in hierarchy_spaces %}
+<details class="snapshot-hierarchy-space" data-space-name="{{ space.space_name|lower }}" data-space-id="{{ space.space_id|lower }}" open>
+    <summary>
+        <strong>{{ space.space_name }}</strong>
+        <span class="muted-note">{{ space.package_count }} packages · {{ space.asset_count }} assets</span>
+    </summary>
+
+    {% if space.packages %}
+        {% for package_row in space.packages %}
+        <details class="snapshot-hierarchy-package" data-package-name="{{ package_row.package.name|lower }}" data-package-key="{{ (package_row.package.key or '')|lower }}" open>
+            <summary>
+                <strong>{{ package_row.package.name }}</strong>
+                <span class="muted-note">{{ package_row.asset_count }} assets</span>
+                <span class="badge badge-{{ package_row.package.change_type.value }}">{{ package_row.package.change_type.value }}</span>
+            </summary>
+
+            <div class="snapshot-hierarchy-package-meta">
+                <div class="muted-note">Key: <span class="monospace">{{ package_row.package.key or package_row.package.package_id }}</span></div>
+                {% if selected_project_id %}
+                <form method="post" action="/snapshots-ui/{{ client.id }}/{{ snap.id }}/create-app-asset">
+                    <input type="hidden" name="source_kind" value="package" />
+                    <input type="hidden" name="source_id" value="{{ package_row.package.package_id }}" />
+                    <input type="hidden" name="source_name" value="{{ package_row.package.name }}" />
+                    <input type="hidden" name="project_id" value="{{ selected_project_id }}" />
+                    <input type="hidden" name="tab" value="hierarchy" />
+                    <input type="hidden" name="compare_to" value="{{ compare_to }}" />
+                    <button type="submit" class="btn-small">Create App-Level Asset</button>
+                </form>
+                {% endif %}
+            </div>
+
+            {% if package_row.assets %}
+            <div class="snapshot-hierarchy-assets">
+                {% for asset in package_row.assets %}
+                <details class="snapshot-hierarchy-asset" data-asset-name="{{ asset.task.name|lower }}" data-asset-type="{{ asset.asset_type|lower }}" open>
+                    <summary>
+                        <strong>{{ asset.task.name }}</strong>
+                        <span class="muted-note">{{ asset.asset_type }}</span>
+                        <span class="badge badge-{{ asset.task.change_type.value }}">{{ asset.task.change_type.value }}</span>
+                    </summary>
+
+                    <div class="snapshot-hierarchy-asset-toolbar">
+                        <div class="muted-note">Task ID: <span class="monospace">{{ asset.task.task_id }}</span></div>
+                        {% if selected_project_id %}
+                        <form method="post" action="/snapshots-ui/{{ client.id }}/{{ snap.id }}/create-app-asset">
+                            <input type="hidden" name="source_kind" value="task" />
+                            <input type="hidden" name="source_id" value="{{ asset.task.task_id }}" />
+                            <input type="hidden" name="source_name" value="{{ asset.task.name }}" />
+                            <input type="hidden" name="project_id" value="{{ selected_project_id }}" />
+                            <input type="hidden" name="task_type" value="{{ asset.task.task_type or '' }}" />
+                            <input type="hidden" name="tab" value="hierarchy" />
+                            <input type="hidden" name="compare_to" value="{{ compare_to }}" />
+                            <button type="submit" class="btn-small">Create App-Level Asset</button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    {% if asset.linked_dependencies %}
+                    <p class="muted-note">Detected references:</p>
+                    <div class="snapshot-chip-list">
+                        {% for dep in asset.linked_dependencies %}
+                        <span class="snapshot-chip">{{ dep.family }} · {{ dep.name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <table>
+                        <thead>
+                            <tr><th>JSON Path</th><th>Type</th><th>Preview</th><th>Component Asset</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for component in asset.component_rows %}
+                            <tr>
+                                <td class="monospace small">{{ component.path }}</td>
+                                <td>{{ component.kind }}</td>
+                                <td class="monospace small">{{ component.preview }}</td>
+                                <td>
+                                    {% if selected_project_id %}
+                                    <form method="post" action="/snapshots-ui/{{ client.id }}/{{ snap.id }}/create-app-asset">
+                                        <input type="hidden" name="source_kind" value="component" />
+                                        <input type="hidden" name="source_id" value="{{ asset.task.task_id }}" />
+                                        <input type="hidden" name="source_name" value="{{ asset.task.name }} :: {{ component.path }}" />
+                                        <input type="hidden" name="component_path" value="{{ component.path }}" />
+                                        <input type="hidden" name="project_id" value="{{ selected_project_id }}" />
+                                        <input type="hidden" name="task_type" value="{{ asset.task.task_type or '' }}" />
+                                        <input type="hidden" name="tab" value="hierarchy" />
+                                        <input type="hidden" name="compare_to" value="{{ compare_to }}" />
+                                        <button type="submit" class="btn-small">Create</button>
+                                    </form>
+                                    {% else %}
+                                    <span class="muted-note">No project</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted-note">No assets captured for this package.</p>
+            {% endif %}
+        </details>
+        {% endfor %}
+    {% else %}
+    <p class="muted-note">No packages captured for this space.</p>
+    {% endif %}
+</details>
+{% else %}
+<p class="muted-note">No spaces captured.</p>
+{% endfor %}
+
+{% elif active_tab == 'diff' %}
+<h4>Git-Style Asset Diff</h4>
+<p class="muted-note">Green = added, yellow = modified, red = removed, gray = unchanged.</p>
+
+{% for family_name, family_data in snapshot_diff.items() %}
+<details style="margin:0.8rem 0; border:1px solid #d9dde5; border-radius:8px; padding:0.5rem 0.7rem;">
+    <summary>
+        <strong>{{ family_name }}</strong>
+        <span class="muted-note">A {{ family_data.counts.added }} · M {{ family_data.counts.modified }} · R {{ family_data.counts.removed }} · U {{ family_data.counts.unchanged }}</span>
+    </summary>
+    <table style="margin-top:0.6rem;">
+        <thead>
+            <tr><th>ID</th><th>Name</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            {% for row in family_data.entries %}
+            <tr>
+                <td class="monospace">{{ row.id }}</td>
+                <td>{{ row.name }}</td>
+                <td><span class="badge badge-{{ row.status }}">{{ row.status }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</details>
+{% endfor %}
+{% endif %}
+
+<div id="snapshot-result-modal" class="snapshot-result-modal is-hidden" aria-hidden="true">
+    <div class="snapshot-result-modal-backdrop" data-snapshot-modal-close="true"></div>
+    <div class="snapshot-result-modal-panel" role="dialog" aria-modal="true" aria-labelledby="snapshot-result-modal-title">
+        <div class="snapshot-result-modal-header">
+            <h4 id="snapshot-result-modal-title">Snapshot Result</h4>
+            <button type="button" class="snapshot-result-modal-close" data-snapshot-modal-close="true">Close</button>
+        </div>
+        <p id="snapshot-result-modal-hint" class="muted-note snapshot-result-modal-hint"></p>
+        <pre id="snapshot-result-modal-content" class="snapshot-result-modal-content"></pre>
+    </div>
+</div>
+
+<p><a href="/snapshots-ui/{{ client.id }}">← Back to Snapshot History</a></p>
+
+<script>
+(() => {
+    const modal = document.getElementById("snapshot-result-modal");
+    const modalTitle = document.getElementById("snapshot-result-modal-title");
+    const modalHint = document.getElementById("snapshot-result-modal-hint");
+    const modalContent = document.getElementById("snapshot-result-modal-content");
+    const exportForm = document.getElementById("snapshot-export-form");
+    const closeNodes = document.querySelectorAll("[data-snapshot-modal-close='true']");
+    const jsonActionLinks = document.querySelectorAll("[data-snapshot-popup-json='true']");
+    const hierarchySearch = document.getElementById("hierarchy-search");
+    const toggleSpaces = document.getElementById("toggle-spaces");
+    const togglePackages = document.getElementById("toggle-packages");
+    const toggleAssets = document.getElementById("toggle-assets");
+    const assetTypeToggles = document.querySelectorAll(".asset-type-toggle");
+    const bodyLockClass = "snapshot-result-modal-body-lock";
+
+    if (!modal || !modalTitle || !modalHint || !modalContent) {
+        return;
+    }
+
+    function openModal(title) {
+        modalTitle.textContent = title || "Snapshot Result";
+        modal.classList.remove("is-hidden");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add(bodyLockClass);
+    }
+
+    function closeModal() {
+        modal.classList.add("is-hidden");
+        modal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove(bodyLockClass);
+        modalHint.textContent = "";
+        modalHint.classList.remove("is-error", "is-success");
+    }
+
+    function setHint(text, tone) {
+        modalHint.textContent = text;
+        modalHint.classList.remove("is-error", "is-success");
+        if (tone === "error") {
+            modalHint.classList.add("is-error");
+        }
+        if (tone === "success") {
+            modalHint.classList.add("is-success");
+        }
+    }
+
+    function renderPayload(payload) {
+        modalContent.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    async function fetchJson(url, options = {}) {
+        const headers = new Headers(options.headers || {});
+        if (!headers.has("Accept")) {
+            headers.set("Accept", "application/json");
+        }
+        const response = await fetch(url, { ...options, headers });
+        const contentType = response.headers.get("content-type") || "";
+        let payload = null;
+
+        if (contentType.includes("application/json")) {
+            payload = await response.json();
+        } else {
+            const text = await response.text();
+            payload = {
+                error: "Unexpected non-JSON response",
+                status: response.status,
+                preview: text.slice(0, 800),
+            };
+        }
+
+        if (!response.ok) {
+            const error = new Error(`Request failed with status ${response.status}`);
+            error.payload = payload;
+            throw error;
+        }
+        return payload;
+    }
+
+    async function handleJsonAction(url, title) {
+        openModal(title);
+        setHint("Loading response...", "");
+        modalContent.textContent = "";
+        try {
+            const payload = await fetchJson(url);
+            renderPayload(payload);
+            setHint("Loaded successfully.", "success");
+        } catch (error) {
+            renderPayload(error.payload || { error: String(error) });
+            setHint("Unable to load response.", "error");
+        }
+    }
+
+    jsonActionLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            const title = link.getAttribute("data-popup-title") || link.textContent || "Snapshot Result";
+            handleJsonAction(link.getAttribute("href"), title.trim());
+        });
+    });
+
+    if (exportForm) {
+        exportForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            openModal("Generate Export + Docs");
+            setHint("Generating export bundle...", "");
+            modalContent.textContent = "";
+
+            try {
+                const payload = await fetchJson(`${exportForm.action}?response_mode=json`, {
+                    method: "POST",
+                    body: new FormData(exportForm),
+                    headers: {
+                        "X-Forge-Response-Mode": "json",
+                    },
+                });
+                renderPayload(payload);
+                if (payload.ok) {
+                    setHint(payload.message || "Export completed.", "success");
+                } else {
+                    setHint(payload.error || "Export failed.", "error");
+                }
+            } catch (error) {
+                renderPayload(error.payload || { error: String(error) });
+                setHint("Export failed.", "error");
+            }
+        });
+    }
+
+    closeNodes.forEach((node) => {
+        node.addEventListener("click", () => {
+            closeModal();
+        });
+    });
+
+    window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.classList.contains("is-hidden")) {
+            closeModal();
+        }
+    });
+
+    function applyHierarchyFilters() {
+        const searchValue = (hierarchySearch?.value || "").trim().toLowerCase();
+        const showSpaces = toggleSpaces ? toggleSpaces.checked : true;
+        const showPackages = togglePackages ? togglePackages.checked : true;
+        const showAssets = toggleAssets ? toggleAssets.checked : true;
+        const enabledAssetTypes = new Set(
+            Array.from(assetTypeToggles)
+                .filter((node) => node.checked)
+                .map((node) => (node.value || "").toLowerCase())
+        );
+
+        document.querySelectorAll(".snapshot-hierarchy-space").forEach((spaceNode) => {
+            let spaceVisible = showSpaces;
+            const packages = spaceNode.querySelectorAll(":scope > .snapshot-hierarchy-package, :scope .snapshot-hierarchy-package");
+
+            packages.forEach((packageNode) => {
+                let packageVisible = showPackages;
+                const packageText = [
+                    packageNode.getAttribute("data-package-name") || "",
+                    packageNode.getAttribute("data-package-key") || "",
+                ].join(" ");
+                const assets = packageNode.querySelectorAll(":scope .snapshot-hierarchy-asset");
+                let visibleAssets = 0;
+
+                assets.forEach((assetNode) => {
+                    const assetType = (assetNode.getAttribute("data-asset-type") || "").toLowerCase();
+                    const assetText = [
+                        assetNode.getAttribute("data-asset-name") || "",
+                        assetType,
+                        assetNode.textContent || "",
+                    ].join(" ").toLowerCase();
+                    const matchesSearch = !searchValue || assetText.includes(searchValue) || packageText.toLowerCase().includes(searchValue);
+                    const matchesType = enabledAssetTypes.size === 0 || enabledAssetTypes.has(assetType);
+                    const visible = showAssets && matchesSearch && matchesType;
+                    assetNode.hidden = !visible;
+                    if (visible) {
+                        visibleAssets += 1;
+                    }
+                });
+
+                const packageMatches = !searchValue || packageText.toLowerCase().includes(searchValue) || visibleAssets > 0;
+                packageVisible = packageVisible && packageMatches && (visibleAssets > 0 || !showAssets);
+                packageNode.hidden = !packageVisible;
+                if (packageVisible) {
+                    spaceVisible = true;
+                }
+            });
+
+            const spaceText = [
+                spaceNode.getAttribute("data-space-name") || "",
+                spaceNode.getAttribute("data-space-id") || "",
+            ].join(" ").toLowerCase();
+            const spaceMatches = !searchValue || spaceText.includes(searchValue) || Array.from(spaceNode.querySelectorAll(".snapshot-hierarchy-package")).some((node) => !node.hidden);
+            spaceVisible = showSpaces && spaceVisible && spaceMatches;
+            spaceNode.hidden = !spaceVisible;
+        });
+    }
+
+    [hierarchySearch, toggleSpaces, togglePackages, toggleAssets].forEach((node) => {
+        if (node) {
+            node.addEventListener("input", applyHierarchyFilters);
+            node.addEventListener("change", applyHierarchyFilters);
+        }
+    });
+    assetTypeToggles.forEach((node) => node.addEventListener("change", applyHierarchyFilters));
+    applyHierarchyFilters();
+})();
+</script>
+{% endblock %}

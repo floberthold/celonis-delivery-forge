@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Guardian sprite" shape-rendering="crispEdges">
+  <rect x="9" y="2" width="14" height="3" fill="#284a77"/>
+  <rect x="12" y="0" width="8" height="2" fill="#1f3e67"/>
+
+  <rect x="10" y="5" width="12" height="8" fill="#e6b184"/>
+  <rect x="11" y="6" width="10" height="6" fill="#f2c39c"/>
+  <rect x="12" y="8" width="2" height="2" fill="#222"/>
+  <rect x="18" y="8" width="2" height="2" fill="#222"/>
+  <rect x="14" y="11" width="4" height="1" fill="#905c3f"/>
+
+  <rect x="9" y="13" width="14" height="10" fill="#2f6298"/>
+  <rect x="7" y="14" width="2" height="8" fill="#3f79b3"/>
+  <rect x="23" y="14" width="2" height="8" fill="#3f79b3"/>
+  <rect x="8" y="23" width="16" height="2" fill="#264f7b"/>
+
+  <rect x="24" y="13" width="4" height="6" fill="#c5d7ef"/>
+  <rect x="25" y="14" width="2" height="4" fill="#ecf5ff"/>
+
+  <rect x="11" y="23" width="4" height="7" fill="#203f67"/>
+  <rect x="17" y="23" width="4" height="7" fill="#203f67"/>
+
+  <rect x="8" y="30" width="7" height="1" fill="#203655" opacity="0.32"/>
+  <rect x="17" y="30" width="7" height="1" fill="#203655" opacity="0.32"/>
+</svg>

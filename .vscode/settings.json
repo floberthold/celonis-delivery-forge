@@ -1,0 +1,53 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "C:/Users/FlorianBerthold/AppData/Local/Microsoft/WindowsApps/python3.12.exe": true,
+        "/^PowerShell -ExecutionPolicy Bypass -File \\.\\\\scripts\\\\build_standalone\\.ps1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "pytest": true,
+        "/^python -m pytest -q$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"import foundry\\.api\\.main as app_main; print\\('import-ok'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        ".\\.venv\\Scripts\\python": true,
+        "c:/coding/celonis-delivery-forge/.venv/Scripts/python.exe": true,
+        "/^python -m compileall src/foundry$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "Rename-Item": true,
+        "ForEach-Object": true,
+        "&": true,
+        "/^python -m compileall src/foundry/api/routes/use_cases\\.py src/foundry/services/use_case_views\\.py src/foundry/schemas\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "Test-Path": true,
+        ".venv\\Scripts\\python.exe": true,
+        ".\\scripts\\list_agent_runs.ps1": true,
+        ".\\scripts\\run_forum_weekly_intake.ps1": true,
+        "/^\\$env:FORGE_DATABASE_URL='sqlite:///\\./tmp_quests_api_test\\.db'; python -m pytest tests/test_quests_api\\.py -q$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -m mkdocs build --strict$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git -C \"Code": true,
+        ".\\.venv\\Scripts\\Activate.ps1": true,
+        "/^\\.\\\\\\.venv\\\\Scripts\\\\Activate\\.ps1 ; python -m pytest tests/test_celonis_ui_route_presence\\.py -v --tb=short$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^\\.\\\\\\.venv\\\\Scripts\\\\Activate\\.ps1 ; python -m pytest tests/test_celonis_ui_route_presence\\.py -q$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

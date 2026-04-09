@@ -1,0 +1,31 @@
+server:
+  port: 19080  # use separate port for testing to avoid conflicts
+
+celonis:
+  services:
+    team:
+      url: http://localhost:8080
+    integration:
+      url: http://localhost:8082/integration
+    package-manager:
+      url: http://localhost:8102/package-manager
+    semantic-layer:
+      url: http://localhost:8075/semantic-layer
+    machine-learning:
+      url: http://localhost:8099/machine-learning
+    backend:
+      url: http://localhost:8090/backend
+
+python_core:
+  data_source:
+    url: postgresql+asyncpg://localhost:5432/
+  vector:
+    config:
+      timeout: 100  # increase timeout for CI tests
+  caching_enabled: false
+
+security:
+  jwt:
+    secret: secret
+
+realm: dev

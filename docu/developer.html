@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Developer Documentation | Foundry{% endblock %}
+
+{% block content %}
+<h2>Developer Documentation</h2>
+<p class="muted-note">Technical guide for extending Celonis Delivery Forge safely and consistently.</p>
+
+<section class="panel">
+    <h3>Quick Navigation</h3>
+    <p>
+        <a class="link-button" href="#architecture">Architecture</a>
+        <a class="link-button" href="#routes">Routes</a>
+        <a class="link-button" href="#authscope">Auth Scope</a>
+        <a class="link-button" href="#detailed-guides">Detailed Guides</a>
+        <a class="link-button" href="#dev">Dev Loop</a>
+        <a class="link-button" href="#adminsetup">Admin Setup</a>
+        <a class="link-button" href="#integrations">Integrations</a>
+        <a class="link-button" href="#docsystem">Doc System</a>
+        <a class="link-button" href="#packaging">Packaging</a>
+        <a class="link-button" href="#quality">Quality</a>
+    </p>
+</section>
+
+<section class="panel" id="detailed-guides">
+    <h3>Detailed Step-by-Step Guides</h3>
+    <div class="cards">
+        <div class="card">
+            <h3>Admin Full Setup</h3>
+            <p>Provision all environment settings and verify complete platform functionality.</p>
+            <p><a class="link-button" href="/docu/guide-admin-setup.html">Open Guide</a></p>
+        </div>
+        <div class="card">
+            <h3>Account Lifecycle Flows</h3>
+            <p>Validate register, verify-email, forgot-password, and account management paths.</p>
+            <p><a class="link-button" href="/docu/guide-account-flows.html">Open Guide</a></p>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="architecture">
+    <h3>1) Runtime Architecture</h3>
+    <img src="/static/docs/developer-architecture.svg" alt="Developer architecture overview" width="100%">
+    <p class="muted-note">The docs pages are rendered by UI routes and loaded from root <code>docu/</code> through Jinja loader fallback logic.</p>
+</section>
+
+<section class="panel" id="routes">
+    <h3>2) Route &amp; Template Layers</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>API + UI Routing</h3>
+            <ul>
+                <li><code>foundry.api.main</code> mounts static files and includes all route modules.</li>
+                <li><code>foundry.api.routes.ui</code> serves dashboard/topic pages and docs routes.</li>
+                <li>REST APIs stay in dedicated modules under <code>src/foundry/api/routes/</code>.</li>
+                <li>Recent route areas include quests, todos, files, KPIs, snapshots, KPI Book, GitLab, ingest, forum insights, and use cases.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Template Locations</h3>
+            <ul>
+                <li>Core UI templates: <code>src/foundry/ui/templates/</code>.</li>
+                <li>Documentation source: root <code>docu/</code>.</li>
+                <li>Shared shell and nav: <code>base.html</code>.</li>
+                <li>Specialized UI templates now include orchestration, todos, files, KPIs, snapshots, KPI Book, and client health pages.</li>
+            </ul>
+        </div>
+    </div>
+    <svg viewBox="0 0 760 220" width="100%" height="220" role="img" aria-label="Template resolution flow">
+        <rect x="20" y="40" width="170" height="64" rx="10" fill="#f1f4fa" stroke="#2e4a82" />
+        <text x="105" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Request /docu/*</text>
+        <rect x="250" y="40" width="230" height="64" rx="10" fill="#f1f4fa" stroke="#2e4a82" />
+        <text x="365" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">ui.py Jinja ChoiceLoader</text>
+        <rect x="540" y="40" width="190" height="64" rx="10" fill="#e8f8ee" stroke="#19633a" />
+        <text x="635" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Rendered HTML</text>
+        <line x1="190" y1="72" x2="250" y2="72" stroke="#2e4a82" stroke-width="2" />
+        <line x1="480" y1="72" x2="540" y2="72" stroke="#2e4a82" stroke-width="2" />
+        <polygon points="246,68 250,72 246,76" fill="#2e4a82" />
+        <polygon points="536,68 540,72 536,76" fill="#2e4a82" />
+    </svg>
+</section>
+
+<section class="panel" id="authscope">
+    <h3>3) Auth, Session, and Organization Scope</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>Browser Session Flow</h3>
+            <ul>
+                <li><code>/login</code> authenticates by email/password and sets the auth cookie.</li>
+                <li>UI browser GET requests that hit a 401 are redirected back to login with <code>next_path</code>.</li>
+                <li><code>/logout</code> clears the auth cookie and redirects to login.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Organization Selection</h3>
+            <ul>
+                <li>UI login auto-selects an organization from memberships, preferring owner/admin roles.</li>
+                <li>Most route handlers now depend on <code>get_current_actor_with_org</code>.</li>
+                <li>Missing data in UI often indicates org scoping, not absent records.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="dev">
+    <h3>4) Daily Development Loop</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Step</th>
+                <th>Command / Action</th>
+                <th>Output</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Install</td>
+                <td><code>python -m pip install -e .</code></td>
+                <td>Editable runtime with local sources</td>
+            </tr>
+            <tr>
+                <td>Run API</td>
+                <td><code>uvicorn foundry.api.main:app --reload</code></td>
+                <td>Interactive UI + Swagger</td>
+            </tr>
+            <tr>
+                <td>Verify docs</td>
+                <td>Open <a href="/docu/user.html">User Docs</a> and <a href="/docu/developer.html">Developer Docs</a></td>
+                <td>Layout, diagrams, links, and content checks</td>
+            </tr>
+            <tr>
+                <td>Smoke runtime</td>
+                <td>Check <code>/health</code> for env, backend, and startup mode details</td>
+                <td>Confirms startup behavior and database mode</td>
+            </tr>
+            <tr>
+                <td>Package test</td>
+                <td><code>.\scripts\build_standalone.ps1</code></td>
+                <td>Desktop executable with bundled doc source</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="panel" id="adminsetup">
+    <h3>5) Admin Setup Runbook</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Area</th>
+                <th>Required Variables</th>
+                <th>Why It Matters</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Core App</td>
+                <td><code>FORGE_ENV</code>, <code>FORGE_JWT_SECRET</code>, <code>FORGE_PUBLIC_BASE_URL</code></td>
+                <td>Controls runtime mode, token security, and email link URLs.</td>
+            </tr>
+            <tr>
+                <td>Database</td>
+                <td><code>FORGE_DATABASE_URL</code>, optional fallback controls</td>
+                <td>Persists users, orgs, templates, workflows, and audit data.</td>
+            </tr>
+            <tr>
+                <td>Email Auth Flows</td>
+                <td><code>FORGE_SMTP_HOST</code>, <code>FORGE_SMTP_FROM_EMAIL</code>, SMTP auth/tls vars</td>
+                <td>Required for account verification and password reset emails.</td>
+            </tr>
+            <tr>
+                <td>Integrations</td>
+                <td><code>FORGE_CELONIS_API_TOKEN</code>, <code>FORGE_GITLAB_BASE_URL</code>, <code>FORGE_GITLAB_API_TOKEN</code></td>
+                <td>Enables live companion actions and GitLab workflows.</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="muted-note">After setting variables, restart the app and validate <code>/health</code>, then smoke-test <code>/register</code>, <code>/forgot-password</code>, and <code>/dashboard</code>.</p>
+</section>
+
+<section class="panel" id="integrations">
+    <h3>6) Integration and Feature Modules</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Module Area</th>
+                <th>Purpose</th>
+                <th>Key Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Quests / Orchestration</td>
+                <td>Quest lifecycle, objectives, assignments, reprioritization, pause/replace flows</td>
+                <td>Primary UI surface is <code>/orchestration-ui</code>.</td>
+            </tr>
+            <tr>
+                <td>Todos / Files / KPIs</td>
+                <td>Execution tracking, artifact handling, KPI lifecycle and formula management</td>
+                <td>UI pages exist and should be documented alongside API changes.</td>
+            </tr>
+            <tr>
+                <td>Snapshots / KPI Book</td>
+                <td>Client-state capture, export/delta/replay plans, reusable KPI knowledge assets</td>
+                <td>Client-scoped routes and download endpoints require careful access and packaging checks.</td>
+            </tr>
+            <tr>
+                <td>Celonis / GitLab / Ingest</td>
+                <td>External integration workflows, diagnostics, pipeline hooks, sync tracking</td>
+                <td>Treat these as side-effecting integration boundaries with additional validation needs.</td>
+            </tr>
+            <tr>
+                <td>Forum Insights / Use Cases</td>
+                <td>Knowledge capture, lifecycle tracking, and reusable delivery patterns</td>
+                <td>These are part of the domain surface even when not central to the top nav.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="panel" id="docsystem">
+    <h3>7) Documentation System</h3>
+    <div class="cards">
+        <div class="card">
+            <h3>Source of truth</h3>
+            <p>Keep long-form docs in root <code>docu/</code> as Jinja pages extending <code>base.html</code>.</p>
+        </div>
+        <div class="card">
+            <h3>Visual assets</h3>
+            <p>Store reusable graphics in <code>/static/docs</code>; use inline SVG for page-specific diagrams.</p>
+        </div>
+        <div class="card">
+            <h3>Navigation</h3>
+            <p>Expose docs in top navigation to reduce onboarding friction for users and contributors.</p>
+        </div>
+        <div class="card">
+            <h3>Shared filters</h3>
+            <p>Preserve Jinja filters such as <code>clickable_url</code> and <code>normalized_url</code> because multiple legacy and current templates depend on them.</p>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="packaging">
+    <h3>8) Packaging and Runtime Expectations</h3>
+    <ul>
+        <li>Docker copies <code>src/</code> and root <code>docu/</code> into container runtime.</li>
+        <li>Standalone script includes <code>docu</code> via PyInstaller <code>--add-data</code>.</li>
+        <li>Spec file mirrors this through <code>datas=[('docu', 'docu')]</code>.</li>
+        <li><code>/health</code> exposes environment, database backend, and startup mode.</li>
+        <li>Database startup can fall back from configured Postgres to local SQLite in local/dev environments.</li>
+        <li>Desktop mode defaults to a LocalAppData SQLite database and writes logs to <code>%LOCALAPPDATA%/CelonisDeliveryForge/desktop.log</code>.</li>
+    </ul>
+    <div class="alert success">When adding new docs pages, use the same pattern and route them explicitly in <code>ui.py</code>.</div>
+</section>
+
+<section class="panel" id="quality">
+    <h3>9) Quality Checklist</h3>
+    <ul>
+        <li>Routes return 200 for docs pages in local and packaged runs.</li>
+        <li>Graphics render without external dependencies.</li>
+        <li>Links in docs target valid routes only.</li>
+        <li>No regressions in existing topic pages and dashboard flows.</li>
+        <li>Verify login redirect behavior and authenticated UI access after auth/session changes.</li>
+        <li>Recheck health output and startup mode after database or deployment changes.</li>
+    </ul>
+</section>
+
+<section class="panel">
+    <h3>10) Fast Links</h3>
+    <p>
+        <a class="link-button" href="/docs">Open Swagger</a>
+        <a class="link-button" href="/dashboard">Open Dashboard</a>
+        <a class="link-button" href="/orchestration-ui">Open Orchestration</a>
+        <a class="link-button" href="/todos-ui">Open Todos</a>
+        <a class="link-button" href="/templates-ui">Open Templates</a>
+    </p>
+</section>
+{% endblock %}

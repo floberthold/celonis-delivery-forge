@@ -1,0 +1,10 @@
+Subject Name,Subject Type,Subject Id,Groups,Role,Service,Object Name,Object Type,Object ID,Actions
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Studio,'--,'--,'--,[Export]
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Studio,Value Monitoring,SPACE,161e9f9c-02ab-45ec-8c90-fca7d82397c3,[Use packages]
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Studio,Inventory Management,SPACE,760ba652-3476-4437-928d-553c5a3961cd,[Use packages]
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Studio,Project: Celonis AI Demand Forecast App,SPACE,62c93988-05ef-44e1-ab2e-6584bcdea45c,[Use packages]
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Compute Live,'--,'--,'--,[All mutation APIs - Use]
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Data Integration,'--,'--,'--,"[All data pools - Read, All data models - Use]"
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Machine Learning,'--,'--,'--,[All apps - Read configuration]
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Admin & Settings,'--,'--,'--,[ANALYST]
+Florian python app,application,7640693b-3ce9-4061-b685-ff14d2b6c824,'--,ANALYST,Action Engine,'--,'--,'--,[All projects - Read]

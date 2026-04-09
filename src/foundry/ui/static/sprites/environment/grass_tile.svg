@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" role="img" aria-label="Grass tile">
+  <rect width="16" height="16" fill="#a5cd7d"/>
+  <rect x="0" y="0" width="8" height="8" fill="#b4d98c"/>
+  <rect x="8" y="8" width="8" height="8" fill="#b4d98c"/>
+  <rect x="4" y="3" width="2" height="2" fill="#7ea85e"/>
+  <rect x="10" y="10" width="2" height="2" fill="#7ea85e"/>
+</svg>

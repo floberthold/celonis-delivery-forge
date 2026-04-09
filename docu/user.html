@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}User Documentation | Foundry{% endblock %}
+
+{% block content %}
+<h2>User Documentation</h2>
+<p class="muted-note">Practical guide for project members, reviewers, and delivery leads using Celonis Delivery Forge.</p>
+
+<div class="alert success">Tip: Open this page side-by-side with <a href="/dashboard">Dashboard</a> and execute each step in sequence.</div>
+
+<section class="panel">
+    <h3>Quick Navigation</h3>
+    <p>
+        <a class="link-button" href="#onboarding">Onboarding</a>
+        <a class="link-button" href="#dashboard-actions">Dashboard Actions</a>
+        <a class="link-button" href="#workflow">Workflow</a>
+        <a class="link-button" href="#specialized-workspaces">Workspaces</a>
+        <a class="link-button" href="#special-tools">Special Tools</a>
+        <a class="link-button" href="#detailed-guides">Detailed Guides</a>
+        <a class="link-button" href="#governance">Governance</a>
+        <a class="link-button" href="#roles">Roles</a>
+        <a class="link-button" href="#pages">Page Map</a>
+        <a class="link-button" href="#troubleshooting">Troubleshooting</a>
+    </p>
+</section>
+
+<section class="panel" id="detailed-guides">
+    <h3>Detailed Step-by-Step Guides</h3>
+    <div class="cards">
+        <div class="card">
+            <h3>Account Registration &amp; Password Reset</h3>
+            <p>Follow a full registration, email verification, and password reset runbook.</p>
+            <p><a class="link-button" href="/docu/guide-account-flows.html">Open Guide</a></p>
+        </div>
+        <div class="card">
+            <h3>Delivery Walkthrough</h3>
+            <p>Execute an end-to-end path from onboarding to reviewed asset delivery.</p>
+            <p><a class="link-button" href="/docu/guide-delivery-walkthrough.html">Open Guide</a></p>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="onboarding">
+    <h3>1) Onboarding Checklist</h3>
+    <div class="grid">
+        <div>
+            <ol>
+                <li>Open <a href="/login">Login</a> and authenticate with your local account credentials.</li>
+                <li>If you are not a member of any organization yet, ask an owner or admin to grant access before continuing.</li>
+                <li>After login, the app redirects you to your requested page or back to <a href="/dashboard">Dashboard</a>.</li>
+                <li>Confirm your account appears on <a href="/people-ui">People</a> with the expected role and project membership coverage.</li>
+                <li>Confirm at least two active members are assigned to support 4-eyes approvals.</li>
+            </ol>
+        </div>
+        <div>
+            <svg viewBox="0 0 680 220" width="100%" height="220" role="img" aria-label="Onboarding flow diagram">
+                <rect x="20" y="40" width="130" height="64" rx="10" fill="#f1f4fa" stroke="#2e4a82" />
+                <text x="85" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Login</text>
+                <rect x="190" y="40" width="130" height="64" rx="10" fill="#f1f4fa" stroke="#2e4a82" />
+                <text x="255" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Join Project</text>
+                <rect x="360" y="40" width="130" height="64" rx="10" fill="#f1f4fa" stroke="#2e4a82" />
+                <text x="425" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Create Asset</text>
+                <rect x="530" y="40" width="130" height="64" rx="10" fill="#e8f8ee" stroke="#19633a" />
+                <text x="595" y="78" text-anchor="middle" fill="#1b2230" font-size="14" font-family="Segoe UI">Submit Review</text>
+                <line x1="150" y1="72" x2="190" y2="72" stroke="#2e4a82" stroke-width="2" />
+                <line x1="320" y1="72" x2="360" y2="72" stroke="#2e4a82" stroke-width="2" />
+                <line x1="490" y1="72" x2="530" y2="72" stroke="#2e4a82" stroke-width="2" />
+                <polygon points="186,68 190,72 186,76" fill="#2e4a82" />
+                <polygon points="356,68 360,72 356,76" fill="#2e4a82" />
+                <polygon points="526,68 530,72 526,76" fill="#2e4a82" />
+                <text x="24" y="150" fill="#57627a" font-size="13" font-family="Segoe UI">4-eyes control becomes active at review stage.</text>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="dashboard-actions">
+    <h3>2) Dashboard Action Center</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>Create From Dashboard</h3>
+            <ul>
+                <li>Create clients, people, projects, memberships, assets, and review requests directly from dashboard cards.</li>
+                <li>Use dashboard forms when you need a fast setup path without switching between topic pages.</li>
+                <li>Review success and error banners after each action; they usually indicate validation or governance gaps.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Celonis Companion Actions</h3>
+            <ul>
+                <li>Configure a tenant connection for a client.</li>
+                <li>Run preflight checks before delivery operations.</li>
+                <li>Trigger extract and import actions to test or execute integration calls.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="workflow">
+    <h3>3) Delivery Workflow</h3>
+    <img src="/static/docs/user-workflow.svg" alt="User workflow lifecycle" width="100%">
+    <p class="muted-note">Use this flow as the default path for consulting delivery work from planning to closure.</p>
+</section>
+
+<section class="panel" id="specialized-workspaces">
+    <h3>4) Specialized Workspaces</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Workspace</th>
+                <th>Use It For</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><a href="/orchestration-ui">Orchestration</a></td>
+                <td>Manage quests, objectives, assignments, and prioritization for structured delivery programs.</td>
+            </tr>
+            <tr>
+                <td><a href="/todos-ui">Todos</a></td>
+                <td>Track implementation tasks, assignees, supporting links, tags, comments, and board/list views.</td>
+            </tr>
+            <tr>
+                <td><a href="/files-ui">Files</a></td>
+                <td>Upload or link delivery files and maintain viewer-friendly references for project artifacts.</td>
+            </tr>
+            <tr>
+                <td><a href="/kpis-ui">KPIs</a></td>
+                <td>Manage KPI definitions, formula versions, status, and ownership.</td>
+            </tr>
+            <tr>
+                <td><a href="/client-health-ui">Client Health</a></td>
+                <td>Review health indicators and operational status across the client portfolio.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="panel" id="special-tools">
+    <h3>5) Snapshot and Knowledge Tools</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>Snapshots</h3>
+            <p>Use snapshot pages to capture client state, inspect snapshot details, and download exports, deltas, or replay plans.</p>
+            <p class="muted-note">Snapshot routes are client-specific and usually opened from client-centered workflows.</p>
+        </div>
+        <div class="panel">
+            <h3>KPI Book</h3>
+            <p>KPI Book stores reusable formulas, task templates, and client-specific KPI references for repeatable work.</p>
+            <p class="muted-note">Treat it as a knowledge base for metrics design and reuse.</p>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="governance">
+    <h3>6) Governance Rules You Must Respect</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Rule</th>
+                <th>What It Means in Daily Work</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Author and reviewer must differ</td>
+                <td>Never assign yourself as reviewer for your own change request.</td>
+            </tr>
+            <tr>
+                <td>At least two active project memberships</td>
+                <td>Projects without dual control cannot be moved to active.</td>
+            </tr>
+            <tr>
+                <td>Only assigned members can submit/review</td>
+                <td>Ensure asset and project membership coverage before submission.</td>
+            </tr>
+            <tr>
+                <td>Timeline audit entries are mandatory</td>
+                <td>Track events in <a href="/timeline-ui">Timeline</a> for traceability and client governance checks.</td>
+            </tr>
+            <tr>
+                <td>Organization access controls visibility</td>
+                <td>Most pages and actions are scoped to your active organization, so missing data often means missing org membership rather than missing records.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="panel" id="roles">
+    <h3>7) Recommended Role Split</h3>
+    <div class="cards">
+        <div class="card">
+            <h3>Author</h3>
+            <p>Creates or updates assets and submits changes for review with clear summary notes.</p>
+        </div>
+        <div class="card">
+            <h3>Reviewer</h3>
+            <p>Validates quality and governance; decides approve or request changes.</p>
+        </div>
+        <div class="card">
+            <h3>Delivery Lead</h3>
+            <p>Maintains membership setup, release readiness, and timeline quality.</p>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="pages">
+    <h3>8) Page Map</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>Create &amp; Manage</h3>
+            <ul>
+                <li><a href="/clients-ui">Clients</a> — client registry, tenant URLs, sensitivity levels</li>
+                <li><a href="/projects-ui">Projects</a> — status and memberships</li>
+                <li><a href="/assets-ui">Assets</a> — type, ownership, status</li>
+                <li><a href="/files-ui">Files</a> — delivery attachments and linked artifacts</li>
+                <li><a href="/todos-ui">Todos</a> — execution tracking and coordination</li>
+                <li><a href="/kpis-ui">KPIs</a> — formulas, ownership, and lifecycle</li>
+                <li><a href="/orchestration-ui">Orchestration</a> — quests, objectives, assignments</li>
+                <li><a href="/templates-ui">Templates</a> — reusable delivery accelerators</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Review &amp; Audit</h3>
+            <ul>
+                <li><a href="/reviews-ui">Reviews</a> — submit and decide changes</li>
+                <li><a href="/timeline-ui">Timeline</a> — event-level audit history</li>
+                <li><a href="/client-health-ui">Client Health</a> — operational monitoring</li>
+                <li><a href="/tenant-ui">Tenant</a> — browser workspace navigation</li>
+                <li>Client, project, and person overview pages provide deeper drill-down for linked work.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="panel" id="troubleshooting">
+    <h3>9) Troubleshooting</h3>
+    <div class="alert error">If a submit or decision fails, first check membership assignment and role split (author ≠ reviewer).</div>
+    <ul>
+        <li>Browser redirects to login: your session expired or the requested page requires authentication.</li>
+        <li>Login succeeds but no data appears: verify that your account belongs to the active organization.</li>
+        <li>Missing project in selection lists: create client first, then project.</li>
+        <li>Review not allowed: verify two active project memberships.</li>
+        <li>Asset update blocked by process: inspect current review status and timeline events.</li>
+        <li>Celonis action fails: verify tenant connection card and token settings on Dashboard.</li>
+        <li>Snapshot or KPI Book pages are unavailable: start from the relevant client flow and confirm client-specific access.</li>
+    </ul>
+</section>
+
+<section class="panel">
+    <h3>10) Fast Links</h3>
+    <p>
+        <a class="link-button" href="/dashboard">Open Dashboard</a>
+        <a class="link-button" href="/orchestration-ui">Open Orchestration</a>
+        <a class="link-button" href="/todos-ui">Open Todos</a>
+        <a class="link-button" href="/reviews-ui">Open Reviews</a>
+        <a class="link-button" href="/timeline-ui">Open Timeline</a>
+    </p>
+</section>
+{% endblock %}

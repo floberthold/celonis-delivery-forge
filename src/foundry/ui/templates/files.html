@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Files | Foundry{% endblock %}
+
+{% block content %}
+<h2>Files</h2>
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<div class="forms-grid">
+    <form class="panel form-card" method="post" action="/files-ui/link-library">
+        <h3>Link SharePoint Library</h3>
+        <label>
+            Library Name
+            <input type="text" name="name" placeholder="Delivery Documents" required>
+        </label>
+        <label>
+            Base URL
+            <input type="text" name="base_url" placeholder="https://contoso.sharepoint.com/sites/..." required>
+        </label>
+        <label>
+            Scope
+            <select name="scope" required>
+                {% for scope in template_scope_options %}
+                <option value="{{ scope }}">{{ scope }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Client (optional)
+            <select name="client_id">
+                <option value="">Global</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Link Library</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/files-ui/link">
+        <h3>Link Document URL</h3>
+        <label>
+            Name
+            <input type="text" name="name" placeholder="QBR Deck" required>
+        </label>
+        <label>
+            Source Type
+            <select name="file_source" required>
+                {% for source in file_source_options %}
+                <option value="{{ source }}">{{ source }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Document URL
+            <input type="text" name="external_url" placeholder="https://.../file.pptx" required>
+        </label>
+        <label>
+            Library (optional)
+            <select name="library_id">
+                <option value="">None</option>
+                {% for library in libraries %}
+                <option value="{{ library.id }}">{{ library.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Project (optional)
+            <select name="project_id">
+                <option value="">None</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Client (optional)
+            <select name="client_id">
+                <option value="">None</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Description
+            <input type="text" name="description" placeholder="Optional details">
+        </label>
+        <button type="submit">Save Link</button>
+    </form>
+
+    <form class="panel form-card" method="post" action="/files-ui/upload" enctype="multipart/form-data">
+        <h3>Upload File</h3>
+        <label>
+            Name
+            <input type="text" name="name" placeholder="Steering PDF" required>
+        </label>
+        <label>
+            Select File
+            <input type="file" name="upload" accept=".pdf,.ppt,.pptx,.xls,.xlsx,.csv" required>
+        </label>
+        <p class="muted-note">
+            Allowed: {{ allowed_upload_extensions | join(', ') }}.
+            Max size: {{ '%.1f'|format(max_upload_bytes / 1048576) }} MB.
+        </p>
+        <label>
+            Library (optional)
+            <select name="library_id">
+                <option value="">None</option>
+                {% for library in libraries %}
+                <option value="{{ library.id }}">{{ library.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Project (optional)
+            <select name="project_id">
+                <option value="">None</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Client (optional)
+            <select name="client_id">
+                <option value="">None</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Description
+            <input type="text" name="description" placeholder="Optional details">
+        </label>
+        <button type="submit">Upload</button>
+    </form>
+</div>
+
+<h3>Document Libraries</h3>
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Scope</th>
+            <th>Client</th>
+            <th class="url-cell">Base URL</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for library in libraries %}
+        <tr>
+            <td>{{ library.name }}</td>
+            <td>{{ library.scope.value }}</td>
+            <td>{{ library.client_id or '-' }}</td>
+            <td class="url-cell">{{ library.base_url | clickable_url }}</td>
+            <td>{{ library.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">No linked libraries yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<h3>Files</h3>
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Source</th>
+            <th>Library</th>
+            <th>Project</th>
+            <th>Client</th>
+            <th>Type</th>
+            <th>Size</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.file_source }}</td>
+            <td>{{ row.library_name }}</td>
+            <td>{{ row.project_name }}</td>
+            <td>{{ row.client_name }}</td>
+            <td>{{ row.mime_type or '-' }}</td>
+            <td>{{ row.file_size_bytes or '-' }}</td>
+            <td>{{ row.created_at }}</td>
+            <td>
+                <a href="/files/{{ row.id }}/download" target="_blank" rel="noopener noreferrer">Download/Open</a>
+                <button type="button" class="preview-file" data-file-id="{{ row.id }}">Preview</button>
+                <form method="post" action="/files-ui/delete" class="inline-form" onsubmit="return confirm('Delete this file?');">
+                    <input type="hidden" name="file_id" value="{{ row.id }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="9">No files found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<div id="file-viewer-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:50;">
+    <div style="background:#fff; width:min(1100px,95vw); height:min(760px,90vh); margin:4vh auto; padding:0.75rem; border-radius:0.5rem; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <h3 style="margin:0;">File Preview</h3>
+            <button type="button" id="close-viewer">Close</button>
+        </div>
+        <div id="viewer-hint" class="muted-note" style="margin-bottom:0.5rem;"></div>
+        <iframe id="viewer-frame" title="File Viewer" style="flex:1; width:100%; border:1px solid #ddd; border-radius:0.35rem;"></iframe>
+    </div>
+</div>
+
+<script>
+(() => {
+    const modal = document.getElementById("file-viewer-modal");
+    const frame = document.getElementById("viewer-frame");
+    const hint = document.getElementById("viewer-hint");
+
+    function closeViewer() {
+        modal.style.display = "none";
+        frame.src = "about:blank";
+        hint.textContent = "";
+    }
+
+    document.getElementById("close-viewer").addEventListener("click", closeViewer);
+    modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            closeViewer();
+        }
+    });
+
+    document.querySelectorAll(".preview-file").forEach((button) => {
+        button.addEventListener("click", async () => {
+            const fileId = button.dataset.fileId;
+            if (!fileId) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/files/${fileId}/viewer-url`);
+                if (!response.ok) {
+                    throw new Error("Could not resolve preview URL");
+                }
+
+                const payload = await response.json();
+                modal.style.display = "block";
+
+                if (payload.viewer_url) {
+                    frame.src = payload.viewer_url;
+                    if (payload.viewer_type === "office") {
+                        hint.textContent = "Viewing via Office Online viewer.";
+                    } else if (payload.viewer_type === "pdf") {
+                        hint.textContent = "Viewing PDF in browser.";
+                    } else {
+                        hint.textContent = "Viewing external document.";
+                    }
+                } else {
+                    frame.src = "about:blank";
+                    hint.innerHTML = `Preview unavailable. Use <a href="${payload.download_url}" target="_blank" rel="noopener noreferrer">download/open</a>.`;
+                }
+            } catch (error) {
+                modal.style.display = "block";
+                frame.src = "about:blank";
+                hint.textContent = "Preview failed. You can still use Download/Open.";
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

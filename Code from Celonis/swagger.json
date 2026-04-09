@@ -1,0 +1,3690 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Celonis Machine Learning Workbench APIs",
+    "description": "Documentation for the external Machine Learning APIs. These APIs allow you to trigger executions, manage resources, and more. To access the APIs, a Bearer API Key and a team-specific AppKey must be passed in the header.",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://dev.us-1.celonis.cloud/machine-learning",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Notebook",
+      "description": "The Notebook API is used to create, read, update, and delete notebooks."
+    },
+    {
+      "name": "Schedule",
+      "description": "The Schedule API is used to create, read, update, and delete schedules."
+    },
+    {
+      "name": "Notebook Resources",
+      "description": "The Notebook Resources API configures notebook resource such as CPU, memory, storage, and gpu."
+    },
+    {
+      "name": "Notebook Execution",
+      "description": "The Notebook Executions API is used to trigger, stop, and track notebook executions."
+    },
+    {
+      "name": "Job Execution",
+      "description": "The Job Execution API is used to trigger, stop, and track job executions."
+    },
+    {
+      "name": "Job Execution Group",
+      "description": "The Job Execution Group API retrieves job execution groups."
+    }
+  ],
+  "paths": {
+    "/api/scheduling/{id}": {
+      "get": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "Get a schedule",
+        "operationId": "findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "Update a schedule",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchedulingTransport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "Delete a schedule",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scheduling/{id}/change-status": {
+      "put": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "Enable or Disable a schedule",
+        "operationId": "changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Get an app",
+        "operationId": "findOne_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Update an app",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotebookTransport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Delete an app",
+        "operationId": "delete_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/upgrade": {
+      "put": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Upgrade app to the latest version",
+        "operationId": "upgrade",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/resources": {
+      "get": {
+        "tags": [
+          "Notebook Resources"
+        ],
+        "summary": "Get Notebook Resources",
+        "operationId": "getResources",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookResourcesTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Notebook Resources"
+        ],
+        "summary": "Update Notebook Resources",
+        "operationId": "updateResources",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotebookResourcesTransport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookResourcesTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/probe": {
+      "put": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Check if an app is running",
+        "operationId": "activeProbe",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/move": {
+      "put": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Move an app from one workspace to another",
+        "operationId": "moveToWorkspace",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/app-key": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Get the application key of the app",
+        "operationId": "getApplicationKey",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationKeyTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Set an application key to the app",
+        "operationId": "setApplicationKey",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appKey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/executions/{id}/stop": {
+      "put": {
+        "tags": [
+          "Notebook Execution"
+        ],
+        "summary": "Stop a running execution",
+        "operationId": "stop",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scheduling": {
+      "get": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "List all schedules",
+        "operationId": "findAll",
+        "parameters": [
+          {
+            "name": "notebookId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SchedulingTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "Create a schedule",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchedulingTransport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulingTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scheduling/{id}/run": {
+      "post": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "Run a schedule",
+        "operationId": "runSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "List all notebooks",
+        "operationId": "findAll_1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotebookTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Create an app",
+        "operationId": "create_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotebookTransport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/stop": {
+      "post": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Stop an app",
+        "operationId": "stop_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/start": {
+      "post": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Start an app",
+        "operationId": "start",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/open": {
+      "post": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Open an app",
+        "operationId": "open",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{jobId}/executions": {
+      "get": {
+        "tags": [
+          "Job Execution"
+        ],
+        "summary": "Get all executions",
+        "operationId": "getExecutions",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageIndex",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "startedOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DESC"
+            }
+          },
+          {
+            "name": "executionSources",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "default": [
+                "DATA_MODEL_RELOAD",
+                "KNOWLEDGE_MODEL",
+                "API",
+                "SKILL_UPDATE"
+              ],
+              "items": {
+                "type": "string",
+                "enum": [
+                  "API",
+                  "KNOWLEDGE_MODEL",
+                  "DATA_MODEL_RELOAD",
+                  "SKILL_UPDATE"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageJobExecutionTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Job Execution"
+        ],
+        "summary": "Trigger an execution",
+        "operationId": "execute",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "input",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonNode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobExecution"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{jobId}/application-key": {
+      "post": {
+        "tags": [
+          "Job Execution"
+        ],
+        "summary": "Update job application key",
+        "operationId": "updateApplicationKey",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationKeyTransport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/executions/{id}/stop": {
+      "post": {
+        "tags": [
+          "Job Execution"
+        ],
+        "summary": "Stop a running execution",
+        "operationId": "stop_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/executions/{id}/logs": {
+      "get": {
+        "tags": [
+          "Job Execution"
+        ],
+        "summary": "Get job execution logs",
+        "operationId": "getLogs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "logLevels",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "default": [
+                "INFO",
+                "DEBUG",
+                "WARNING",
+                "ERROR"
+              ],
+              "items": {
+                "type": "string",
+                "enum": [
+                  "DEBUG",
+                  "INFO",
+                  "WARNING",
+                  "ERROR"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobExecutionLogTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/executions": {
+      "post": {
+        "tags": [
+          "Notebook Execution"
+        ],
+        "summary": "Trigger an execution",
+        "operationId": "execute_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotebookExecutionTransport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookExecutionTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scheduling/{id}/executions": {
+      "get": {
+        "tags": [
+          "Schedule"
+        ],
+        "summary": "List all executions of a schedule",
+        "operationId": "findAllExecutions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageIndex",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "startedOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DESC"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageNotebookExecutionTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/versions/latest": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Get a list of all versions newer than the Notebook id version provided in the parameter",
+        "operationId": "getAllNewVersions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotebookVersionTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/llm/access-info": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Get app's access information for LLM use case",
+        "operationId": "getAccessInformationLLM",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookAccessInformationTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/content": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Get a list of all the files inside the app",
+        "operationId": "getContents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookTreeItem"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/{id}/access-info": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Get access information for the app",
+        "operationId": "getAccessInformation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookAccessInformationTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/versions": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Get a list of all the versions of the app",
+        "operationId": "getAllVersions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotebookVersionTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/node": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Check if team has dedicated service",
+        "operationId": "hasDedicatedService",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/machine-learning-images": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "List all Machine Learning images",
+        "operationId": "getMachineLearningImages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImageTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notebooks/limit/reached": {
+      "get": {
+        "tags": [
+          "Notebook"
+        ],
+        "summary": "Check if the team has reached the maximum number of notebooks",
+        "operationId": "limitReached",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/executions/{id}": {
+      "get": {
+        "tags": [
+          "Job Execution"
+        ],
+        "summary": "Get an execution",
+        "operationId": "getExecution",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobExecution"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/executions/groups": {
+      "get": {
+        "tags": [
+          "Job Execution Group"
+        ],
+        "summary": "Get execution groups",
+        "operationId": "getExecutionGroups",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobExecutionGroup"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/executions/{id}": {
+      "get": {
+        "tags": [
+          "Notebook Execution"
+        ],
+        "summary": "Get an execution",
+        "operationId": "find",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotebookExecutionTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/executions/{id}/logs": {
+      "get": {
+        "tags": [
+          "Notebook Execution"
+        ],
+        "summary": "Get execution logs",
+        "operationId": "getLogs_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "logLevels",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "default": [
+                "INFO",
+                "DEBUG",
+                "WARNING",
+                "ERROR"
+              ],
+              "items": {
+                "type": "string",
+                "enum": [
+                  "DEBUG",
+                  "INFO",
+                  "WARNING",
+                  "ERROR"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotebookExecutionLogTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/executions/triggered/{id}": {
+      "get": {
+        "tags": [
+          "Notebook Execution"
+        ],
+        "operationId": "getTriggeredExecutions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageIndex",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "startedOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "DESC"
+            }
+          },
+          {
+            "name": "executionSources",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "default": [
+                "DATA_MODEL_RELOAD",
+                "KNOWLEDGE_MODEL",
+                "API"
+              ],
+              "items": {
+                "type": "string",
+                "enum": [
+                  "SCHEDULING",
+                  "API",
+                  "KNOWLEDGE_MODEL",
+                  "DATA_MODEL_RELOAD",
+                  "SKILL_UPDATE"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageNotebookExecutionTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/executions/triggered-groups": {
+      "get": {
+        "tags": [
+          "Notebook Execution"
+        ],
+        "operationId": "getTriggeredExecutionGroups",
+        "parameters": [
+          {
+            "name": "notebookId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TriggeredExecutionGroupTransport"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/executions/triggered-groups/{id}": {
+      "get": {
+        "tags": [
+          "Notebook Execution"
+        ],
+        "operationId": "getTriggeredExecutionGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggeredExecutionGroupTransport"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrontendHandledBackendError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ExceptionReference": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "shortMessage": {
+            "type": "string"
+          }
+        }
+      },
+      "FrontendHandledBackendError": {
+        "type": "object",
+        "properties": {
+          "frontendErrorKey": {
+            "type": "string"
+          },
+          "errorInformation": {}
+        }
+      },
+      "SchedulingConfig": {
+        "type": "object",
+        "properties": {
+          "executionPattern": {
+            "type": "string",
+            "enum": [
+              "HOURLY",
+              "X_HOURLY",
+              "DAILY",
+              "WEEKLY",
+              "MONTHLY",
+              "CUSTOM"
+            ]
+          },
+          "minute": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "everyXHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "time": {
+            "type": "string"
+          },
+          "day": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "weekDays": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "monthPattern": {
+            "type": "string",
+            "enum": [
+              "SPECIFIC_DAY",
+              "LAST_DAY"
+            ]
+          },
+          "customCron": {
+            "type": "string"
+          },
+          "timezoneId": {
+            "type": "string"
+          },
+          "lastExecutionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextExecutionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SchedulingTransport": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "resourcePath": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "COPY_ALL",
+                "COPY",
+                "CREATE",
+                "DELETE_ALL",
+                "DELETE",
+                "EDIT_ALL",
+                "EDIT",
+                "EXECUTE_ALL",
+                "EXECUTE",
+                "EXPORT_ALL",
+                "EXPORT",
+                "MANAGE_ALL",
+                "MANAGE",
+                "READ_ALL",
+                "READ",
+                "SHARE_ALL",
+                "SHARE",
+                "USE_ALL",
+                "USE",
+                "ANY_ACTION_ON_CHILDREN",
+                "ENABLED",
+                "MOVE",
+                "MOVE_ALL",
+                "IMPORT_ALL",
+                "IMPORT",
+                "UNRECOGNIZED"
+              ]
+            }
+          },
+          "groupedResourceTypeToActions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "COPY_ALL",
+                  "COPY",
+                  "CREATE",
+                  "DELETE_ALL",
+                  "DELETE",
+                  "EDIT_ALL",
+                  "EDIT",
+                  "EXECUTE_ALL",
+                  "EXECUTE",
+                  "EXPORT_ALL",
+                  "EXPORT",
+                  "MANAGE_ALL",
+                  "MANAGE",
+                  "READ_ALL",
+                  "READ",
+                  "SHARE_ALL",
+                  "SHARE",
+                  "USE_ALL",
+                  "USE",
+                  "ANY_ACTION_ON_CHILDREN",
+                  "ENABLED",
+                  "MOVE",
+                  "MOVE_ALL",
+                  "IMPORT_ALL",
+                  "IMPORT",
+                  "UNRECOGNIZED"
+                ]
+              }
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "executeFile": {
+            "type": "string"
+          },
+          "notebookName": {
+            "type": "string"
+          },
+          "lastNotebookExecutionId": {
+            "type": "string"
+          },
+          "schedulingConfig": {
+            "$ref": "#/components/schemas/SchedulingConfig"
+          },
+          "timeout": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeUnit": {
+            "type": "string",
+            "enum": [
+              "MINUTES",
+              "HOURS"
+            ]
+          },
+          "maxRetries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastNotebookExecutionStatus": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "QUEUED",
+              "STARTING",
+              "STARTED",
+              "COMPLETED",
+              "NOTEBOOK_ERROR",
+              "FAILED",
+              "TIMEOUT",
+              "CANCELED",
+              "RESOURCES_ERROR",
+              "CONFIGURATION_ERROR"
+            ]
+          },
+          "notebookStopped": {
+            "type": "boolean"
+          },
+          "objectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "executeFile",
+          "name",
+          "notebookId",
+          "schedulingConfig",
+          "timeUnit",
+          "timeout"
+        ]
+      },
+      "NotebookResourcesTransport": {
+        "type": "object",
+        "properties": {
+          "cpu": {
+            "type": "number",
+            "format": "double"
+          },
+          "memory": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "storage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gpu": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "cpu",
+          "memory",
+          "storage"
+        ]
+      },
+      "NotebookTransport": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "resourcePath": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "COPY_ALL",
+                "COPY",
+                "CREATE",
+                "DELETE_ALL",
+                "DELETE",
+                "EDIT_ALL",
+                "EDIT",
+                "EXECUTE_ALL",
+                "EXECUTE",
+                "EXPORT_ALL",
+                "EXPORT",
+                "MANAGE_ALL",
+                "MANAGE",
+                "READ_ALL",
+                "READ",
+                "SHARE_ALL",
+                "SHARE",
+                "USE_ALL",
+                "USE",
+                "ANY_ACTION_ON_CHILDREN",
+                "ENABLED",
+                "MOVE",
+                "MOVE_ALL",
+                "IMPORT_ALL",
+                "IMPORT",
+                "UNRECOGNIZED"
+              ]
+            }
+          },
+          "groupedResourceTypeToActions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "COPY_ALL",
+                  "COPY",
+                  "CREATE",
+                  "DELETE_ALL",
+                  "DELETE",
+                  "EDIT_ALL",
+                  "EDIT",
+                  "EXECUTE_ALL",
+                  "EXECUTE",
+                  "EXPORT_ALL",
+                  "EXPORT",
+                  "MANAGE_ALL",
+                  "MANAGE",
+                  "READ_ALL",
+                  "READ",
+                  "SHARE_ALL",
+                  "SHARE",
+                  "USE_ALL",
+                  "USE",
+                  "ANY_ACTION_ON_CHILDREN",
+                  "ENABLED",
+                  "MOVE",
+                  "MOVE_ALL",
+                  "IMPORT_ALL",
+                  "IMPORT",
+                  "UNRECOGNIZED"
+                ]
+              }
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "versionId": {
+            "type": "string"
+          },
+          "lastAccessDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "agreement": {
+            "type": "boolean"
+          },
+          "appKey": {
+            "type": "string"
+          },
+          "imageType": {
+            "type": "string",
+            "enum": [
+              "JUPYTER",
+              "VSCODE",
+              "STREAMLIT"
+            ]
+          },
+          "imageId": {
+            "type": "string"
+          },
+          "imageKey": {
+            "type": "string"
+          },
+          "homePath": {
+            "type": "string"
+          },
+          "machineId": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "stopped": {
+            "type": "boolean"
+          },
+          "notebookResources": {
+            "$ref": "#/components/schemas/NotebookResourcesTransport"
+          },
+          "productive": {
+            "type": "boolean"
+          },
+          "logRetentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "availableStorageInMb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modelId": {
+            "type": "string"
+          },
+          "llmEnabled": {
+            "type": "boolean"
+          },
+          "objectId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agreement",
+          "imageId",
+          "name"
+        ]
+      },
+      "JsonNode": {},
+      "JobExecution": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "STARTED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELED"
+            ]
+          },
+          "started": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "jobExecutionSource": {
+            "type": "string",
+            "enum": [
+              "API",
+              "KNOWLEDGE_MODEL",
+              "DATA_MODEL_RELOAD",
+              "SKILL_UPDATE"
+            ]
+          },
+          "jobExecutionSourceId": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "logsCleanup": {
+            "type": "boolean"
+          },
+          "optionalTenantId": {
+            "type": "string"
+          }
+        }
+      },
+      "ApplicationKeyTransport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "originalId": {
+            "type": "string"
+          },
+          "teamRole": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "internal": {
+            "type": "boolean"
+          }
+        }
+      },
+      "JobExecutionLogTransport": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "logLevel": {
+            "type": "string"
+          }
+        }
+      },
+      "NotebookExecutionTransport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "notebookExecutionSourceId": {
+            "type": "string"
+          },
+          "notebookExecutionSource": {
+            "type": "string"
+          },
+          "executionFileName": {
+            "type": "string"
+          },
+          "notebookExecutionStatus": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "QUEUED",
+              "STARTING",
+              "STARTED",
+              "COMPLETED",
+              "NOTEBOOK_ERROR",
+              "FAILED",
+              "TIMEOUT",
+              "CANCELED",
+              "RESOURCES_ERROR",
+              "CONFIGURATION_ERROR"
+            ]
+          },
+          "started": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "params": {
+            "$ref": "#/components/schemas/JsonNode"
+          },
+          "result": {
+            "type": "string"
+          },
+          "logsOutputPath": {
+            "type": "string"
+          },
+          "executionTimeout": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxRetries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeUnit": {
+            "type": "string",
+            "enum": [
+              "NANOSECONDS",
+              "MICROSECONDS",
+              "MILLISECONDS",
+              "SECONDS",
+              "MINUTES",
+              "HOURS",
+              "DAYS"
+            ]
+          }
+        },
+        "required": [
+          "executionFileName",
+          "notebookId"
+        ]
+      },
+      "PageNotebookExecutionTransport": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotebookExecutionTransport"
+            }
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "empty": {
+            "type": "boolean"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "NotebookVersionTransport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "versionCode": {
+            "type": "string"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "imageId": {
+            "type": "string"
+          },
+          "imageKey": {
+            "type": "string"
+          },
+          "latest": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": "string"
+          },
+          "warningCode": {
+            "type": "string"
+          },
+          "releaseNotes": {
+            "type": "string"
+          }
+        }
+      },
+      "NotebookAccessInformationTransport": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "machineId": {
+            "type": "string"
+          },
+          "puppetId": {
+            "type": "string"
+          },
+          "publicAddress": {
+            "type": "string"
+          },
+          "instanceType": {
+            "type": "string"
+          },
+          "volumeDriver": {
+            "type": "string"
+          },
+          "memoryLimit": {
+            "type": "string"
+          },
+          "cpuCoresLimit": {
+            "type": "string"
+          },
+          "diskUsageLimit": {
+            "type": "string"
+          },
+          "gpuCoresLimit": {
+            "type": "string"
+          },
+          "appKey": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "imageType": {
+            "type": "string"
+          },
+          "execCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notebookMode": {
+            "type": "boolean"
+          },
+          "routeToBedrock": {
+            "type": "boolean"
+          },
+          "kubernetes": {
+            "type": "boolean"
+          },
+          "withPlan": {
+            "type": "boolean"
+          },
+          "migration": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NotebookTreeItem": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "content": {},
+          "directory": {
+            "type": "boolean"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotebookTreeItem"
+            }
+          },
+          "notebook": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImageTransport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "imageKey": {
+            "type": "string"
+          },
+          "imageType": {
+            "type": "string",
+            "enum": [
+              "JUPYTER",
+              "VSCODE",
+              "STREAMLIT"
+            ]
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "homePath": {
+            "type": "string"
+          },
+          "visibleInDropdown": {
+            "type": "boolean"
+          }
+        }
+      },
+      "JobExecutionTransport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/JsonNode"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "STARTED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELED"
+            ]
+          },
+          "started": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "jobExecutionSource": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          }
+        }
+      },
+      "PageJobExecutionTransport": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobExecutionTransport"
+            }
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "empty": {
+            "type": "boolean"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "JobExecutionGroup": {
+        "type": "object",
+        "properties": {
+          "jobName": {
+            "type": "string"
+          },
+          "lastJobExecutionId": {
+            "type": "string"
+          },
+          "lastJobExecutionStatus": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "STARTED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELED"
+            ]
+          },
+          "lastJobExecutionStartedDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotebookExecutionLogTransport": {
+        "type": "object",
+        "properties": {
+          "notebookExecutionId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "logLevel": {
+            "type": "string"
+          }
+        }
+      },
+      "TriggeredExecutionGroupTransport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notebookId": {
+            "type": "string"
+          },
+          "notebookName": {
+            "type": "string"
+          },
+          "executionFileName": {
+            "type": "string"
+          },
+          "lastExecutionId": {
+            "type": "string"
+          },
+          "lastExecutionStatus": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "QUEUED",
+              "STARTING",
+              "STARTED",
+              "COMPLETED",
+              "NOTEBOOK_ERROR",
+              "FAILED",
+              "TIMEOUT",
+              "CANCELED",
+              "RESOURCES_ERROR",
+              "CONFIGURATION_ERROR"
+            ]
+          },
+          "lastExecutionStartedDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}
