@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "data-quality-breach-stopline",
+  "title": "Data Quality Breach Stopline",
+  "category": "alerts_escalation",
+  "risk_level": "high",
+  "description": "Pause downstream actions when data quality thresholds are violated and open remediation tasks.",
+  "tags": ["data_quality", "stopline", "rollback"],
+  "use_case_category_map": ["Automation Triggers", "Live Sync"],
+  "ownership": {"owner_role": "data_engineer", "reviewer_role": "platform_admin", "review_cadence_days": 7},
+  "trigger": {"type": "schedule", "schedule_cron": "0 * * * *", "idempotency_key": "dataset_id:window"},
+  "inputs": {
+    "required": ["dataset_id", "null_rate_limit", "dup_rate_limit", "owner_person_id"],
+    "optional": ["pause_target"],
+    "sample_payload": {"dataset_id": "PO_EVENTS", "null_rate": 0.16, "limit": 0.1}
+  },
+  "steps": [
+    {"id": "run_data_checks", "type": "action", "action": "quality.run_checks", "on_error": "break"},
+    {"id": "pause_sync", "type": "action", "action": "sync.pause", "guard": "breach=true", "on_error": "rollback"},
+    {"id": "create_remediation_task", "type": "action", "action": "todos.create", "on_error": "retry"},
+    {"id": "notify_data_owners", "type": "notify", "action": "notify.send", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 1,
+    "retry_backoff_seconds": 90,
+    "dead_letter_action": "incident.raise",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.alert", "data.quality"],
+    "kpis": ["breaches_detected", "sync_pauses", "time_to_resume_hours"],
+    "evidence_required": ["logs", "timeline_entries", "review_decision"]
+  }
+}

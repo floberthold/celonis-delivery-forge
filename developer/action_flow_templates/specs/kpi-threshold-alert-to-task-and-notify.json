@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "kpi-threshold-alert-to-task-and-notify",
+  "title": "KPI Threshold Alert to Task and Notify",
+  "category": "alerts_escalation",
+  "risk_level": "medium",
+  "description": "Detect KPI breaches, create an owner task, and notify responsible stakeholders.",
+  "tags": ["kpi", "alert", "escalation"],
+  "use_case_category_map": ["Automation Triggers", "Operational Recommendations"],
+  "ownership": {"owner_role": "consultant", "reviewer_role": "delivery_lead", "review_cadence_days": 14},
+  "trigger": {"type": "schedule", "schedule_cron": "*/30 * * * *", "idempotency_key": "kpi_id:event_window"},
+  "inputs": {
+    "required": ["client_id", "project_id", "kpi_name", "threshold", "owner_person_id"],
+    "optional": ["severity", "notification_channel"],
+    "sample_payload": {"kpi_name": "Late PO Rate", "threshold": 0.12, "actual": 0.18}
+  },
+  "steps": [
+    {"id": "load_metric", "type": "action", "action": "km.fetch_kpi", "on_error": "break"},
+    {"id": "check_breach", "type": "branch", "action": "branch.if", "guard": "actual > threshold", "on_error": "resume"},
+    {"id": "create_task", "type": "action", "action": "todos.create", "on_error": "retry"},
+    {"id": "notify_owner", "type": "notify", "action": "notify.send", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 3,
+    "retry_backoff_seconds": 60,
+    "dead_letter_action": "timeline.log_and_escalate",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.alert", "kpi.threshold"],
+    "kpis": ["alerts_triggered", "tasks_created", "ack_time_minutes"],
+    "evidence_required": ["logs", "diff_summary", "review_decision"]
+  }
+}

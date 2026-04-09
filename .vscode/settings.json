@@ -48,6 +48,11 @@
         "/^\\.\\\\\\.venv\\\\Scripts\\\\Activate\\.ps1 ; python -m pytest tests/test_celonis_ui_route_presence\\.py -q$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "/^python -m pytest tests/test_docs_site_routes\\.py -q$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "c:/coding/xOther/celonis-delivery-forge/.venv/Scripts/python.exe": true
     }
 }

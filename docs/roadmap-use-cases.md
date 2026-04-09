@@ -38,6 +38,27 @@ Derived from https://developer.celonis.com/use-cases/ and delivery project patte
 | 8 | **Operational Recommendations** | Task/activity guidance for frontline users | Knowledge Model API · Action Flows |
 | 9 | **Industry Process Patterns** | Cross-client reusable process blueprints | Internal (Forge) |
 
+## Action-Flow Template Library Mapping (April 2026)
+
+The Make-inspired action-flow template starter pack is implemented in:
+- `developer/action_flow_templates/schema/action-flow-template.schema.json`
+- `developer/action_flow_templates/specs/`
+- `developer/action_flow_templates/playbooks/`
+
+### Family to Taxonomy Mapping
+
+| Template family | Primary taxonomy categories | Starter templates |
+|---|---|---|
+| Alerts and Escalation | Automation Triggers, Operational Recommendations | KPI threshold alert, anomaly escalation chain, data quality stopline |
+| Sync and Propagation | Live Sync, Analytics Export / BI | Nightly KM recommendation sync, subscription event materialized sync, weekly steering pack refresh |
+| Recommendation and Human Loop | Operational Recommendations, Industry Process Patterns | Recommendation approval gate, priority case auto routing, action effectiveness feedback |
+| AI-Assisted Triage | AI Agent - Tool Execution, AI Agent - Chat | Low-confidence triage review loop, client comms draft, incomplete execution watchdog |
+
+### Delivery Priority
+1. Pilot one alerts template and one sync template first.
+2. Expand to recommendation human-loop templates for high-impact processes.
+3. Roll out AI-assisted templates only with reviewer gates enabled.
+
 ---
 
 ## Metadata Schema (per use case)

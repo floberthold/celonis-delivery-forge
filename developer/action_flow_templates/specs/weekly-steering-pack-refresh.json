@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "weekly-steering-pack-refresh",
+  "title": "Weekly Steering Pack Refresh",
+  "category": "sync_propagation",
+  "risk_level": "low",
+  "description": "Build and refresh weekly steering package inputs from KPI, risk, and task sources.",
+  "tags": ["steering", "reporting", "weekly"],
+  "use_case_category_map": ["Analytics Export / BI", "Operational Recommendations"],
+  "ownership": {"owner_role": "consultant", "reviewer_role": "engagement_manager", "review_cadence_days": 7},
+  "trigger": {"type": "schedule", "schedule_cron": "0 6 * * 1", "idempotency_key": "project_id:week"},
+  "inputs": {
+    "required": ["project_id", "template_title", "report_owner"],
+    "optional": ["snapshot_cutoff_time"],
+    "sample_payload": {"project_id": "p-123", "template_title": "Steering Weekly"}
+  },
+  "steps": [
+    {"id": "collect_metrics", "type": "action", "action": "kpi.aggregate", "on_error": "break"},
+    {"id": "collect_risks", "type": "action", "action": "risk.collect", "on_error": "resume"},
+    {"id": "instantiate_deck", "type": "action", "action": "templates.instantiate", "on_error": "retry"},
+    {"id": "send_ready_notice", "type": "notify", "action": "notify.send", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 2,
+    "retry_backoff_seconds": 120,
+    "dead_letter_action": "todo.create_manual_pack_task",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.sync", "steering.refresh"],
+    "kpis": ["packs_generated", "generation_failures", "delivery_timeliness"],
+    "evidence_required": ["logs", "generated_artifact_link"]
+  }
+}

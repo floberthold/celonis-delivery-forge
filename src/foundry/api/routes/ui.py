@@ -7244,6 +7244,11 @@ def docu_guide_delivery_walkthrough(request: Request):
     return RedirectResponse(url="/docs-site/guides/delivery-walkthrough/", status_code=307)
 
 
+@router.get("/docu/guide-action-flow-templates.html")
+def docu_guide_action_flow_templates(request: Request):
+    return RedirectResponse(url="/docs-site/guides/action-flow-template-catalog/", status_code=307)
+
+
 # ---------------------------------------------------------------------------
 # Celonis Token Admin page
 # ---------------------------------------------------------------------------

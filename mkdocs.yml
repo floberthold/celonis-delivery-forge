@@ -26,6 +26,7 @@ nav:
       - Overview: user/index.md
       - Account and Security: user/account-and-security.md
       - Core Workspaces: user/core-workspaces.md
+      - Action-Flow Templates: user/action-flow-templates.md
       - Governance and Reviews: user/governance-and-reviews.md
       - KPI and Snapshots: user/kpi-and-snapshots.md
       - Route Reference: user/route-reference.md
@@ -53,6 +54,9 @@ nav:
     - Account Flows: guides/account-flows.md
     - Delivery Walkthrough: guides/delivery-walkthrough.md
     - New Environment Bring-up: guides/new-environment-bring-up.md
+    - Action-Flow Best Practices: guides/action-flow-best-practices.md
+    - Action-Flow Template Catalog: guides/action-flow-template-catalog.md
+    - Template Authoring and Review Checklist: guides/template-authoring-review-checklist.md
   - Troubleshooting:
     - Overview: troubleshooting/index.md
     - Authentication Issues: troubleshooting/auth-issues.md

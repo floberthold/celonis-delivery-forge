@@ -51,6 +51,41 @@ Each run must include:
 - Reviewer confirms acceptance criteria were met.
 - Evidence section is complete and reproducible.
 
+## Action-Flow Operating Standards
+Use these defaults for Make-style action flows implemented in Delivery Forge.
+
+### Flow Design Defaults
+- Keep each flow focused on one trigger contract and one business outcome.
+- Use idempotency keys for every externally visible action.
+- Split ingestion, decision, and side-effect steps to make failures isolate cleanly.
+- Declare owner role, reviewer role, and review cadence before first rollout.
+
+### Error-Handling Matrix
+Choose one default handler per step and document exceptions explicitly.
+
+| Handler | When to use | Delivery Forge equivalent |
+|---|---|---|
+| Break | Stop when state is unsafe or ambiguous | Pause run and move to incomplete execution handling |
+| Retry | Temporary upstream/downstream instability | Limited retries with backoff and dead-letter handoff |
+| Resume | Non-critical transform failure | Continue with substitute value and annotate run |
+| Ignore | Best-effort notifications only | Log warning, continue processing |
+| Rollback | Transactional partial writes | Revert staged writes before run close |
+| Commit | Keep durable partial progress | Commit current bundle, escalate follow-up task |
+
+### Scenario Reliability Defaults
+- Use sequential processing for high-risk flows and human-approval gates.
+- Store incomplete executions for all medium/high risk templates.
+- Set max retries <= 3 unless a system owner approves a higher ceiling.
+- Define dead-letter actions as explicit tasks, incidents, or queue writes.
+
+### Required Evidence for Flow Rollout
+Every action-flow rollout must capture:
+- test evidence (happy path + one failure path)
+- logs with run labels
+- timeline event links
+- reviewer decision for medium/high risk flows
+- rollback or fallback confirmation
+
 ## Commanded Implementation
 Use the repository script to instantiate governed parallel runs:
 

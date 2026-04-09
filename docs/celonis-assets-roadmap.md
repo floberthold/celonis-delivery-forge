@@ -24,6 +24,8 @@ Source analyzed: [Code from Celonis](../Code%20from%20Celonis)
 | R8 | Diagnostics persistence and UI timeline visibility | TODO | 2026-04-05 | Persist pipeline and integration diagnostics. |
 | R9 | Pilot integration on one imported package | TODO | 2026-04-09 | Start with dm-load-optimization subset. |
 | R10 | Team operating model and handoff guide | TODO | 2026-04-12 | Document role split for code-drop onboarding. |
+| R11 | Action-flow template schema and starter packs | IN PROGRESS | 2026-04-15 | Add Make-inspired template schema, 12 starter specs, and playbooks. |
+| R12 | Action-flow governance integration | TODO | 2026-04-19 | Add evidence gates, fallback matrix, and rollout checklist to operating docs. |
 
 ## Phase Plan
 
@@ -50,11 +52,13 @@ Source analyzed: [Code from Celonis](../Code%20from%20Celonis)
 - [ ] Build endpoint profile templates for common Celonis operations.
 - [ ] Add notebook asset metadata and ownership workflow.
 - [ ] Add diagnostics model and timeline rendering.
+- [x] Add action-flow template schema and starter library under `developer/action_flow_templates/`.
 
 ### Phase 4: Operationalization
 - [ ] Pilot with one real code drop and measure cycle time.
 - [ ] Add regression tests for ingestion/policy gates.
 - [ ] Publish a team runbook for drop vs pull workflows.
+- [ ] Pilot two action-flow templates (one alert, one sync) with full evidence capture.
 
 ## Weekly Tracking Template
 Use this table during implementation weeks.

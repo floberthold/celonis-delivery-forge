@@ -42,6 +42,12 @@ Typical actions:
 - Assign metadata and references.
 - Link to Celonis artifacts where needed.
 
+Action-flow template library:
+
+- Reusable action-flow templates are stored in `developer/action_flow_templates/`.
+- Treat flow templates as `action_flow` assets during rollout.
+- Use paired playbooks to validate before using templates in client work.
+
 ## People (`/people-ui`)
 
 Use to manage organization members.
@@ -81,3 +87,13 @@ Typical actions:
 - Inspect who changed what.
 - Trace entity-level event chronology.
 - Support governance reviews.
+
+## Orchestration (`/orchestration-ui`)
+
+Use for governed rollout of action-flow templates.
+
+Typical actions:
+
+- Pick a starter template and set required inputs.
+- Run a sandbox validation and capture evidence.
+- Submit run for human review before promoting high-risk flows.

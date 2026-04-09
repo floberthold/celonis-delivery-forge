@@ -16,6 +16,7 @@
         <a class="link-button" href="#dev">Dev Loop</a>
         <a class="link-button" href="#adminsetup">Admin Setup</a>
         <a class="link-button" href="#integrations">Integrations</a>
+        <a class="link-button" href="#actionflows">Action Flows</a>
         <a class="link-button" href="#docsystem">Doc System</a>
         <a class="link-button" href="#packaging">Packaging</a>
         <a class="link-button" href="#quality">Quality</a>
@@ -34,6 +35,11 @@
             <h3>Account Lifecycle Flows</h3>
             <p>Validate register, verify-email, forgot-password, and account management paths.</p>
             <p><a class="link-button" href="/docu/guide-account-flows.html">Open Guide</a></p>
+        </div>
+        <div class="card">
+            <h3>Action-Flow Template Guide</h3>
+            <p>Use and validate Make-inspired action-flow templates and rollout safeguards.</p>
+            <p><a class="link-button" href="/docu/guide-action-flow-templates.html">Open Guide</a></p>
         </div>
     </div>
 </section>
@@ -218,8 +224,31 @@
     </table>
 </section>
 
+<section class="panel" id="actionflows">
+    <h3>7) Action-Flow Template Collection</h3>
+    <div class="grid">
+        <div class="panel">
+            <h3>Library Layout</h3>
+            <ul>
+                <li><code>developer/action_flow_templates/schema/</code> holds the JSON schema contract.</li>
+                <li><code>developer/action_flow_templates/specs/</code> stores 12 starter template specs.</li>
+                <li><code>developer/action_flow_templates/playbooks/</code> stores paired rollout playbooks.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>Validation</h3>
+            <ul>
+                <li>Run <code>python scripts/validate_action_flow_templates.py</code>.</li>
+                <li>Ensure every spec has matching catalog entry and playbook page.</li>
+                <li>Capture one happy-path and one failure-path evidence bundle before promotion.</li>
+            </ul>
+        </div>
+    </div>
+    <p><a class="link-button" href="/docu/guide-action-flow-templates.html">Open Full Action-Flow Guide</a></p>
+</section>
+
 <section class="panel" id="docsystem">
-    <h3>7) Documentation System</h3>
+    <h3>8) Documentation System</h3>
     <div class="cards">
         <div class="card">
             <h3>Source of truth</h3>
@@ -241,7 +270,7 @@
 </section>
 
 <section class="panel" id="packaging">
-    <h3>8) Packaging and Runtime Expectations</h3>
+    <h3>9) Packaging and Runtime Expectations</h3>
     <ul>
         <li>Docker copies <code>src/</code> and root <code>docu/</code> into container runtime.</li>
         <li>Standalone script includes <code>docu</code> via PyInstaller <code>--add-data</code>.</li>
@@ -254,7 +283,7 @@
 </section>
 
 <section class="panel" id="quality">
-    <h3>9) Quality Checklist</h3>
+    <h3>10) Quality Checklist</h3>
     <ul>
         <li>Routes return 200 for docs pages in local and packaged runs.</li>
         <li>Graphics render without external dependencies.</li>
@@ -266,7 +295,7 @@
 </section>
 
 <section class="panel">
-    <h3>10) Fast Links</h3>
+    <h3>11) Fast Links</h3>
     <p>
         <a class="link-button" href="/docs">Open Swagger</a>
         <a class="link-button" href="/dashboard">Open Dashboard</a>

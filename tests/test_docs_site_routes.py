@@ -32,6 +32,18 @@ def test_legacy_docu_routes_redirect_to_docs_site() -> None:
         assert response.status_code == 307
         assert response.headers.get("location") == "/docs-site/admin/full-setup/"
 
+        response = api_client.get("/docu/guide-account-flows.html", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers.get("location") == "/docs-site/guides/account-flows/"
+
+        response = api_client.get("/docu/guide-delivery-walkthrough.html", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers.get("location") == "/docs-site/guides/delivery-walkthrough/"
+
+        response = api_client.get("/docu/guide-action-flow-templates.html", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers.get("location") == "/docs-site/guides/action-flow-template-catalog/"
+
 
 if __name__ == "__main__":
     if DB_FILE.exists():

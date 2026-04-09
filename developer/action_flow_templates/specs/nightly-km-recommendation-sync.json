@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "nightly-km-recommendation-sync",
+  "title": "Nightly Knowledge Model Recommendation Sync",
+  "category": "sync_propagation",
+  "risk_level": "medium",
+  "description": "Synchronize recommendation payloads from Knowledge Model APIs into downstream systems nightly.",
+  "tags": ["sync", "knowledge_model", "recommendations"],
+  "use_case_category_map": ["Live Sync", "3P Enrichment"],
+  "ownership": {"owner_role": "integration_engineer", "reviewer_role": "delivery_lead", "review_cadence_days": 14},
+  "trigger": {"type": "schedule", "schedule_cron": "0 2 * * *", "idempotency_key": "recommendation_id:date"},
+  "inputs": {
+    "required": ["client_id", "project_id", "km_endpoint", "target_system"],
+    "optional": ["batch_size", "lookback_hours"],
+    "sample_payload": {"target_system": "crm", "batch_size": 200}
+  },
+  "steps": [
+    {"id": "fetch_recommendations", "type": "action", "action": "km.fetch_recommendations", "on_error": "break"},
+    {"id": "map_payload", "type": "action", "action": "mapper.transform", "on_error": "resume"},
+    {"id": "upsert_target", "type": "action", "action": "integration.upsert", "on_error": "retry"},
+    {"id": "emit_summary", "type": "notify", "action": "timeline.log", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 3,
+    "retry_backoff_seconds": 45,
+    "dead_letter_action": "sync_queue.enqueue",
+    "sequential_processing": false,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.sync", "km.recommendation"],
+    "kpis": ["records_synced", "sync_failures", "sync_latency_seconds"],
+    "evidence_required": ["logs", "diff_summary"]
+  }
+}

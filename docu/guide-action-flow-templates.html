@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Action-Flow Templates Guide | Foundry{% endblock %}
+
+{% block content %}
+<h2>Action-Flow Templates Guide (Step-by-Step)</h2>
+<p class="muted-note">Use this runbook to apply Make-inspired action-flow templates with safe rollout controls.</p>
+
+<section class="panel">
+    <h3>1) Choose a Starter Template</h3>
+    <ol>
+        <li>Open the template catalog in docs at <a href="/docs-site/guides/action-flow-template-catalog/">Action-Flow Template Catalog</a>.</li>
+        <li>Choose one template from alerts, sync, recommendation, or AI triage families.</li>
+        <li>Confirm risk level and required ownership roles before configuration.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>2) Configure Required Inputs</h3>
+    <ol>
+        <li>Set client, project, and owner identifiers.</li>
+        <li>Set trigger fields (schedule, webhook, or subscription).</li>
+        <li>Set idempotency key and fallback behavior.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>3) Validate in Sandbox</h3>
+    <ol>
+        <li>Run happy-path payload once and capture output.</li>
+        <li>Run one expected failure path and confirm configured error handler behavior.</li>
+        <li>Confirm timeline entries and required evidence artifacts are present.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>4) Run Library Validation</h3>
+    <ol>
+        <li>From repository root run: <code>python scripts/validate_action_flow_templates.py</code>.</li>
+        <li>Resolve catalog/spec/playbook mismatches if any are reported.</li>
+        <li>Do not promote template changes until validator passes.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>5) Promote with Governance</h3>
+    <ol>
+        <li>Submit reviewer decision for medium/high risk templates.</li>
+        <li>Include logs, fallback result, and decision in review evidence.</li>
+        <li>Record reusable pattern notes for future runs.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h3>Fast Links</h3>
+    <p>
+        <a class="link-button" href="/docu/user.html">Back to User Docs</a>
+        <a class="link-button" href="/docu/developer.html">Open Developer Docs</a>
+        <a class="link-button" href="/docs-site/guides/action-flow-best-practices/">Action-Flow Best Practices</a>
+    </p>
+</section>
+{% endblock %}

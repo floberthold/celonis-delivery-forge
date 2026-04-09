@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "process-anomaly-escalation-chain",
+  "title": "Process Anomaly Escalation Chain",
+  "category": "alerts_escalation",
+  "risk_level": "high",
+  "description": "Escalate process anomalies through role-based paths with fallback escalation.",
+  "tags": ["anomaly", "escalation", "governance"],
+  "use_case_category_map": ["Automation Triggers", "Industry Process Patterns"],
+  "ownership": {"owner_role": "risk_manager", "reviewer_role": "delivery_lead", "review_cadence_days": 7},
+  "trigger": {"type": "subscription", "event_filter": "anomaly.score >= 0.85", "idempotency_key": "anomaly_id"},
+  "inputs": {
+    "required": ["anomaly_id", "process_domain", "severity", "owner_person_id"],
+    "optional": ["sla_hours", "client_exec_contact"],
+    "sample_payload": {"anomaly_id": "AN-4829", "severity": "critical"}
+  },
+  "steps": [
+    {"id": "normalize_event", "type": "action", "action": "mapper.normalize", "on_error": "break"},
+    {"id": "create_incident_task", "type": "action", "action": "todos.create", "on_error": "retry"},
+    {"id": "notify_primary", "type": "notify", "action": "notify.send_primary", "on_error": "resume"},
+    {"id": "escalate_management", "type": "notify", "action": "notify.send_management", "on_error": "commit"}
+  ],
+  "error_policy": {
+    "max_retries": 2,
+    "retry_backoff_seconds": 120,
+    "dead_letter_action": "risk_queue.create_case",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.alert", "anomaly.escalation"],
+    "kpis": ["critical_anomalies", "escalations_sent", "sla_breaches"],
+    "evidence_required": ["logs", "screenshots", "review_decision"]
+  }
+}

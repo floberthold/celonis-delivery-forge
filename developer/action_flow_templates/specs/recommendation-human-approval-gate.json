@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "recommendation-human-approval-gate",
+  "title": "Recommendation Human Approval Gate",
+  "category": "recommendation_human_loop",
+  "risk_level": "medium",
+  "description": "Require human approval before high-impact recommendations trigger external actions.",
+  "tags": ["recommendation", "approval", "human_in_the_loop"],
+  "use_case_category_map": ["Operational Recommendations", "Automation Triggers"],
+  "ownership": {"owner_role": "process_owner", "reviewer_role": "delivery_lead", "review_cadence_days": 14},
+  "trigger": {"type": "subscription", "event_filter": "recommendation.impact = 'high'", "idempotency_key": "recommendation_id"},
+  "inputs": {
+    "required": ["recommendation_id", "approver_person_id", "action_type"],
+    "optional": ["approval_timeout_hours"],
+    "sample_payload": {"recommendation_id": "R-3301", "action_type": "supplier_block"}
+  },
+  "steps": [
+    {"id": "prepare_approval_packet", "type": "action", "action": "mapper.build_approval_packet", "on_error": "break"},
+    {"id": "create_approval_task", "type": "action", "action": "todos.create", "on_error": "retry"},
+    {"id": "wait_for_decision", "type": "wait", "action": "approval.wait", "on_error": "resume"},
+    {"id": "apply_or_close", "type": "branch", "action": "branch.if", "guard": "decision = 'approve'", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 2,
+    "retry_backoff_seconds": 120,
+    "dead_letter_action": "notify.approval_stale",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.recommendation", "approval.gate"],
+    "kpis": ["approval_cycle_time_hours", "approved_actions", "rejected_actions"],
+    "evidence_required": ["logs", "approval_record", "review_decision"]
+  }
+}

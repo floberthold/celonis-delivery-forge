@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "low-confidence-ai-triage-review-loop",
+  "title": "Low Confidence AI Triage Review Loop",
+  "category": "ai_assisted_triage",
+  "risk_level": "medium",
+  "description": "Route low-confidence AI classifications to human review and capture corrections.",
+  "tags": ["ai", "triage", "human_review"],
+  "use_case_category_map": ["AI Agent - Tool Execution", "Operational Recommendations"],
+  "ownership": {"owner_role": "ai_operator", "reviewer_role": "delivery_lead", "review_cadence_days": 14},
+  "trigger": {"type": "webhook", "idempotency_key": "message_id"},
+  "inputs": {
+    "required": ["message_id", "predicted_label", "confidence_score", "reviewer_pool"],
+    "optional": ["model_version"],
+    "sample_payload": {"message_id": "M-445", "predicted_label": "RootCauseA", "confidence_score": 0.61}
+  },
+  "steps": [
+    {"id": "check_confidence", "type": "branch", "action": "branch.if", "guard": "confidence_score < 0.75", "on_error": "break"},
+    {"id": "create_review_task", "type": "action", "action": "todos.create", "on_error": "retry"},
+    {"id": "collect_human_label", "type": "wait", "action": "review.wait", "on_error": "resume"},
+    {"id": "persist_feedback", "type": "action", "action": "ai_feedback.save", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 2,
+    "retry_backoff_seconds": 45,
+    "dead_letter_action": "notify.ai_review_backlog",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.ai", "triage.review"],
+    "kpis": ["low_confidence_cases", "review_turnaround_hours", "label_disagreement_rate"],
+    "evidence_required": ["logs", "review_records"]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "subscription-event-client-comms-draft",
+  "title": "Subscription Event Client Comms Draft",
+  "category": "ai_assisted_triage",
+  "risk_level": "medium",
+  "description": "Generate draft client communications from critical subscription events with reviewer approval.",
+  "tags": ["client_comms", "ai_draft", "subscription"],
+  "use_case_category_map": ["AI Agent - Chat", "Automation Triggers"],
+  "ownership": {"owner_role": "consultant", "reviewer_role": "engagement_manager", "review_cadence_days": 7},
+  "trigger": {"type": "subscription", "event_filter": "event.severity in ['high','critical']", "idempotency_key": "event_id"},
+  "inputs": {
+    "required": ["event_id", "client_name", "audience", "reviewer_person_id"],
+    "optional": ["tone", "language"],
+    "sample_payload": {"event_id": "E-909", "client_name": "Contoso", "audience": "SteerCo"}
+  },
+  "steps": [
+    {"id": "summarize_event", "type": "action", "action": "ai.summarize_event", "on_error": "break"},
+    {"id": "draft_message", "type": "action", "action": "ai.compose_message", "on_error": "resume"},
+    {"id": "request_review", "type": "action", "action": "reviews.create", "on_error": "retry"},
+    {"id": "publish_after_approval", "type": "branch", "action": "branch.if", "guard": "review_status = 'approved'", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 2,
+    "retry_backoff_seconds": 60,
+    "dead_letter_action": "todo.create_manual_comms_task",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.ai", "client.comms"],
+    "kpis": ["drafts_generated", "approval_rate", "time_to_send_minutes"],
+    "evidence_required": ["logs", "review_decision", "final_message_link"]
+  }
+}

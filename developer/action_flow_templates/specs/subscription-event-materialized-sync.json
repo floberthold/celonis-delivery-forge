@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "subscription-event-materialized-sync",
+  "title": "Subscription Event Materialized Sync",
+  "category": "sync_propagation",
+  "risk_level": "medium",
+  "description": "Consume event subscriptions and sync materialized projections to downstream data stores.",
+  "tags": ["subscription", "sync", "projection"],
+  "use_case_category_map": ["Automation Triggers", "Live Sync"],
+  "ownership": {"owner_role": "integration_engineer", "reviewer_role": "platform_admin", "review_cadence_days": 14},
+  "trigger": {"type": "subscription", "event_filter": "event.type in ['case.created','case.updated']", "idempotency_key": "event_id"},
+  "inputs": {
+    "required": ["subscription_name", "target_dataset", "key_field"],
+    "optional": ["projection_fields"],
+    "sample_payload": {"subscription_name": "case_events", "target_dataset": "ops_case_projection"}
+  },
+  "steps": [
+    {"id": "validate_event", "type": "action", "action": "validator.event_schema", "on_error": "break"},
+    {"id": "project_fields", "type": "action", "action": "mapper.pick_fields", "on_error": "resume"},
+    {"id": "upsert_projection", "type": "action", "action": "dataset.upsert", "on_error": "retry"},
+    {"id": "notify_on_failure_ratio", "type": "branch", "action": "branch.if", "guard": "failure_ratio > 0.05", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 3,
+    "retry_backoff_seconds": 30,
+    "dead_letter_action": "dlq.write",
+    "sequential_processing": false,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.sync", "subscription.materialized"],
+    "kpis": ["events_processed", "projection_upserts", "dlq_events"],
+    "evidence_required": ["logs", "timeline_entries"]
+  }
+}

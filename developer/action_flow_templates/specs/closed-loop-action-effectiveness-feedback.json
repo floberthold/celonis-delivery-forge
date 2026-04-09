@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "closed-loop-action-effectiveness-feedback",
+  "title": "Closed Loop Action Effectiveness Feedback",
+  "category": "recommendation_human_loop",
+  "risk_level": "low",
+  "description": "Track outcome effectiveness after executed recommendations and feed scores back into prioritization.",
+  "tags": ["feedback", "effectiveness", "continuous_improvement"],
+  "use_case_category_map": ["Operational Recommendations", "Analytics Export / BI"],
+  "ownership": {"owner_role": "consultant", "reviewer_role": "process_owner", "review_cadence_days": 30},
+  "trigger": {"type": "schedule", "schedule_cron": "0 7 * * 1", "idempotency_key": "action_id:week"},
+  "inputs": {
+    "required": ["action_id", "baseline_metric", "observed_metric"],
+    "optional": ["notes"],
+    "sample_payload": {"action_id": "A-2001", "baseline_metric": 12.4, "observed_metric": 9.1}
+  },
+  "steps": [
+    {"id": "load_action_outcome", "type": "action", "action": "actions.load_outcome", "on_error": "break"},
+    {"id": "compute_effectiveness", "type": "action", "action": "metrics.compute_delta", "on_error": "resume"},
+    {"id": "update_priority_model", "type": "action", "action": "recommendations.update_priority", "on_error": "retry"},
+    {"id": "publish_weekly_feedback", "type": "notify", "action": "timeline.log", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 2,
+    "retry_backoff_seconds": 90,
+    "dead_letter_action": "todo.create_manual_feedback_task",
+    "sequential_processing": false,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.recommendation", "feedback.effectiveness"],
+    "kpis": ["actions_evaluated", "improvement_pct", "feedback_cycle_time_days"],
+    "evidence_required": ["logs", "kpi_snapshot_link"]
+  }
+}

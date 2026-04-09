@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "stale-incomplete-execution-watchdog",
+  "title": "Stale Incomplete Execution Watchdog",
+  "category": "ai_assisted_triage",
+  "risk_level": "low",
+  "description": "Detect stale incomplete executions and open triage actions before SLA breach.",
+  "tags": ["watchdog", "incomplete_executions", "reliability"],
+  "use_case_category_map": ["Automation Triggers", "AI Agent - Tool Execution"],
+  "ownership": {"owner_role": "platform_admin", "reviewer_role": "delivery_lead", "review_cadence_days": 14},
+  "trigger": {"type": "schedule", "schedule_cron": "*/15 * * * *", "idempotency_key": "execution_id"},
+  "inputs": {
+    "required": ["stale_after_minutes", "owner_person_id", "queue_name"],
+    "optional": ["max_items_per_run"],
+    "sample_payload": {"stale_after_minutes": 30, "queue_name": "incomplete_executions"}
+  },
+  "steps": [
+    {"id": "scan_incomplete_queue", "type": "action", "action": "runs.scan_incomplete", "on_error": "break"},
+    {"id": "rank_by_risk", "type": "action", "action": "triage.rank", "on_error": "resume"},
+    {"id": "open_triage_task", "type": "action", "action": "todos.create", "on_error": "retry"},
+    {"id": "notify_ops_channel", "type": "notify", "action": "notify.send", "on_error": "ignore"}
+  ],
+  "error_policy": {
+    "max_retries": 1,
+    "retry_backoff_seconds": 30,
+    "dead_letter_action": "incident.raise",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.ai", "watchdog.incomplete"],
+    "kpis": ["stale_runs_detected", "triage_tasks_created", "sla_breaches_prevented"],
+    "evidence_required": ["logs", "timeline_entries"]
+  }
+}

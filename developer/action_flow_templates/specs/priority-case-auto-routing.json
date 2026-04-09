@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "template_id": "priority-case-auto-routing",
+  "title": "Priority Case Auto Routing",
+  "category": "recommendation_human_loop",
+  "risk_level": "medium",
+  "description": "Route process cases to owners based on recommendation priority and domain.",
+  "tags": ["routing", "priority", "case_management"],
+  "use_case_category_map": ["Operational Recommendations", "Industry Process Patterns"],
+  "ownership": {"owner_role": "ops_manager", "reviewer_role": "delivery_lead", "review_cadence_days": 14},
+  "trigger": {"type": "webhook", "idempotency_key": "case_id:event_time"},
+  "inputs": {
+    "required": ["case_id", "priority", "process_domain"],
+    "optional": ["routing_matrix_version"],
+    "sample_payload": {"case_id": "C-9183", "priority": "P1", "process_domain": "P2P"}
+  },
+  "steps": [
+    {"id": "resolve_routing_owner", "type": "action", "action": "routing.resolve_owner", "on_error": "break"},
+    {"id": "assign_task", "type": "action", "action": "todos.assign", "on_error": "retry"},
+    {"id": "notify_owner", "type": "notify", "action": "notify.send", "on_error": "resume"},
+    {"id": "fallback_unassigned", "type": "branch", "action": "branch.if", "guard": "owner_missing=true", "on_error": "commit"}
+  ],
+  "error_policy": {
+    "max_retries": 2,
+    "retry_backoff_seconds": 60,
+    "dead_letter_action": "todo.assign_default_queue",
+    "sequential_processing": true,
+    "store_incomplete_executions": true
+  },
+  "observability": {
+    "run_labels": ["flow.recommendation", "case.routing"],
+    "kpis": ["cases_routed", "fallback_routes", "first_response_minutes"],
+    "evidence_required": ["logs", "timeline_entries"]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "catalog_version": "1.0.0",
+  "schema": "../schema/action-flow-template.schema.json",
+  "templates": [
+    "kpi-threshold-alert-to-task-and-notify",
+    "process-anomaly-escalation-chain",
+    "data-quality-breach-stopline",
+    "nightly-km-recommendation-sync",
+    "subscription-event-materialized-sync",
+    "weekly-steering-pack-refresh",
+    "recommendation-human-approval-gate",
+    "priority-case-auto-routing",
+    "closed-loop-action-effectiveness-feedback",
+    "low-confidence-ai-triage-review-loop",
+    "subscription-event-client-comms-draft",
+    "stale-incomplete-execution-watchdog"
+  ]
+}

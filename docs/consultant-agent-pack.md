@@ -24,6 +24,27 @@ The preset run generator supports these consultant workflows:
 - ClientComms: high-clarity client updates and escalation messages.
 - FollowUp: meeting follow-up and action tracker generation.
 
+## Action-Flow Template Integration
+Consultant presets should start from reusable action-flow templates in
+`developer/action_flow_templates/`.
+
+### Default Template Mapping
+- Discovery: `priority-case-auto-routing`, `low-confidence-ai-triage-review-loop`
+- WorkshopPrep: `weekly-steering-pack-refresh`
+- KPIDesign: `kpi-threshold-alert-to-task-and-notify`, `closed-loop-action-effectiveness-feedback`
+- IssueTriage: `stale-incomplete-execution-watchdog`, `process-anomaly-escalation-chain`
+- SteeringPack: `weekly-steering-pack-refresh`, `subscription-event-client-comms-draft`
+- RiskReview: `data-quality-breach-stopline`, `process-anomaly-escalation-chain`
+- ClientComms: `subscription-event-client-comms-draft`, `recommendation-human-approval-gate`
+- FollowUp: `recommendation-human-approval-gate`, `closed-loop-action-effectiveness-feedback`
+
+### Consultant Execution Pattern
+1. Pick a template spec from `developer/action_flow_templates/specs/`.
+2. Apply client/project inputs and routing metadata.
+3. Run one sandbox validation using the paired playbook in `playbooks/`.
+4. Capture evidence in run card before requesting review.
+5. Promote only after reviewer confirms risk controls.
+
 ## Command
 
 ```powershell

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delivery-forge.local/schema/action-flow-template.schema.json",
+  "title": "Delivery Forge Action Flow Template",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "template_id",
+    "title",
+    "category",
+    "risk_level",
+    "description",
+    "ownership",
+    "trigger",
+    "inputs",
+    "steps",
+    "error_policy",
+    "observability"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "pattern": "^1\\.[0-9]+\\.[0-9]+$"},
+    "template_id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "title": {"type": "string", "minLength": 4},
+    "category": {
+      "type": "string",
+      "enum": [
+        "alerts_escalation",
+        "sync_propagation",
+        "recommendation_human_loop",
+        "ai_assisted_triage"
+      ]
+    },
+    "risk_level": {"type": "string", "enum": ["low", "medium", "high"]},
+    "description": {"type": "string", "minLength": 12},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "use_case_category_map": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "3P Enrichment",
+          "Analytics Export / BI",
+          "Automation Triggers",
+          "Live Sync",
+          "AI Agent - Tool Execution",
+          "AI Agent - Chat",
+          "Semantic Tool Generation",
+          "Operational Recommendations",
+          "Industry Process Patterns"
+        ]
+      }
+    },
+    "ownership": {
+      "type": "object",
+      "required": ["owner_role", "reviewer_role", "review_cadence_days"],
+      "properties": {
+        "owner_role": {"type": "string"},
+        "reviewer_role": {"type": "string"},
+        "review_cadence_days": {"type": "integer", "minimum": 7}
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "required": ["type", "idempotency_key"],
+      "properties": {
+        "type": {"type": "string", "enum": ["schedule", "webhook", "subscription", "manual"]},
+        "schedule_cron": {"type": "string"},
+        "event_filter": {"type": "string"},
+        "idempotency_key": {"type": "string"}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "required": ["required", "optional"],
+      "properties": {
+        "required": {"type": "array", "items": {"type": "string"}},
+        "optional": {"type": "array", "items": {"type": "string"}},
+        "sample_payload": {"type": "object"}
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "action", "on_error"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "type": {"type": "string", "enum": ["action", "branch", "wait", "notify"]},
+          "action": {"type": "string"},
+          "guard": {"type": "string"},
+          "map": {"type": "object"},
+          "on_error": {
+            "type": "string",
+            "enum": ["break", "resume", "retry", "ignore", "rollback", "commit"]
+          }
+        }
+      }
+    },
+    "error_policy": {
+      "type": "object",
+      "required": ["max_retries", "retry_backoff_seconds", "dead_letter_action"],
+      "properties": {
+        "max_retries": {"type": "integer", "minimum": 0, "maximum": 10},
+        "retry_backoff_seconds": {"type": "integer", "minimum": 0},
+        "dead_letter_action": {"type": "string"},
+        "sequential_processing": {"type": "boolean"},
+        "store_incomplete_executions": {"type": "boolean"}
+      }
+    },
+    "observability": {
+      "type": "object",
+      "required": ["run_labels", "kpis", "evidence_required"],
+      "properties": {
+        "run_labels": {"type": "array", "items": {"type": "string"}},
+        "kpis": {"type": "array", "items": {"type": "string"}},
+        "evidence_required": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
