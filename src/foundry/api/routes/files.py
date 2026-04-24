@@ -272,15 +272,15 @@ def upload_file(
     if project_id and _get_org_project(session, project_id, org_id) is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    uploads_dir = Path(settings.uploads_dir)
-    uploads_dir.mkdir(parents=True, exist_ok=True)
+    input_dir = Path(settings.input_dir).resolve() / "delivery_files"
+    input_dir.mkdir(parents=True, exist_ok=True)
 
     original_name = (upload.filename or "file").strip() or "file"
     source_path = Path(original_name)
     safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "-", source_path.stem).strip("-._") or "file"
     safe_suffix = re.sub(r"[^A-Za-z0-9.]+", "", source_path.suffix)[:16]
     stored_filename = f"{uuid4().hex}_{safe_stem[:48]}{safe_suffix}"
-    destination = uploads_dir / stored_filename
+    destination = input_dir / stored_filename
 
     upload.file.seek(0)
     with destination.open("wb") as handle:
@@ -367,7 +367,7 @@ def download_file(
     if not row.stored_filename:
         raise HTTPException(status_code=404, detail="Stored file path is missing")
 
-    file_path = Path(settings.uploads_dir) / row.stored_filename
+    file_path = Path(settings.input_dir).resolve() / "delivery_files" / row.stored_filename
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Stored file not found")
 
@@ -402,7 +402,7 @@ def delete_file(
 
     stored_path: Path | None = None
     if row.file_source == FileSource.uploaded and row.stored_filename:
-        stored_path = Path(settings.uploads_dir) / row.stored_filename
+        stored_path = Path(settings.input_dir).resolve() / "delivery_files" / row.stored_filename
 
     session.delete(row)
     session.commit()

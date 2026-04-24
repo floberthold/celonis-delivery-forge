@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     celonis_timeout_seconds: int = 20
     gitlab_base_url: str = ""
     gitlab_api_token: str = ""
-    uploads_dir: str = "./uploads"
+    input_dir: str = "./data/input"
+    generated_dir: str = "./data/generated"
     celonis_shared_dir: str = "./Code from Celonis"
     trycelonis_catalog_url: str = "https://partners.try.celonis.cloud/try/ui/demo-portal/ui"
     trycelonis_manifest_path: str = ""

@@ -344,15 +344,21 @@ def test_snapshot_export_endpoint_includes_delta_and_relationship_graph(tmp_path
         assert export_payload["relationship_graph"]["edges"] >= 3
 
         export_dir = Path(export_payload["export_dir"])
+        mirror_dir = Path(export_payload["mirror_dir"])
         docs_dir = Path(export_payload["docs_path"])
         bundle_path = Path(export_payload["bundle_path"])
 
         assert export_dir.exists()
+        assert mirror_dir.exists()
         assert docs_dir.exists()
         assert bundle_path.exists()
         assert (export_dir / "data" / "delta.json").exists()
         assert (export_dir / "data" / "relationships.json").exists()
         assert (docs_dir / "relationships.md").exists()
+        assert (mirror_dir / "tenant-manifest.json").exists()
+        assert (mirror_dir / "Studio" / "Spaces").exists()
+        assert (mirror_dir / "Apps" / "apps-manifest.json").exists()
+        assert (mirror_dir / "Data Integration" / "data-integration-manifest.json").exists()
 
 
 def test_snapshot_export_download_returns_zip_response(tmp_path, monkeypatch) -> None:

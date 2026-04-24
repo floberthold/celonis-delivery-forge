@@ -1108,6 +1108,7 @@ class KpiBookEntryOut(BaseModel):
 class SnapshotExportOut(BaseModel):
     snapshot_id: UUID
     export_dir: str
+    mirror_dir: str | None = None
     bundle_path: str
     docs_path: str
     generated_at: datetime

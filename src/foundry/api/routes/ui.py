@@ -650,8 +650,8 @@ def _snapshot_path_lookup(payload: object, path: str) -> object | None:
 
 def _store_uploaded_delivery_file(upload_file: UploadFile) -> tuple[str, int]:
     settings = get_settings()
-    uploads_dir = Path(settings.uploads_dir)
-    uploads_dir.mkdir(parents=True, exist_ok=True)
+    input_dir = Path(settings.input_dir).resolve() / "delivery_files"
+    input_dir.mkdir(parents=True, exist_ok=True)
 
     allowed_extensions = {".pdf", ".ppt", ".pptx", ".xls", ".xlsx", ".csv"}
     allowed_mime_types = {
@@ -689,7 +689,7 @@ def _store_uploaded_delivery_file(upload_file: UploadFile) -> tuple[str, int]:
     safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "-", source_path.stem).strip("-._") or "file"
     safe_suffix = re.sub(r"[^A-Za-z0-9.]+", "", source_path.suffix)[:16]
     stored_filename = f"{uuid4().hex}_{safe_stem[:48]}{safe_suffix}"
-    destination = uploads_dir / stored_filename
+    destination = input_dir / stored_filename
 
     upload_file.file.seek(0)
     with destination.open("wb") as handle:
@@ -7045,7 +7045,7 @@ def files_ui_delete_file(
 
         stored_path: Path | None = None
         if row.file_source == FileSource.uploaded and row.stored_filename:
-            stored_path = Path(get_settings().uploads_dir) / row.stored_filename
+            stored_path = Path(get_settings().input_dir).resolve() / "delivery_files" / row.stored_filename
 
         session.delete(row)
         session.commit()
@@ -8863,7 +8863,7 @@ def snapshot_export_ui(
         result = build_snapshot_export(
             session,
             snapshot_id=snapshot_id,
-            base_output_dir=Path(get_settings().uploads_dir) / "snapshot_exports",
+            base_output_dir=Path(get_settings().generated_dir) / "snapshot_exports",
         )
         if wants_json:
             return {
@@ -8910,7 +8910,7 @@ def snapshot_download_ui(
         result = build_snapshot_export(
             session,
             snapshot_id=snapshot_id,
-            base_output_dir=Path(get_settings().uploads_dir) / "snapshot_exports",
+            base_output_dir=Path(get_settings().generated_dir) / "snapshot_exports",
         )
         return FileResponse(
             path=result["bundle_path"],

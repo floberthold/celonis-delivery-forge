@@ -340,7 +340,7 @@ def execute_code_drop(
             source=source,
             drop_path=payload.drop_path,
             triggered_by=current_actor.person.id,
-            uploads_dir=settings.uploads_dir,
+            generated_dir=settings.generated_dir,
             version_label=payload.version_label,
             source_ref=payload.source_ref,
             notes=payload.notes,
@@ -394,7 +394,7 @@ def execute_repo_sync(
             source=source,
             local_repo_path=payload.local_repo_path,
             triggered_by=current_actor.person.id,
-            uploads_dir=settings.uploads_dir,
+            generated_dir=settings.generated_dir,
             branch=payload.branch,
             tag=payload.tag,
             commit_sha=payload.commit_sha,
@@ -450,7 +450,7 @@ def materialize_ingest_snapshot_git_history(
     result = materialize_asset_snapshot_git_history(
         session,
         snapshot_id=snapshot_id,
-        base_output_dir=Path(settings.uploads_dir).resolve() / "git_history",
+        base_output_dir=Path(settings.generated_dir).resolve() / "git_history",
     )
     snapshot.summary_json = {**snapshot.summary_json, "git_history": result}
     session.add(snapshot)

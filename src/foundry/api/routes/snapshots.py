@@ -193,7 +193,7 @@ def export_snapshot_bundle(
     snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
     if snap is None:
         raise HTTPException(status_code=404, detail="Snapshot not found")
-    output_dir = get_settings().uploads_dir
+    output_dir = get_settings().generated_dir
     result = build_snapshot_export(
         session,
         snapshot_id=snapshot_id,
@@ -267,7 +267,7 @@ def download_snapshot_bundle(
     snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
     if snap is None:
         raise HTTPException(status_code=404, detail="Snapshot not found")
-    output_dir = get_settings().uploads_dir
+    output_dir = get_settings().generated_dir
     result = build_snapshot_export(
         session,
         snapshot_id=snapshot_id,
@@ -292,7 +292,7 @@ def materialize_snapshot_git_history(
     result = materialize_celonis_snapshot_git_history(
         session,
         snapshot_id=snapshot_id,
-        base_output_dir=Path(get_settings().uploads_dir) / "git_history",
+        base_output_dir=Path(get_settings().generated_dir) / "git_history",
     )
     snap.summary_json = {**snap.summary_json, "git_history": result}
     session.add(snap)

@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Sequence
+from urllib.parse import urlparse
 from uuid import UUID
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -11,6 +12,8 @@ from sqlmodel import Session, select
 
 from foundry.models import (
     CelonisSnapshot,
+    CelonisConnection,
+    Client,
     SnapshotApp,
     SnapshotDataModel,
     SnapshotDataPool,
@@ -25,14 +28,354 @@ from foundry.models import (
 
 
 def _json_dump(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
 
 
 def _jsonl_dump(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         for row in rows:
             f.write(json.dumps(row, default=str))
             f.write("\n")
+
+
+def _slugify(value: str) -> str:
+    cleaned: list[str] = []
+    for char in value.lower():
+        if char.isalnum():
+            cleaned.append(char)
+        else:
+            cleaned.append("-")
+    slug = "".join(cleaned).strip("-")
+    while "--" in slug:
+        slug = slug.replace("--", "-")
+    return slug or "snapshot"
+
+
+def _normalize_base_url(value: str) -> str:
+    candidate = (value or "").strip()
+    if not candidate:
+        return ""
+    if candidate.startswith("http://") or candidate.startswith("https://"):
+        return candidate
+    return f"https://{candidate}"
+
+
+def _tenant_slug(value: str) -> str:
+    normalized = _normalize_base_url(value)
+    if not normalized:
+        return "tenant"
+    parsed = urlparse(normalized)
+    return _slugify(parsed.netloc or parsed.path or normalized)
+
+
+def _asset_stem(name: str, asset_id: str) -> str:
+    return f"{_slugify(name)}--{asset_id}"
+
+
+def _write_asset_payload(base_dir: Path, stem: str, payload: dict[str, Any], raw_json: dict[str, Any]) -> None:
+    _json_dump(base_dir / f"{stem}.json", payload)
+    _json_dump(base_dir / f"{stem}.raw.json", raw_json)
+
+
+def _snapshot_counts(
+    *,
+    space_rows: Sequence[SnapshotSpace],
+    package_rows: Sequence[SnapshotPackage],
+    task_rows: Sequence[SnapshotTask],
+    data_model_rows: Sequence[SnapshotDataModel],
+    job_rows: Sequence[SnapshotJob],
+    km_rows: Sequence[SnapshotKnowledgeModel],
+    app_rows: Sequence[SnapshotApp],
+    pool_rows: Sequence[SnapshotDataPool],
+    transformation_rows: Sequence[SnapshotTransformation],
+) -> dict[str, int]:
+    return {
+        "spaces": len(space_rows),
+        "packages": len(package_rows),
+        "tasks": len(task_rows),
+        "data_models": len(data_model_rows),
+        "jobs": len(job_rows),
+        "knowledge_models": len(km_rows),
+        "apps": len(app_rows),
+        "data_pools": len(pool_rows),
+        "transformations": len(transformation_rows),
+    }
+
+
+def _build_snapshot_mirror(
+    session: Session,
+    *,
+    mirror_root: Path,
+    snapshot: CelonisSnapshot,
+    space_rows: Sequence[SnapshotSpace],
+    package_rows: Sequence[SnapshotPackage],
+    task_rows: Sequence[SnapshotTask],
+    data_model_rows: Sequence[SnapshotDataModel],
+    job_rows: Sequence[SnapshotJob],
+    km_rows: Sequence[SnapshotKnowledgeModel],
+    app_rows: Sequence[SnapshotApp],
+    pool_rows: Sequence[SnapshotDataPool],
+    transformation_rows: Sequence[SnapshotTransformation],
+    delta_report: dict[str, Any],
+) -> Path:
+    client = session.get(Client, snapshot.client_id)
+    connection = session.exec(
+        select(CelonisConnection).where(
+            CelonisConnection.client_id == snapshot.client_id,
+            CelonisConnection.is_active == True,  # noqa: E712
+        )
+    ).first()
+
+    client_label = client.name if client else str(snapshot.client_id)
+    tenant_source = ""
+    if connection is not None:
+        tenant_source = connection.tenant_base_url
+    elif client is not None:
+        tenant_source = client.tenant_url
+
+    tenant_dir = mirror_root / _slugify(client_label) / _tenant_slug(tenant_source)
+    studio_dir = tenant_dir / "Studio"
+    apps_dir = tenant_dir / "Apps"
+    data_integration_dir = tenant_dir / "Data Integration"
+    knowledge_models_dir = tenant_dir / "Knowledge Models"
+    (studio_dir / "Spaces").mkdir(parents=True, exist_ok=True)
+    (studio_dir / "Packages").mkdir(parents=True, exist_ok=True)
+    (apps_dir / "Published").mkdir(parents=True, exist_ok=True)
+    (data_integration_dir / "Data Pools").mkdir(parents=True, exist_ok=True)
+    (data_integration_dir / "Data Models").mkdir(parents=True, exist_ok=True)
+    (knowledge_models_dir / "Items").mkdir(parents=True, exist_ok=True)
+
+    counts = _snapshot_counts(
+        space_rows=space_rows,
+        package_rows=package_rows,
+        task_rows=task_rows,
+        data_model_rows=data_model_rows,
+        job_rows=job_rows,
+        km_rows=km_rows,
+        app_rows=app_rows,
+        pool_rows=pool_rows,
+        transformation_rows=transformation_rows,
+    )
+    _json_dump(
+        tenant_dir / "tenant-manifest.json",
+        {
+            "snapshot_id": str(snapshot.id),
+            "client_id": str(snapshot.client_id),
+            "client_name": client_label,
+            "tenant_url": tenant_source,
+            "generated_at": datetime.utcnow().isoformat(),
+            "counts": counts,
+            "delta_counts": {
+                asset_name: payload["counts"]
+                for asset_name, payload in delta_report["assets"].items()
+            },
+        },
+    )
+
+    space_dir_map: dict[str, Path] = {}
+    for row in space_rows:
+        stem = _asset_stem(row.name, row.space_id)
+        base_dir = studio_dir / "Spaces" / stem
+        space_dir_map[row.space_id] = base_dir
+        _write_asset_payload(
+            base_dir,
+            "space",
+            {
+                "kind": "space",
+                "space_id": row.space_id,
+                "name": row.name,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    package_dir_map: dict[str, Path] = {}
+    for row in package_rows:
+        stem = _asset_stem(row.name, row.package_id)
+        parent_dir = space_dir_map.get(row.space_id or "")
+        if parent_dir is None:
+            parent_dir = studio_dir / "Packages" / "unassigned"
+        package_dir = parent_dir / "Packages" / stem
+        package_dir_map[row.package_id] = package_dir
+        _write_asset_payload(
+            package_dir,
+            "package",
+            {
+                "kind": "package",
+                "package_id": row.package_id,
+                "package_key": row.key,
+                "name": row.name,
+                "space_id": row.space_id,
+                "space_name": row.space_name,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    for row in task_rows:
+        stem = _asset_stem(row.name, row.task_id)
+        task_type_slug = _slugify(row.task_type or "unknown")
+        base_dir = package_dir_map.get(row.package_id or "")
+        if base_dir is None:
+            base_dir = studio_dir / "Packages" / "unassigned"
+        asset_dir = base_dir / "Assets" / task_type_slug
+        _write_asset_payload(
+            asset_dir,
+            stem,
+            {
+                "kind": "task",
+                "task_id": row.task_id,
+                "name": row.name,
+                "task_type": row.task_type,
+                "package_id": row.package_id,
+                "description": row.description,
+                "pql_formula": row.pql_formula,
+                "change_type": row.change_type.value,
+                "content_hash": row.content_hash,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    _json_dump(
+        data_integration_dir / "data-integration-manifest.json",
+        {
+            "snapshot_id": str(snapshot.id),
+            "data_pools": len(pool_rows),
+            "jobs": len(job_rows),
+            "transformations": len(transformation_rows),
+            "data_models": len(data_model_rows),
+        },
+    )
+    pool_dir_map: dict[str, Path] = {}
+    for row in pool_rows:
+        stem = _asset_stem(row.name, row.pool_id)
+        pool_dir = data_integration_dir / "Data Pools" / stem
+        pool_dir_map[row.pool_id] = pool_dir
+        _write_asset_payload(
+            pool_dir,
+            "pool",
+            {
+                "kind": "data_pool",
+                "pool_id": row.pool_id,
+                "name": row.name,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    for row in job_rows:
+        stem = _asset_stem(row.name, row.job_id)
+        base_dir = pool_dir_map.get(row.pool_id or "")
+        if base_dir is None:
+            base_dir = data_integration_dir / "Data Pools" / "unassigned"
+        _write_asset_payload(
+            base_dir / "Jobs",
+            stem,
+            {
+                "kind": "job",
+                "job_id": row.job_id,
+                "name": row.name,
+                "pool_id": row.pool_id,
+                "pool_name": row.pool_name,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    for row in transformation_rows:
+        stem = _asset_stem(row.name, row.transformation_id)
+        base_dir = pool_dir_map.get(row.pool_id or "")
+        if base_dir is None:
+            base_dir = data_integration_dir / "Data Pools" / "unassigned"
+        _write_asset_payload(
+            base_dir / "Transformations",
+            stem,
+            {
+                "kind": "transformation",
+                "transformation_id": row.transformation_id,
+                "name": row.name,
+                "pool_id": row.pool_id,
+                "pool_name": row.pool_name,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    for row in data_model_rows:
+        stem = _asset_stem(row.name, row.data_model_id)
+        _write_asset_payload(
+            data_integration_dir / "Data Models",
+            stem,
+            {
+                "kind": "data_model",
+                "data_model_id": row.data_model_id,
+                "name": row.name,
+                "space_id": row.space_id,
+                "space_name": row.space_name,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    _json_dump(
+        apps_dir / "apps-manifest.json",
+        {
+            "snapshot_id": str(snapshot.id),
+            "apps": len(app_rows),
+        },
+    )
+    for row in app_rows:
+        stem = _asset_stem(row.name, row.app_id)
+        _write_asset_payload(
+            apps_dir / "Published",
+            stem,
+            {
+                "kind": "app",
+                "app_id": row.app_id,
+                "name": row.name,
+                "space_id": row.space_id,
+                "space_name": row.space_name,
+                "package_key": row.package_key,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    _json_dump(
+        knowledge_models_dir / "knowledge-models-manifest.json",
+        {
+            "snapshot_id": str(snapshot.id),
+            "knowledge_models": len(km_rows),
+        },
+    )
+    for row in km_rows:
+        stem = _asset_stem(row.name, row.km_id)
+        _write_asset_payload(
+            knowledge_models_dir / "Items",
+            stem,
+            {
+                "kind": "knowledge_model",
+                "knowledge_model_id": row.km_id,
+                "name": row.name,
+                "space_id": row.space_id,
+                "space_name": row.space_name,
+                "change_type": row.change_type.value,
+                "snapshot_id": str(snapshot.id),
+            },
+            row.raw_json,
+        )
+
+    return tenant_dir
 
 
 def _serialize_rows(rows: Sequence[object], fields: list[str]) -> list[dict]:
@@ -760,6 +1103,18 @@ def build_snapshot_export(
     docs_dir = export_dir / "docs"
     data_dir.mkdir(parents=True, exist_ok=True)
 
+    asset_counts = _snapshot_counts(
+        space_rows=space_rows,
+        package_rows=package_rows,
+        task_rows=task_rows,
+        data_model_rows=data_model_rows,
+        job_rows=job_rows,
+        km_rows=km_rows,
+        app_rows=app_rows,
+        pool_rows=pool_rows,
+        transformation_rows=transformation_rows,
+    )
+
     _json_dump(
         export_dir / "manifest.json",
         {
@@ -768,17 +1123,7 @@ def build_snapshot_export(
             "generated_at": datetime.utcnow().isoformat(),
             "status": snapshot.status.value,
             "previous_snapshot_id": str(previous_snapshot.id) if previous_snapshot else None,
-            "counts": {
-                "spaces": len(space_rows),
-                "packages": len(package_rows),
-                "tasks": len(task_rows),
-                "data_models": len(data_model_rows),
-                "jobs": len(job_rows),
-                "knowledge_models": len(km_rows),
-                "apps": len(app_rows),
-                "data_pools": len(pool_rows),
-                "transformations": len(transformation_rows),
-            },
+            "counts": asset_counts,
             "delta_counts": {
                 asset_name: payload["counts"]
                 for asset_name, payload in delta_report["assets"].items()
@@ -870,6 +1215,22 @@ def build_snapshot_export(
         transformation_rows=transformation_rows,
     )
 
+    mirror_dir = _build_snapshot_mirror(
+        session,
+        mirror_root=export_dir / "mirror",
+        snapshot=snapshot,
+        space_rows=space_rows,
+        package_rows=package_rows,
+        task_rows=task_rows,
+        data_model_rows=data_model_rows,
+        job_rows=job_rows,
+        km_rows=km_rows,
+        app_rows=app_rows,
+        pool_rows=pool_rows,
+        transformation_rows=transformation_rows,
+        delta_report=delta_report,
+    )
+
     bundle_path = export_dir.with_suffix(".zip")
     with ZipFile(bundle_path, "w", compression=ZIP_DEFLATED) as zf:
         for file_path in export_dir.rglob("*"):
@@ -879,20 +1240,11 @@ def build_snapshot_export(
     return {
         "snapshot_id": snapshot_id,
         "export_dir": str(export_dir.resolve()),
+        "mirror_dir": str(mirror_dir.resolve()),
         "bundle_path": str(bundle_path.resolve()),
         "docs_path": str(docs_dir.resolve()),
         "generated_at": datetime.utcnow(),
-        "asset_counts": {
-            "spaces": len(space_rows),
-            "packages": len(package_rows),
-            "tasks": len(task_rows),
-            "data_models": len(data_model_rows),
-            "jobs": len(job_rows),
-            "knowledge_models": len(km_rows),
-            "apps": len(app_rows),
-            "data_pools": len(pool_rows),
-            "transformations": len(transformation_rows),
-        },
+        "asset_counts": asset_counts,
         "delta_counts": {
             asset_name: payload["counts"]
             for asset_name, payload in delta_report["assets"].items()

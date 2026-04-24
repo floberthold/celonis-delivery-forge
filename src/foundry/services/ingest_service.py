@@ -119,7 +119,7 @@ def execute_code_drop_ingest(
     source: AssetSource,
     drop_path: str,
     triggered_by: UUID,
-    uploads_dir: str,
+    generated_dir: str,
     version_label: str | None = None,
     source_ref: str | None = None,
     notes: str | None = None,
@@ -161,7 +161,7 @@ def execute_code_drop_ingest(
     session.commit()
     session.refresh(snapshot)
 
-    manifests_dir = Path(uploads_dir).resolve() / "ingest_manifests"
+    manifests_dir = Path(generated_dir).resolve() / "ingest_manifests"
     manifests_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = manifests_dir / f"{snapshot.id}.json"
     manifest_payload = {
@@ -179,14 +179,14 @@ def execute_code_drop_ingest(
     updated_summary["archived_payload_path"] = archive_asset_snapshot_payload(
         snapshot_id=snapshot.id,
         drop_path=str(root),
-        uploads_dir=uploads_dir,
+        generated_dir=generated_dir,
     )
 
     try:
         updated_summary["git_history"] = materialize_asset_snapshot_git_history(
             session,
             snapshot_id=snapshot.id,
-            base_output_dir=Path(uploads_dir).resolve() / "git_history",
+            base_output_dir=Path(generated_dir).resolve() / "git_history",
         )
     except Exception as exc:
         updated_summary["git_history_error"] = str(exc)
@@ -250,7 +250,7 @@ def execute_repo_sync_ingest(
     source: AssetSource,
     local_repo_path: str,
     triggered_by: UUID,
-    uploads_dir: str,
+    generated_dir: str,
     branch: str | None = None,
     tag: str | None = None,
     commit_sha: str | None = None,
@@ -275,7 +275,7 @@ def execute_repo_sync_ingest(
         source=source,
         drop_path=local_repo_path,
         triggered_by=triggered_by,
-        uploads_dir=uploads_dir,
+        generated_dir=generated_dir,
         version_label=version_label,
         source_ref=source_ref,
         notes=notes,

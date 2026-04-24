@@ -261,13 +261,13 @@ def archive_asset_snapshot_payload(
     *,
     snapshot_id: UUID,
     drop_path: str,
-    uploads_dir: str,
+    generated_dir: str,
 ) -> str:
     source_dir = Path(drop_path).expanduser().resolve()
     if not source_dir.exists() or not source_dir.is_dir():
         raise ValueError("drop_path must point to an existing directory")
 
-    archive_dir = Path(uploads_dir).resolve() / "asset_snapshot_payloads" / str(snapshot_id) / "files"
+    archive_dir = Path(generated_dir).resolve() / "asset_snapshot_payloads" / str(snapshot_id) / "files"
     if archive_dir.exists():
         shutil.rmtree(archive_dir)
     archive_dir.mkdir(parents=True, exist_ok=True)

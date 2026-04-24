@@ -694,7 +694,7 @@ def run_snapshot(
             export_result = build_snapshot_export(
                 session,
                 snapshot_id=snap.id,
-                base_output_dir=Path(get_settings().uploads_dir) / "snapshot_exports",
+                base_output_dir=Path(get_settings().generated_dir) / "snapshot_exports",
             )
             updated_summary["export_bundle"] = {
                 "bundle_path": export_result["bundle_path"],
@@ -710,7 +710,7 @@ def run_snapshot(
             updated_summary["git_history"] = materialize_celonis_snapshot_git_history(
                 session,
                 snapshot_id=snap.id,
-                base_output_dir=Path(get_settings().uploads_dir) / "git_history",
+                base_output_dir=Path(get_settings().generated_dir) / "git_history",
             )
         except Exception as git_exc:
             updated_summary["git_history_error"] = str(git_exc)
