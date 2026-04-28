@@ -1,6 +1,7 @@
 # ruff: noqa: E402
 
 import os
+import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -317,7 +318,7 @@ def test_snapshot_export_endpoint_includes_delta_and_relationship_graph(tmp_path
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:
@@ -368,7 +369,7 @@ def test_snapshot_export_download_returns_zip_response(tmp_path, monkeypatch) ->
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:
@@ -542,7 +543,7 @@ def test_snapshot_git_history_endpoint_materializes_commit(tmp_path, monkeypatch
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:
@@ -560,6 +561,46 @@ def test_snapshot_git_history_endpoint_materializes_commit(tmp_path, monkeypatch
         assert (repo_path / ".forge" / "snapshot.json").exists()
         assert (repo_path / "reports" / "delta.json").exists()
         assert payload["commit_sha"]
+
+
+def test_snapshot_git_history_preserves_previous_assets_and_writes_redactions(tmp_path, monkeypatch) -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    monkeypatch.setattr(
+        "foundry.api.routes.snapshots.get_settings",
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
+    )
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+
+        first_response = api_client.post(f"/snapshots/{seed['prev_snapshot_id']}/git-history")
+        assert first_response.status_code == 200, first_response.text
+        first_payload = first_response.json()
+        repo_path = Path(first_payload["repo_path"])
+
+        previous_package_file = repo_path / "packages" / "package-two" / "pkg-2" / "package.json"
+        previous_task_file = repo_path / "packages" / "package-two" / "pkg-2" / "tasks" / "task-2.json"
+        assert previous_package_file.exists()
+        assert previous_task_file.exists()
+
+        second_response = api_client.post(f"/snapshots/{seed['current_snapshot_id']}/git-history")
+        assert second_response.status_code == 200, second_response.text
+        second_payload = second_response.json()
+        assert Path(second_payload["repo_path"]) == repo_path
+
+        assert previous_package_file.exists(), "Historical package file should remain after access loss"
+        assert previous_task_file.exists(), "Historical task file should remain after access loss"
+
+        redactions_file = repo_path / "reports" / "redactions.json"
+        assert redactions_file.exists()
+        redactions_payload = json.loads(redactions_file.read_text(encoding="utf-8"))
+        removed_packages = redactions_payload["removed_assets"].get("packages", [])
+        removed_tasks = redactions_payload["removed_assets"].get("tasks", [])
+        assert any(row.get("id") == "pkg-2" for row in removed_packages)
+        assert any(row.get("id") == "task-2" for row in removed_tasks)
 
 
 def test_snapshot_delta_and_replay_plan_org_scope_enforced() -> None:
@@ -735,7 +776,7 @@ def test_export_includes_new_artifact_jsonl_files(tmp_path, monkeypatch) -> None
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:

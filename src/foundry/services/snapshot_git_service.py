@@ -190,8 +190,23 @@ def _write_celonis_snapshot_tree(repo_dir: Path, snapshot: CelonisSnapshot, sess
             "summary_json": snapshot.summary_json,
         },
     )
-    _json_dump(repo_dir / "reports" / "delta.json", build_snapshot_delta_report(session, snapshot_id=snapshot.id))
+    delta_report = build_snapshot_delta_report(session, snapshot_id=snapshot.id)
+    _json_dump(repo_dir / "reports" / "delta.json", delta_report)
     _json_dump(repo_dir / "reports" / "replay-plan.json", build_snapshot_replay_plan(session, snapshot_id=snapshot.id))
+
+    removed_by_family: dict[str, list[dict[str, str]]] = {}
+    for family, payload in delta_report.get("assets", {}).items():
+        removed_items = payload.get("removed", [])
+        if isinstance(removed_items, list) and removed_items:
+            removed_by_family[family] = removed_items
+    _json_dump(
+        repo_dir / "reports" / "redactions.json",
+        {
+            "snapshot_id": str(snapshot.id),
+            "recorded_at": datetime.utcnow().isoformat(),
+            "removed_assets": removed_by_family,
+        },
+    )
 
     for package in package_rows:
         package_dir = repo_dir / "packages" / _slugify(package.name) / package.package_id
@@ -236,7 +251,8 @@ def materialize_celonis_snapshot_git_history(
     client_slug = _slugify(client.name if client else str(snapshot.client_id))
     repo_dir = base_output_dir / "celonis_clients" / f"{client_slug}-{snapshot.client_id}"
     branch = _ensure_repo(repo_dir)
-    _clear_worktree(repo_dir)
+    # Keep previously materialized files to preserve historical assets when access is redacted.
+    # Current snapshot content overwrites known files, while missing files remain in history.
     _write_celonis_snapshot_tree(repo_dir, snapshot, session)
 
     commit_message = f"celonis snapshot {snapshot.created_at:%Y-%m-%d %H:%M:%S}"

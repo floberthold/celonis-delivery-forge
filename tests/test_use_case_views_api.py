@@ -18,12 +18,28 @@ from foundry.security import create_access_token, hash_password
 DB_FILE = Path("tmp_use_case_api_test.db")
 
 
+def _cleanup_db_file() -> None:
+    for path in (
+        DB_FILE,
+        DB_FILE.with_name(f"{DB_FILE.name}-journal"),
+        DB_FILE.with_name(f"{DB_FILE.name}-wal"),
+        DB_FILE.with_name(f"{DB_FILE.name}-shm"),
+    ):
+        try:
+            path.unlink()
+        except (FileNotFoundError, PermissionError):
+            continue
+
+
 @pytest.fixture(autouse=True)
 def _isolate_engine_for_use_case_tests() -> None:
     previous_url = db_module._active_database_url
+    _cleanup_db_file()
     db_module._set_engine("sqlite:///./tmp_use_case_api_test.db")
     yield
+    db_module.engine.dispose()
     db_module._set_engine(previous_url)
+    _cleanup_db_file()
 
 
 def _reset_db() -> None:

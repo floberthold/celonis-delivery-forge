@@ -34,6 +34,19 @@ from foundry.security import create_access_token, hash_password
 DB_FILE = Path("tmp_celonis_token_admin_ui_test.db")
 
 
+def _cleanup_db_file() -> None:
+    for path in (
+        DB_FILE,
+        DB_FILE.with_name(f"{DB_FILE.name}-journal"),
+        DB_FILE.with_name(f"{DB_FILE.name}-wal"),
+        DB_FILE.with_name(f"{DB_FILE.name}-shm"),
+    ):
+        try:
+            path.unlink()
+        except (FileNotFoundError, PermissionError):
+            continue
+
+
 def _reset_db() -> None:
     SQLModel.metadata.drop_all(db_module.engine)
     SQLModel.metadata.create_all(db_module.engine)
@@ -42,9 +55,12 @@ def _reset_db() -> None:
 @pytest.fixture(autouse=True)
 def _isolate_celonis_token_admin_test_engine():
     previous_url = db_module._active_database_url
+    _cleanup_db_file()
     db_module._set_engine("sqlite:///./tmp_celonis_token_admin_ui_test.db")
     yield
+    db_module.engine.dispose()
     db_module._set_engine(previous_url)
+    _cleanup_db_file()
 
 
 def _seed_admin_and_member_with_token() -> tuple[str, str, str, str]:

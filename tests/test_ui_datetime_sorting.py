@@ -24,6 +24,19 @@ from foundry.security import create_access_token, hash_password
 DB_FILE = Path("tmp_ui_datetime_sorting_test.db")
 
 
+def _cleanup_db_file() -> None:
+    for path in (
+        DB_FILE,
+        DB_FILE.with_name(f"{DB_FILE.name}-journal"),
+        DB_FILE.with_name(f"{DB_FILE.name}-wal"),
+        DB_FILE.with_name(f"{DB_FILE.name}-shm"),
+    ):
+        try:
+            path.unlink()
+        except (FileNotFoundError, PermissionError):
+            continue
+
+
 def _reset_db() -> None:
     SQLModel.metadata.drop_all(db_module.engine)
     SQLModel.metadata.create_all(db_module.engine)
@@ -32,9 +45,12 @@ def _reset_db() -> None:
 @pytest.fixture(autouse=True)
 def _isolate_ui_datetime_test_engine() -> Generator[None, None, None]:
     previous_url = db_module._active_database_url
+    _cleanup_db_file()
     db_module._set_engine("sqlite:///./tmp_ui_datetime_sorting_test.db")
     yield
+    db_module.engine.dispose()
     db_module._set_engine(previous_url)
+    _cleanup_db_file()
 
 
 def _seed_people_with_mixed_datetime_kinds() -> tuple[str, str]:
