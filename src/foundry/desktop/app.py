@@ -14,7 +14,7 @@ import uvicorn
 
 HOST = "127.0.0.1"
 PORT = 8000
-DOCS_URL = f"http://{HOST}:{PORT}/docs"
+DASHBOARD_URL = f"http://{HOST}:{PORT}/"
 HEALTH_URL = f"http://{HOST}:{PORT}/health"
 HEALTH_TIMEOUT_SECONDS = 40
 
@@ -81,16 +81,16 @@ def run_desktop() -> None:
             _log("FORGE_DATABASE_URL not set; defaulted to LocalAppData SQLite")
 
         if _is_port_occupied(HOST, PORT):
-            _log(f"Port {PORT} already occupied; opening docs and exiting")
-            webbrowser.open(DOCS_URL)
+            _log(f"Port {PORT} already occupied; opening dashboard and exiting")
+            webbrowser.open(DASHBOARD_URL)
             return
 
         thread = threading.Thread(target=run_server, daemon=True)
         thread.start()
 
         if _wait_for_health(HEALTH_URL, HEALTH_TIMEOUT_SECONDS):
-            _log("Health check ready; opening docs")
-            webbrowser.open(DOCS_URL)
+            _log("Health check ready; opening dashboard")
+            webbrowser.open(DASHBOARD_URL)
         else:
             _log(f"Health check failed after {HEALTH_TIMEOUT_SECONDS}s; not opening browser")
 

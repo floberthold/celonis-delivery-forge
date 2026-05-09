@@ -1,94 +1,280 @@
+################################################################################
 # OS-generated files
+################################################################################
 .DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
 Thumbs.db
 Desktop.ini
+ehthumbs.db
 $RECYCLE.BIN/
 .Spotlight-V100/
 .Trashes/
+.TemporaryItems/
+.VolumeIcon.icns
 
+# Windows
+*.lnk
+Thumbs.db:encryptable
+.lnk
+
+# macOS
+.AppleDB
+.AppleDesktop
+
+################################################################################
 # Python bytecode and extensions
+################################################################################
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyd
 *.so
 *.pyo
+*.pyc
+.Python
 
-# Python packaging artifacts
+# C extensions
+*.so
 *.egg-info/
 .eggs/
-pip-wheel-metadata/
+
+################################################################################
+# Python packaging and build artifacts
+################################################################################
+*.egg-info/
+.eggs/
+*.egg
 *.whl
 build/
 dist/
 site/
 docs_site/
+pip-wheel-metadata/
+MANIFEST
 
+################################################################################
 # Virtual environments
+################################################################################
 .venv/
 venv/
 env/
 ENV/
+env.bak/
+venv.bak/
 .python-version
 __pypackages__/
+.pyenv/
 
+################################################################################
 # Test, lint, and type-check caches
+################################################################################
 .pytest_cache/
 .mypy_cache/
+.mypy_incremental/
 .ruff_cache/
 .pyre/
 .hypothesis/
 .tox/
 .nox/
+.nox.env/
 .cache/
 .dmypy.json
+dmypy.json
+.pylintrc.bak
 
 # Coverage artifacts
 .coverage
 .coverage.*
 coverage.xml
+*.cover
+.coverage.xml
 htmlcov/
-*.py,cover
+.htmlcov/
+.claim/
 
-# Jupyter
+################################################################################
+# Jupyter Notebooks
+################################################################################
 .ipynb_checkpoints/
+*.ipynb_checkpoints
+*/.ipynb_checkpoints/*
 
+################################################################################
 # Environment and local secrets
+################################################################################
 .env
 .env.*
 !.env.example
+.env.local
+.env.*.local
 .envrc
 .direnv/
+.secrets/
+*.pem
+*.key
+*.pub
 
-# Local runtime/database artifacts
+################################################################################
+# Database and runtime artifacts
+################################################################################
 foundry.db
+foundry.db-*
 *.sqlite
 *.sqlite3
-*.db-journal
 *.sqlite-journal
+*.db
+*.db-journal
 *.db-wal
 *.db-shm
 tmp*.db
-uploads/
+*.db-wal
+*.db-shm
 
+################################################################################
+# Data directories
+################################################################################
+data/generated/
+uploads/
+tmp/
+temp/
+.tmp/
+
+################################################################################
+# Docker artifacts
+################################################################################
+.dockerignore
+.docker/
+docker-compose.override.yml
+
+################################################################################
+# PyInstaller and Desktop App builds
+################################################################################
+build/FoundryDesktop/
+dist/
+*.spec
+*.spec.local
+*.manifest
+spec.template
+__pycache__/
+
+################################################################################
 # Local orchestration/worktree helpers
+################################################################################
 .orchestration/
 .worktrees/
 .upstreams/
+.git/worktrees/
+.git/modules/
 
-# Logs and temp files
+################################################################################
+# Logs and temporary files
+################################################################################
 *.log
 *.pid
 logs/
-tmp/
-temp/
+log/
+*.pot
+*.log.*
+debug*.log
 
-# IDE/project-local metadata
+################################################################################
+# IDE and editor metadata
+################################################################################
+# VS Code
+.vscode/
+.vscode-test/
+*.code-workspace
+.history/
+.vscode-settings.json
+
+# PyCharm
 .idea/
 *.iml
-.vscode-test/
+*.iws
+*.ipr
+.idea_modules/
+out/
 
-# JavaScript package artifacts (for extension tooling)
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+.vim/
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Other
+.DS_Store
+*.bak
+*.tmp
+*.orig
+
+################################################################################
+# JavaScript/Node artifacts (for extensions)
+################################################################################
 node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .npm/
+.pnpm/
 .pnpm-store/
+dist/
+.cache/
+.nuxt/
+.next/
+
+################################################################################
+# Build and dist directories
+################################################################################
+/build/
+/dist/
+.parcel-cache/
+.next/
+out/
+
+################################################################################
+# Misc project files
+################################################################################
+.DS_Store
+*.swp
+*.swo
+*~
+.vimrc
+.editorconfig.local
+
+################################################################################
+# OS-specific files
+################################################################################
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+Icon?
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+################################################################################
+# Custom local files
+################################################################################
+local/
+local_*
+.local/
+private/
+*.local.*

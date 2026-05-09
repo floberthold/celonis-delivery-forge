@@ -53,6 +53,8 @@
             "approve": true,
             "matchCommandLine": true
         },
-        "c:/coding/xOther/celonis-delivery-forge/.venv/Scripts/python.exe": true
+        "c:/coding/xOther/celonis-delivery-forge/.venv/Scripts/python.exe": true,
+        ".\\scripts\\run_standalone.bat": true,
+        "uvicorn": true
     }
 }

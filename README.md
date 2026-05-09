@@ -25,69 +25,70 @@ Built for consultants. Built for scale. Built to last.
 - PostgreSQL
 - Docker Compose for local services
 
-## Quick Start (Local Python)
+## 🚀 Quick Start
 
-1. Copy environment variables:
+### Option 1: Auto-Startup (Recommended)
 
-	```powershell
-	Copy-Item .env.example .env
-	```
+The easiest way to get running — one command:
 
-	The default local profile now uses SQLite so the app boots without a running Postgres instance.
-	When startup falls back from an unreachable external database, it uses a separate LocalAppData SQLite file instead of reusing any old repo-root database.
+**PowerShell:**
+```powershell
+.\START.ps1
+```
 
-2. Install dependencies:
+**Command Prompt:**
+```cmd
+START.bat
+```
+
+The script will:
+- ✅ Install dependencies automatically (if needed)
+- ✅ Start the API server with auto-reload
+- ✅ Server runs at `http://127.0.0.1:8000`
+- ✅ Open the UI dashboard in your browser automatically (via desktop launcher)
+
+**That's it!** Press `Ctrl+C` to stop.
+
+### Option 2: Manual Startup
+
+If you prefer to run commands yourself:
+
+1. **Install dependencies** (one time only):
 
 	```powershell
 	python -m pip install --upgrade pip
 	python -m pip install -e .
 	```
 
-3. Run API:
+2. **Start the server**:
 
 	```powershell
 	uvicorn foundry.api.main:app --reload
 	```
 
-	If you want local startup to fail fast instead of falling back to SQLite, set:
+3. **Open in browser**:
+	- **UI Dashboard:** <http://127.0.0.1:8000>
+	- **API Docs (Swagger):** <http://127.0.0.1:8000/docs>
+	- **Health Check:** <http://127.0.0.1:8000/health>
 
-	```powershell
-	$env:FORGE_DATABASE_FALLBACK_TO_LOCAL="false"
-	```
+### Database
 
-4. Open:
+The default local profile uses **SQLite** — no external database needed!
+- Local database: `AppData\Local\CelonisDeliveryForge\foundry.db`
+- The app boots instantly without waiting for PostgreSQL
 
-- Swagger: <http://127.0.0.1:8000/docs>
-- Health: <http://127.0.0.1:8000/health>
-- UI Dashboard: <http://127.0.0.1:8000/dashboard>
-- User Docs: <http://127.0.0.1:8000/docs-site/user/>
-- Developer Docs: <http://127.0.0.1:8000/docs-site/developer/>
-
-Documentation source files are now in the root `site_docs/` folder and are built with MkDocs Material into `docs_site/`.
-
-5. Configure Celonis token for companion actions:
-
+If you want startup to fail instead of falling back to SQLite, set:
 ```powershell
-$env:FORGE_CELONIS_API_TOKEN="<your-token>"
+$env:FORGE_DATABASE_FALLBACK_TO_LOCAL="false"
 ```
 
-6. Configure SMTP for registration and password-reset emails:
+### Documentation
 
-```powershell
-$env:FORGE_SMTP_HOST="smtp.office365.com"
-$env:FORGE_SMTP_PORT="587"
-$env:FORGE_SMTP_USERNAME="<smtp-user>"
-$env:FORGE_SMTP_PASSWORD="<smtp-password-or-app-password>"
-$env:FORGE_SMTP_FROM_EMAIL="noreply@your-domain.com"
-$env:FORGE_SMTP_STARTTLS="true"
-$env:FORGE_SMTP_USE_SSL="false"
-$env:FORGE_PUBLIC_BASE_URL="http://127.0.0.1:8000"
-```
+- **UI Dashboard:** <http://127.0.0.1:8000>
+- **User Docs:** <http://127.0.0.1:8000/docs-site/user/>
+- **Developer Docs:** <http://127.0.0.1:8000/docs-site/developer/>
 
-Provider defaults:
-
-- Microsoft 365: `smtp.office365.com`, port `587`, StartTLS `true`
-- Gmail: `smtp.gmail.com`, port `587`, StartTLS `true` (use an app password)
+Documentation source files are in `site_docs/` and are built with MkDocs Material.
 
 ## Admin Setup Guide (All Functionalities)
 
