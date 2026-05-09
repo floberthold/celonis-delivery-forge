@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 720
     celonis_api_token: str = ""
-    celonis_timeout_seconds: int = 20
+    celonis_timeout_seconds: int = 60
     gitlab_base_url: str = ""
     gitlab_api_token: str = ""
     input_dir: str = "./data/input"

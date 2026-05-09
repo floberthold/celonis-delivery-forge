@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 from uuid import UUID
+
+log = logging.getLogger(__name__)
 
 from sqlmodel import Session, select
 
@@ -131,6 +134,14 @@ _LIST_FALLBACK_KEYS = (
     "results",
     "value",
     "content",
+    # HAL / JSON:API / Celonis-specific envelopes
+    "entities",
+    "records",
+    "objects",
+    "responseObject",
+    "responseData",
+    "payload",
+    "body",
 )
 
 
@@ -139,6 +150,12 @@ def _extract_items(payload: Any, list_keys: tuple[str, ...]) -> list[dict]:
         return [row for row in payload if isinstance(row, dict)]
     if not isinstance(payload, dict):
         return []
+    # HAL _embedded envelope: {"_embedded": {"resourceName": [...]}}
+    embedded = payload.get("_embedded")
+    if isinstance(embedded, dict):
+        for v in embedded.values():
+            if isinstance(v, list):
+                return [row for row in v if isinstance(row, dict)]
     for key in (*list_keys, *_LIST_FALLBACK_KEYS):
         value = payload.get(key)
         if isinstance(value, list):
@@ -175,8 +192,10 @@ def _fetch_endpoint_items(
     list_keys: tuple[str, ...],
     token_override: str | None = None,
     max_pages: int = 50,
-) -> tuple[list[dict], bool]:
+) -> tuple[list[dict], bool, list[dict]]:
+    """Returns (items, had_any_items, endpoint_log) where endpoint_log records per-request diagnostics."""
     items: list[dict] = []
+    endpoint_log: list[dict] = []
     query: dict[str, Any] = {}
     page_number = 1
 
@@ -192,11 +211,53 @@ def _fetch_endpoint_items(
             source_path=endpoint,
             **extract_kwargs,
         )
+        log.debug(
+            "snapshot fetch: %s status=%s ok=%s body_preview=%r",
+            result.url,
+            result.status_code,
+            result.ok,
+            (result.body or "")[:300],
+        )
+        entry: dict[str, Any] = {
+            "url": result.url,
+            "status_code": result.status_code,
+            "ok": result.ok,
+        }
         if not result.ok or not result.body:
+            entry["error"] = "non-2xx response or empty body"
+            endpoint_log.append(entry)
             break
 
-        payload = json.loads(result.body)
-        items.extend(_extract_items(payload, list_keys))
+        try:
+            payload = json.loads(result.body)
+        except json.JSONDecodeError:
+            entry["error"] = "response body is not valid JSON (possible SSO redirect)"
+            entry["body_preview"] = result.body[:300]
+            endpoint_log.append(entry)
+            log.warning(
+                "snapshot fetch: non-JSON body from %s (status=%s) — possible SSO/login redirect",
+                result.url,
+                result.status_code,
+            )
+            break
+
+        page_items = _extract_items(payload, list_keys)
+        entry["items_on_page"] = len(page_items)
+        # Record which key matched so we can detect shape mismatches
+        if page_items:
+            entry["detected_list_key"] = _detect_list_key(payload, list_keys)
+        else:
+            entry["warning"] = "response parsed but no items found; top-level keys: " + str(
+                list(payload.keys()) if isinstance(payload, dict) else type(payload).__name__
+            )
+            log.warning(
+                "snapshot fetch: %s returned 0 items; top-level keys: %s",
+                result.url,
+                list(payload.keys()) if isinstance(payload, dict) else type(payload).__name__,
+            )
+        endpoint_log.append(entry)
+        items.extend(page_items)
+
         payload_dict = _safe_dict(payload)
         if not payload_dict:
             break
@@ -207,7 +268,23 @@ def _fetch_endpoint_items(
         query = next_q
         page_number += 1
 
-    return items, bool(items)
+    return items, bool(items), endpoint_log
+
+
+def _detect_list_key(payload: Any, list_keys: tuple[str, ...]) -> str | None:
+    """Return the key that _extract_items would match, for diagnostic use."""
+    if isinstance(payload, list):
+        return "<root list>"
+    if not isinstance(payload, dict):
+        return None
+    if isinstance(payload.get("_embedded"), dict):
+        for k, v in payload["_embedded"].items():
+            if isinstance(v, list):
+                return f"_embedded.{k}"
+    for key in (*list_keys, *_LIST_FALLBACK_KEYS):
+        if isinstance(payload.get(key), list):
+            return key
+    return None
 
 
 def _collect_entities(
@@ -217,13 +294,14 @@ def _collect_entities(
     endpoints: tuple[str, ...],
     list_keys: tuple[str, ...] = (),
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     merged: list[dict] = []
     attempted = 0
     successful = 0
+    endpoint_errors: list[dict] = []
     for endpoint in endpoints:
         attempted += 1
-        rows, ok = _fetch_endpoint_items(
+        rows, ok, ep_log = _fetch_endpoint_items(
             gw,
             base_url,
             endpoint,
@@ -233,7 +311,15 @@ def _collect_entities(
         if ok:
             successful += 1
             merged.extend(rows)
-    return merged, {"endpoints_attempted": attempted, "endpoints_with_data": successful}
+        else:
+            endpoint_errors.extend(ep_log)
+    stats: dict[str, Any] = {
+        "endpoints_attempted": attempted,
+        "endpoints_with_data": successful,
+    }
+    if endpoint_errors:
+        stats["endpoint_errors"] = endpoint_errors
+    return merged, stats
 
 
 def _dedupe_by_preferred_keys(rows: list[dict], preferred_keys: tuple[str, ...]) -> list[dict]:
@@ -258,11 +344,16 @@ def _extract_spaces(
     gw: CelonisGateway,
     base_url: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=("/package-manager/api/spaces", "/studio/api/spaces"),
+        endpoints=(
+            "/package-manager/api/spaces",
+            "/studio/api/spaces",
+            "/package-manager/api/v1/spaces",
+            "/package-manager/api/v2/spaces",
+        ),
         list_keys=("spaces", "data"),
         token_override=token_override,
     )
@@ -273,11 +364,16 @@ def _extract_packages(
     gw: CelonisGateway,
     base_url: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=("/package-manager/api/packages",),
+        endpoints=(
+            "/package-manager/api/packages",
+            "/package-manager/api/v1/packages",
+            "/package-manager/api/v2/packages",
+            "/studio/api/packages",
+        ),
         list_keys=("packages", "data"),
         token_override=token_override,
     )
@@ -289,11 +385,16 @@ def _extract_package_tasks(
     base_url: str,
     package_key: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=(f"/package-manager/api/packages/{package_key}/assets",),
+        endpoints=(
+            f"/package-manager/api/packages/{package_key}/assets",
+            f"/package-manager/api/v1/packages/{package_key}/assets",
+            f"/package-manager/api/v2/packages/{package_key}/assets",
+            f"/studio/api/packages/{package_key}/assets",
+        ),
         list_keys=("assets", "items", "data"),
         token_override=token_override,
     )
@@ -304,11 +405,16 @@ def _extract_data_models(
     gw: CelonisGateway,
     base_url: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=("/process-mining/api/data-models", "/integration/api/v1/data-models"),
+        endpoints=(
+            "/process-mining/api/data-models",
+            "/integration/api/v1/data-models",
+            "/process-mining/api/v1/data-models",
+            "/integration/api/data-models",
+        ),
         list_keys=("dataModels", "data"),
         token_override=token_override,
     )
@@ -319,11 +425,16 @@ def _extract_jobs(
     gw: CelonisGateway,
     base_url: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=("/integration/api/v1/jobs", "/integration/api/jobs"),
+        endpoints=(
+            "/integration/api/v1/jobs",
+            "/integration/api/jobs",
+            "/data-integration/api/v1/jobs",
+            "/data-integration/api/jobs",
+        ),
         list_keys=("jobs", "data"),
         token_override=token_override,
     )
@@ -334,11 +445,16 @@ def _extract_knowledge_models(
     gw: CelonisGateway,
     base_url: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=("/knowledge-model/api/knowledge-models", "/semantic-layer/api/knowledge-models"),
+        endpoints=(
+            "/knowledge-model/api/knowledge-models",
+            "/semantic-layer/api/knowledge-models",
+            "/knowledge-model/api/v1/knowledge-models",
+            "/semantic-layer/api/v1/knowledge-models",
+        ),
         list_keys=("knowledgeModels", "data"),
         token_override=token_override,
     )
@@ -349,11 +465,16 @@ def _extract_apps(
     gw: CelonisGateway,
     base_url: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=("/apps/api/packages", "/apps/api/apps"),
+        endpoints=(
+            "/apps/api/packages",
+            "/apps/api/apps",
+            "/apps/api/v1/packages",
+            "/apps/api/v1/apps",
+        ),
         list_keys=("packages", "apps", "data"),
         token_override=token_override,
     )
@@ -364,11 +485,16 @@ def _extract_data_pools(
     gw: CelonisGateway,
     base_url: str,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     rows, stats = _collect_entities(
         gw,
         base_url,
-        endpoints=("/integration/api/pools", "/integration/api/v1/pools"),
+        endpoints=(
+            "/integration/api/pools",
+            "/integration/api/v1/pools",
+            "/data-integration/api/pools",
+            "/data-integration/api/v1/pools",
+        ),
         list_keys=("pools", "data"),
         token_override=token_override,
     )
@@ -380,13 +506,17 @@ def _extract_transformations(
     base_url: str,
     pool_id: str | None = None,
     token_override: str | None = None,
-) -> tuple[list[dict], dict[str, int]]:
+) -> tuple[list[dict], dict[str, Any]]:
     endpoints = (
         f"/integration/api/v1/pools/{pool_id}/transformations",
         f"/integration/api/pools/{pool_id}/transformations",
+        f"/data-integration/api/v1/pools/{pool_id}/transformations",
+        f"/data-integration/api/pools/{pool_id}/transformations",
     ) if pool_id else (
         "/integration/api/v1/transformations",
         "/integration/api/transformations",
+        "/data-integration/api/v1/transformations",
+        "/data-integration/api/transformations",
     )
     rows, stats = _collect_entities(
         gw,
@@ -401,6 +531,142 @@ def _extract_transformations(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+_ALL_FAMILY_ENDPOINTS: dict[str, dict] = {
+    "spaces": {
+        "endpoints": (
+            "/package-manager/api/spaces",
+            "/studio/api/spaces",
+            "/package-manager/api/v1/spaces",
+            "/package-manager/api/v2/spaces",
+        ),
+        "list_keys": ("spaces", "data"),
+    },
+    "packages": {
+        "endpoints": (
+            "/package-manager/api/packages",
+            "/package-manager/api/v1/packages",
+            "/package-manager/api/v2/packages",
+            "/studio/api/packages",
+        ),
+        "list_keys": ("packages", "data"),
+    },
+    "data_models": {
+        "endpoints": (
+            "/process-mining/api/data-models",
+            "/integration/api/v1/data-models",
+            "/process-mining/api/v1/data-models",
+            "/integration/api/data-models",
+        ),
+        "list_keys": ("dataModels", "data"),
+    },
+    "jobs": {
+        "endpoints": (
+            "/integration/api/v1/jobs",
+            "/integration/api/jobs",
+            "/data-integration/api/v1/jobs",
+            "/data-integration/api/jobs",
+        ),
+        "list_keys": ("jobs", "data"),
+    },
+    "knowledge_models": {
+        "endpoints": (
+            "/knowledge-model/api/knowledge-models",
+            "/semantic-layer/api/knowledge-models",
+            "/knowledge-model/api/v1/knowledge-models",
+            "/semantic-layer/api/v1/knowledge-models",
+        ),
+        "list_keys": ("knowledgeModels", "data"),
+    },
+    "apps": {
+        "endpoints": (
+            "/apps/api/packages",
+            "/apps/api/apps",
+            "/apps/api/v1/packages",
+            "/apps/api/v1/apps",
+        ),
+        "list_keys": ("packages", "apps", "data"),
+    },
+    "data_pools": {
+        "endpoints": (
+            "/integration/api/pools",
+            "/integration/api/v1/pools",
+            "/data-integration/api/pools",
+            "/data-integration/api/v1/pools",
+        ),
+        "list_keys": ("pools", "data"),
+    },
+    "transformations": {
+        "endpoints": (
+            "/integration/api/v1/transformations",
+            "/integration/api/transformations",
+            "/data-integration/api/v1/transformations",
+            "/data-integration/api/transformations",
+        ),
+        "list_keys": ("transformations", "data"),
+    },
+}
+
+
+def preflight_snapshot_endpoints(
+    session: Session,
+    *,
+    client_id: UUID,
+    organization_id: UUID | None = None,
+    token_override: str | None = None,
+) -> dict[str, Any]:
+    """Probe every snapshot family endpoint without persisting anything.
+
+    Returns a dict mapping each family → list of per-endpoint probe results so
+    callers can immediately see which endpoints are reachable, what HTTP status
+    they return, whether JSON parses, and which response key would match.
+    """
+    conn = _get_connection(session, client_id, organization_id=organization_id)
+    if conn is None:
+        raise ValueError(f"No active Celonis connection for client {client_id}")
+
+    gw = CelonisGateway(get_settings())
+    base_url = conn.tenant_base_url
+    report: dict[str, Any] = {"base_url": base_url, "families": {}}
+
+    for family, cfg in _ALL_FAMILY_ENDPOINTS.items():
+        family_results: list[dict] = []
+        for path in cfg["endpoints"]:
+            extract_kwargs: dict[str, Any] = {}
+            if token_override:
+                extract_kwargs["token_override"] = token_override
+            result = gw.extract_full(
+                tenant_base_url=base_url,
+                source_path=path,
+                **extract_kwargs,
+            )
+            entry: dict[str, Any] = {
+                "path": path,
+                "url": result.url,
+                "status_code": result.status_code,
+                "ok": result.ok,
+            }
+            if result.ok and result.body:
+                try:
+                    payload = json.loads(result.body)
+                    entry["detected_list_key"] = _detect_list_key(payload, tuple(cfg["list_keys"]))
+                    items = _extract_items(payload, tuple(cfg["list_keys"]))
+                    entry["items_detected"] = len(items)
+                    if isinstance(payload, dict):
+                        entry["top_level_keys"] = list(payload.keys())
+                except json.JSONDecodeError:
+                    entry["error"] = "non-JSON response body (possible SSO redirect)"
+                    entry["body_preview"] = result.body[:300]
+            elif not result.ok:
+                entry["error"] = f"HTTP {result.status_code}"
+                entry["body_preview"] = (result.body or "")[:300]
+            else:
+                entry["error"] = "empty response body"
+            family_results.append(entry)
+        report["families"][family] = family_results
+
+    return report
+
 
 def run_snapshot(
     session: Session,

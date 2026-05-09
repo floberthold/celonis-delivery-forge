@@ -900,3 +900,105 @@ def test_snapshot_run_captures_all_artifact_types(tmp_path, monkeypatch) -> None
     assert "KPI" in task_types, "KPI task_type must be stored"
     assert "ACTION_FLOW" in task_types, "ACTION_FLOW task_type must be stored"
     assert "ANALYSIS" in task_types, "ANALYSIS task_type must be stored"
+
+    # Coverage stats must show at least one endpoint_with_data per family
+    coverage = summary.get("coverage", {})
+    for family in ("spaces", "packages", "data_models", "jobs", "knowledge_models", "apps", "data_pools"):
+        assert coverage.get(family, {}).get("endpoints_with_data", 0) >= 1, (
+            f"{family}: expected endpoints_with_data >= 1"
+        )
+
+
+def test_extract_items_hal_envelope() -> None:
+    """_extract_items must unwrap HAL _embedded envelopes."""
+    from foundry.services.snapshot_service import _extract_items
+
+    payload = {"_embedded": {"spaces": [{"id": "s-1", "name": "S1"}, {"id": "s-2", "name": "S2"}]}}
+    result = _extract_items(payload, ("spaces", "data"))
+    assert len(result) == 2
+    assert result[0]["id"] == "s-1"
+
+
+def test_extract_items_non_json_envelope_keys() -> None:
+    """_extract_items must handle lesser-known envelope keys like 'entities' and 'responseObject'."""
+    from foundry.services.snapshot_service import _extract_items
+
+    for key in ("entities", "records", "responseObject", "responseData", "payload"):
+        payload = {key: [{"id": "x-1"}]}
+        result = _extract_items(payload, ())
+        assert result == [{"id": "x-1"}], f"Failed for envelope key '{key}'"
+
+
+def test_fetch_endpoint_items_handles_json_decode_error(monkeypatch) -> None:
+    """_fetch_endpoint_items must not raise on HTML/non-JSON response bodies."""
+    from foundry.services.snapshot_service import _fetch_endpoint_items
+    from foundry.integrations.celonis_import import CelonisGateway, CelonisHttpFullResult
+
+    def _fake_extract_full(self, *, tenant_base_url, source_path, **kwargs):
+        return CelonisHttpFullResult(
+            action="extract_full",
+            url=source_path,
+            status_code=200,
+            ok=True,
+            body="<html><body>Login</body></html>",
+        )
+
+    monkeypatch.setattr(CelonisGateway, "extract_full", _fake_extract_full)
+    from types import SimpleNamespace
+    gw = CelonisGateway(SimpleNamespace(celonis_api_token="tok", celonis_timeout_seconds=5))
+    items, had_items, ep_log = _fetch_endpoint_items(
+        gw, "https://fake.celonis.cloud", "/studio/api/spaces", list_keys=("spaces",)
+    )
+    assert items == []
+    assert had_items is False
+    assert any("not valid JSON" in (entry.get("error") or "") for entry in ep_log)
+
+
+def test_preflight_endpoint_returns_diagnostics(monkeypatch) -> None:
+    """GET /snapshots/preflight/{client_id} returns per-endpoint probe results."""
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    from foundry.models import CelonisConnection
+    with Session(engine) as session:
+        conn = CelonisConnection(
+            organization_id=UUID(seed["org_a_id"]),
+            client_id=UUID(seed["client_a_id"]),
+            tenant_base_url="https://fake.celonis.cloud",
+            is_active=True,
+        )
+        session.add(conn)
+        session.commit()
+
+    from foundry.integrations.celonis_import import CelonisGateway, CelonisHttpFullResult
+    import json as _json
+
+    def _fake_extract_full(self, *, tenant_base_url, source_path, **kwargs):
+        if "/package-manager/api/spaces" in source_path:
+            return CelonisHttpFullResult(
+                action="extract_full", url=source_path, status_code=200, ok=True,
+                body=_json.dumps([{"id": "s-1", "name": "Space 1"}]),
+            )
+        return CelonisHttpFullResult(
+            action="extract_full", url=source_path, status_code=404, ok=False, body=None,
+        )
+
+    monkeypatch.setattr(CelonisGateway, "extract_full", _fake_extract_full)
+    monkeypatch.setattr(
+        "foundry.services.snapshot_service.get_settings",
+        lambda: SimpleNamespace(celonis_api_token="tok", celonis_timeout_seconds=5),
+    )
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.get(f"/snapshots/preflight/{seed['client_a_id']}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "families" in data
+    assert "spaces" in data["families"]
+    spaces_results = data["families"]["spaces"]
+    assert any(r.get("ok") for r in spaces_results), "At least one spaces probe should succeed"
+    assert any(r.get("items_detected", 0) >= 1 for r in spaces_results)
+

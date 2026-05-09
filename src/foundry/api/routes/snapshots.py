@@ -3,7 +3,7 @@ import json
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from sqlmodel import Session, select
 
 from foundry.api.deps import CurrentActor, get_current_actor_with_org, get_session
@@ -39,7 +39,7 @@ from foundry.services.snapshot_coverage_service import (
     build_snapshot_coverage_report,
 )
 from foundry.services.snapshot_git_service import materialize_celonis_snapshot_git_history
-from foundry.services.snapshot_service import run_snapshot
+from foundry.services.snapshot_service import preflight_snapshot_endpoints, run_snapshot
 from foundry.settings import get_settings
 
 router = APIRouter(prefix="/snapshots", tags=["snapshots"])
@@ -61,6 +61,32 @@ def _get_org_snapshot(
     if _get_org_client(session, snap.client_id, organization_id) is None:
         return None
     return snap
+
+
+@router.get("/preflight/{client_id}")
+def preflight_client_endpoints(
+    client_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    """Probe every snapshot family endpoint for a client without persisting anything.
+
+    Returns per-endpoint diagnostics (HTTP status, response shape, detected list key)
+    so you can identify why a full snapshot returns zero results.
+    """
+    if _get_org_client(session, client_id, current_actor.organization.id) is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    try:
+        token_override = _resolve_actor_token_override(session, current_actor)
+        result = preflight_snapshot_endpoints(
+            session,
+            client_id=client_id,
+            organization_id=current_actor.organization.id,
+            token_override=token_override or None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return JSONResponse(content=result)
 
 
 @router.post("/trigger", response_model=CelonisSnapshotOut, status_code=status.HTTP_202_ACCEPTED)
