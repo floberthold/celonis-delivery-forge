@@ -165,12 +165,21 @@ function Get-ToolCatalog {
         $toolPath = Resolve-ToolPath -Tool $tool
         $startable = ($null -ne $toolPath) -and (-not [string]::IsNullOrWhiteSpace($tool.command))
         $domain = if ($tool.PSObject.Properties.Name -contains "domain") { $tool.domain } else { "unassigned" }
+        $activationPhase = 1
+        if ($tool.PSObject.Properties.Name -contains "activation_phase") {
+            $parsedPhase = 0
+            if ([int]::TryParse([string]$tool.activation_phase, [ref]$parsedPhase) -and $parsedPhase -ge 1) {
+                $activationPhase = $parsedPhase
+            }
+        }
 
         $profileAllowsTool = $true
+        $phaseAllowsTool = $true
         if ($null -ne $selectedProfile) {
             $includeDomains = @()
             $includeToolIds = @()
             $excludeToolIds = @()
+            $maxActivationPhase = $null
 
             if ($selectedProfile.PSObject.Properties.Name -contains "include_domains") {
                 $includeDomains = @($selectedProfile.include_domains)
@@ -181,6 +190,12 @@ function Get-ToolCatalog {
             if ($selectedProfile.PSObject.Properties.Name -contains "exclude_tool_ids") {
                 $excludeToolIds = @($selectedProfile.exclude_tool_ids)
             }
+            if ($selectedProfile.PSObject.Properties.Name -contains "max_activation_phase") {
+                $parsedMaxPhase = 0
+                if ([int]::TryParse([string]$selectedProfile.max_activation_phase, [ref]$parsedMaxPhase) -and $parsedMaxPhase -ge 1) {
+                    $maxActivationPhase = $parsedMaxPhase
+                }
+            }
 
             $allowsAllDomains = $includeDomains -contains "*"
             $domainAllowed = $allowsAllDomains -or ($includeDomains.Count -eq 0) -or ($includeDomains -contains $domain)
@@ -188,9 +203,12 @@ function Get-ToolCatalog {
             $toolExcluded = ($excludeToolIds -contains $tool.id)
 
             $profileAllowsTool = ($domainAllowed -or $explicitToolIncluded) -and (-not $toolExcluded)
+            if ($null -ne $maxActivationPhase) {
+                $phaseAllowsTool = $activationPhase -le $maxActivationPhase
+            }
         }
 
-        $enabled = [bool]$tool.enabled -and $profileAllowsTool
+        $enabled = [bool]$tool.enabled -and $profileAllowsTool -and $phaseAllowsTool
 
         $catalog += [pscustomobject]@{
             id = $tool.id
@@ -198,6 +216,7 @@ function Get-ToolCatalog {
             repo_path = $tool.repo_path
             absolute_repo_path = $toolPath
             domain = $domain
+            activation_phase = $activationPhase
             shell = $tool.shell
             command = $tool.command
             enabled = $enabled
@@ -339,7 +358,7 @@ if ($Mode -eq "dry-run") {
     Write-Host "Catalog written to: $catalogPath" -ForegroundColor Gray
     Write-Host "Profile: $Profile" -ForegroundColor Gray
     $catalog |
-        Select-Object id, domain, enabled, startable, source, repo_path |
+        Select-Object id, domain, activation_phase, enabled, startable, source, repo_path |
         Format-Table -AutoSize
     exit 0
 }
@@ -352,16 +371,79 @@ if ($Mode -eq "status") {
         exit 0
     }
 
+    $catalogPayload = Read-Json -Path $catalogPath
+    $catalogTools = @()
+    if ($null -ne $catalogPayload -and $catalogPayload.PSObject.Properties.Name -contains "tools") {
+        $catalogTools = @($catalogPayload.tools)
+    }
+
+    $catalogById = @{}
+    foreach ($tool in $catalogTools) {
+        if ($null -eq $tool -or [string]::IsNullOrWhiteSpace([string]$tool.id)) {
+            continue
+        }
+        $catalogById[[string]$tool.id] = $tool
+    }
+
     $rows = @()
     foreach ($tool in $state.tools) {
         $proc = Get-Process -Id $tool.pid -ErrorAction SilentlyContinue
+        $catalogEntry = $null
+        if ($catalogById.ContainsKey([string]$tool.id)) {
+            $catalogEntry = $catalogById[[string]$tool.id]
+        }
         $rows += [pscustomobject]@{
             id = $tool.id
             pid = $tool.pid
+            domain = if ($null -ne $catalogEntry -and $catalogEntry.PSObject.Properties.Name -contains "domain") { [string]$catalogEntry.domain } else { "unassigned" }
+            activation_phase = if ($null -ne $catalogEntry -and $catalogEntry.PSObject.Properties.Name -contains "activation_phase") { [int]$catalogEntry.activation_phase } else { 1 }
             running = ($null -ne $proc)
             log_file = $tool.log_file
         }
     }
+
+    $enabledCatalogTools = @($catalogTools | Where-Object { [bool]$_.enabled })
+    $enabledByDomain = @{}
+    foreach ($tool in $enabledCatalogTools) {
+        $domainKey = if ($tool.PSObject.Properties.Name -contains "domain" -and -not [string]::IsNullOrWhiteSpace([string]$tool.domain)) { [string]$tool.domain } else { "unassigned" }
+        if (-not $enabledByDomain.ContainsKey($domainKey)) {
+            $enabledByDomain[$domainKey] = 0
+        }
+        $enabledByDomain[$domainKey] += 1
+    }
+
+    $runningByDomain = @{}
+    foreach ($row in $rows) {
+        if (-not $row.running) {
+            continue
+        }
+        if (-not $runningByDomain.ContainsKey($row.domain)) {
+            $runningByDomain[$row.domain] = 0
+        }
+        $runningByDomain[$row.domain] += 1
+    }
+
+    $domains = @($enabledByDomain.Keys + $runningByDomain.Keys | Sort-Object -Unique)
+    if ($domains.Count -gt 0) {
+        Write-Host "Profile health summary" -ForegroundColor Cyan
+        $activeProfile = if ($null -ne $catalogPayload -and $catalogPayload.PSObject.Properties.Name -contains "profile") { [string]$catalogPayload.profile } else { "unknown" }
+        Write-Host "Profile: $activeProfile" -ForegroundColor Gray
+
+        $summaryRows = @()
+        foreach ($domain in $domains) {
+            $enabledCount = if ($enabledByDomain.ContainsKey($domain)) { [int]$enabledByDomain[$domain] } else { 0 }
+            $runningCount = if ($runningByDomain.ContainsKey($domain)) { [int]$runningByDomain[$domain] } else { 0 }
+            $summaryRows += [pscustomobject]@{
+                domain = $domain
+                enabled_tools = $enabledCount
+                running_tools = $runningCount
+                healthy = ($runningCount -ge $enabledCount)
+            }
+        }
+        $summaryRows | Format-Table -AutoSize
+    }
+
+    Write-Host "Process state" -ForegroundColor Cyan
     $rows | Format-Table -AutoSize
     exit 0
 }

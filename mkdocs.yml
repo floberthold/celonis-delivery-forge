@@ -62,6 +62,13 @@ nav:
     - Authentication Issues: troubleshooting/auth-issues.md
     - Database and Startup: troubleshooting/database-and-startup.md
     - Integrations and Email: troubleshooting/integrations-and-email.md
+  - Code Quality & Architecture:
+      - Complete Guide: code-analysis-complete-guide.md
+      - Code Metrics & Analysis: codebase-metrics-and-analysis.md
+      - Code Cleanup Roadmap: code-quality-and-cleanup-roadmap.md
+      - UI Route Refactoring: refactoring-ui-routes.md
+      - Service Layer Restructuring: service-layer-restructuring.md
+      - Documentation Consolidation: documentation-consolidation-plan.md
 markdown_extensions:
   - admonition
   - attr_list

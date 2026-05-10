@@ -31,6 +31,7 @@ from foundry.api.routes import (
     todos,
     tool_hub,
     ui,
+    ui_knowledge_status,
     use_cases,
     users,
 )
@@ -146,6 +147,7 @@ def healthcheck():
 
 
 app.include_router(ui.router)
+app.include_router(ui_knowledge_status.router)
 app.include_router(auth.router)
 app.include_router(orgs.router)
 app.include_router(users.router)

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "pilot-core": {
+      "description": "Minimal baseline seed set for core workflow validation.",
+      "commands": []
+    },
+    "pilot-core-plus-knowledge": {
+      "description": "Core baseline plus knowledge-oriented datasets.",
+      "commands": [
+        "python scripts/seed_use_cases.py"
+      ]
+    },
+    "integration-celonis": {
+      "description": "Core + Celonis integration datasets.",
+      "commands": [
+        "python scripts/seed_use_cases.py",
+        "python scripts/seed_forum_insights.py"
+      ]
+    },
+    "full": {
+      "description": "Complete representative local dataset.",
+      "commands": [
+        "python scripts/seed_use_cases.py",
+        "python scripts/seed_forum_insights.py"
+      ]
+    }
+  }
+}

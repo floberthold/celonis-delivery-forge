@@ -6,12 +6,14 @@
       "id": "full",
       "display_name": "Full Workspace",
       "include_domains": ["*"],
+      "max_activation_phase": 99,
       "exclude_tool_ids": []
     },
     {
       "id": "pilot-core",
       "display_name": "Pilot Core (Small User Test)",
       "include_domains": ["core-platform"],
+      "max_activation_phase": 1,
       "include_tool_ids": [],
       "exclude_tool_ids": []
     },
@@ -19,6 +21,7 @@
       "id": "pilot-core-plus-knowledge",
       "display_name": "Pilot Core + Knowledge Hub",
       "include_domains": ["core-platform", "knowledge-hub"],
+      "max_activation_phase": 1,
       "include_tool_ids": [],
       "exclude_tool_ids": []
     },
@@ -26,6 +29,7 @@
       "id": "integration-celonis",
       "display_name": "Core + Celonis Agent",
       "include_domains": ["core-platform", "celonis-agent"],
+      "max_activation_phase": 1,
       "include_tool_ids": [],
       "exclude_tool_ids": []
     }

@@ -403,6 +403,8 @@ class ToolHubCatalogToolOut(BaseModel):
     display_name: str
     repo_path: str
     absolute_repo_path: str
+    domain: str = "unassigned"
+    activation_phase: int = 1
     shell: str
     command: Optional[str] = None
     enabled: bool = False

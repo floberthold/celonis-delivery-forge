@@ -3,6 +3,8 @@ param(
     [ValidateSet("hub", "api-only", "api-fast", "status", "stop", "dry-run")]
     [string]$Mode = "hub",
     [string]$Profile = "full",
+    [string]$RegistryPath = "",
+    [string]$ProfilesPath = "",
     [switch]$IncludeAutoDiscovered,
     [switch]$SkipDependencyInstall
 )
@@ -73,6 +75,14 @@ $hubArgs = @(
     "-Mode", $hubMode,
     "-Profile", $Profile
 )
+
+if (-not [string]::IsNullOrWhiteSpace($RegistryPath)) {
+    $hubArgs += @("-RegistryPath", $RegistryPath)
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ProfilesPath)) {
+    $hubArgs += @("-ProfilesPath", $ProfilesPath)
+}
 
 if ($IncludeAutoDiscovered) {
     $hubArgs += "-IncludeAutoDiscovered"

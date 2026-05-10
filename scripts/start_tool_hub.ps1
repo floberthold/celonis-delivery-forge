@@ -3,6 +3,8 @@ param(
     [ValidateSet("start", "dry-run", "status", "stop")]
     [string]$Mode = "start",
     [string]$RegistryPath = ".\agentic\tool-hub\tool_hub_registry.json",
+    [string]$ProfilesPath = ".\agentic\tool-hub\tool_hub_profiles.json",
+    [string]$Profile = "full",
     [switch]$IncludeAutoDiscovered,
     [switch]$SkipDependencyInstall
 )
@@ -18,7 +20,9 @@ $args = @(
     "-ExecutionPolicy", "Bypass",
     "-File", $targetScript,
     "-Mode", $Mode,
-    "-RegistryPath", $RegistryPath
+    "-RegistryPath", $RegistryPath,
+    "-ProfilesPath", $ProfilesPath,
+    "-Profile", $Profile
 )
 
 if ($IncludeAutoDiscovered) {

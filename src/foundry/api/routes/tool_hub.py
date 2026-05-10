@@ -42,6 +42,8 @@ def get_tool_hub_catalog() -> ToolHubCatalogOut:
                 display_name=str(row.get("display_name") or ""),
                 repo_path=str(row.get("repo_path") or ""),
                 absolute_repo_path=str(row.get("absolute_repo_path") or ""),
+                domain=str(row.get("domain") or "unassigned"),
+                activation_phase=int(row.get("activation_phase") or 1),
                 shell=str(row.get("shell") or ""),
                 command=None if row.get("command") is None else str(row.get("command")),
                 enabled=bool(row.get("enabled", False)),

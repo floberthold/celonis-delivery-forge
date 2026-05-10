@@ -164,6 +164,12 @@ _FORBIDDEN_SQL_KEYWORDS = {
 }
 
 
+def _truncate_text(value: str, *, limit: int = 300) -> str:
+    if len(value) <= limit:
+        return value
+    return value[:limit]
+
+
 def _strip_sql_comments(sql: str) -> str:
     no_block = re.sub(r"/\*.*?\*/", "", sql, flags=re.S)
     no_line = re.sub(r"--.*?$", "", no_block, flags=re.M)
@@ -217,17 +223,36 @@ def _request_json(
     normalized_base = gateway._normalize_base_url(tenant_base_url)
     normalized_path = gateway._normalize_path(path)
     url = f"{normalized_base}{normalized_path}"
-    with httpx.Client(timeout=settings.celonis_timeout_seconds) as client:
-        response = client.request(
-            method,
-            url,
-            headers=gateway._headers(token_override),
-            params=params,
-            json=payload,
-        )
-    if response.status_code >= 400:
+    try:
+        with httpx.Client(timeout=settings.celonis_timeout_seconds) as client:
+            response = client.request(
+                method,
+                url,
+                headers=gateway._headers(token_override),
+                params=params,
+                json=payload,
+            )
+    except httpx.TimeoutException as exc:
         raise CelonisDataAgentError(
-            f"Celonis API call failed ({response.status_code}) for {method} {normalized_path}: {response.text[:300]}"
+            f"Celonis API timeout for {method} {normalized_path}"
+        ) from exc
+    except httpx.RequestError as exc:
+        raise CelonisDataAgentError(
+            f"Celonis API request failed for {method} {normalized_path}: {exc}"
+        ) from exc
+
+    if response.status_code >= 400:
+        response_preview = _truncate_text(response.text)
+        if response.status_code == 429:
+            raise CelonisDataAgentError(
+                f"Celonis API rate limited ({response.status_code}) for {method} {normalized_path}: {response_preview}"
+            )
+        if response.status_code >= 500:
+            raise CelonisDataAgentError(
+                f"Celonis API upstream unavailable ({response.status_code}) for {method} {normalized_path}: {response_preview}"
+            )
+        raise CelonisDataAgentError(
+            f"Celonis API call failed ({response.status_code}) for {method} {normalized_path}: {response_preview}"
         )
     if not response.content:
         return {}

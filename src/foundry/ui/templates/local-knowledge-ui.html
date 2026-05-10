@@ -4,7 +4,7 @@
 
 {% block content %}
 <h2>Local Knowledge Hub</h2>
-<p class="muted-note">Central access for Local Wiki Query API and Open WebUI across the Delivery Forge workspace.</p>
+<p class="muted-note">Control and monitor local wiki refresh runs, source coverage, and query services.</p>
 
 {% if ok_message %}
 <div class="alert success">{{ ok_message }}</div>
@@ -37,7 +37,51 @@
 </section>
 
 <section class="panel" style="margin-bottom: 1.5rem;">
-    <h3>Launch</h3>
+    <h3>Run Control</h3>
+    <p class="muted-note">Start an `olw run` against the configured vault from Foundry and track progress below.</p>
+    <form method="post" action="/local-knowledge-ui/run" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem;">
+        <label style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" name="auto_approve" {% if run_state and run_state.auto_approve %}checked{% endif %}>
+            Auto-approve drafts
+        </label>
+        <button type="submit" class="button-link">Start Wiki Refresh Run</button>
+    </form>
+
+    <div class="run-status-grid">
+        <div>
+            <strong>Status:</strong>
+            <span id="run-status">{{ run_state.status if run_state else "idle" }}</span>
+        </div>
+        <div>
+            <strong>Stage:</strong>
+            <span id="run-stage">{{ run_state.stage if run_state else "idle" }}</span>
+        </div>
+        <div>
+            <strong>Run ID:</strong>
+            <span id="run-id" class="monospace">{{ run_state.run_id if run_state and run_state.run_id else "-" }}</span>
+        </div>
+        <div>
+            <strong>Started:</strong>
+            <span id="run-started">{{ run_state.started_at if run_state and run_state.started_at else "-" }}</span>
+        </div>
+        <div>
+            <strong>Finished:</strong>
+            <span id="run-finished">{{ run_state.finished_at if run_state and run_state.finished_at else "-" }}</span>
+        </div>
+        <div>
+            <strong>Last Line:</strong>
+            <span id="run-last-line">{{ run_state.latest_line if run_state and run_state.latest_line else "-" }}</span>
+        </div>
+    </div>
+
+    <details open style="margin-top: 0.75rem;">
+        <summary><strong>Run Log (tail)</strong></summary>
+        <pre id="run-log-tail" class="code-block">{% if run_log_tail %}{{ run_log_tail | join('\n') }}{% else %}No run log entries yet.{% endif %}</pre>
+    </details>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Launch & Services</h3>
     <p class="muted-note">Use these links after starting tools from Tool Hub or scripts.</p>
     {% if not open_webui_running %}
     <div class="alert error" style="margin-bottom: 1rem;">
@@ -79,6 +123,62 @@
     </table>
 </section>
 
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Recent File Changes</h3>
+    <p class="muted-note">
+        {% if recent_changes and recent_changes["baseline"] %}
+        Showing files modified since last successful run at {{ recent_changes["baseline"] }}.
+        {% else %}
+        No successful run recorded yet; showing latest files.
+        {% endif %}
+    </p>
+    <table class="table compact-table" id="recent-changes-table">
+        <thead>
+            <tr>
+                <th>Path</th>
+                <th>Family</th>
+                <th>Modified</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in recent_changes["items"] %}
+            <tr>
+                <td class="monospace small">{{ item.path }}</td>
+                <td>{{ item.family }}</td>
+                <td>{{ item.modified_at }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">No changed files detected for the current baseline.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Source Files</h3>
+    <p class="muted-note">Most recently modified files under raw/ that can be ingested into the wiki.</p>
+    <table class="table compact-table">
+        <thead>
+            <tr>
+                <th>Path</th>
+                <th>Size (bytes)</th>
+                <th>Modified</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in source_files %}
+            <tr>
+                <td class="monospace small">{{ file.path }}</td>
+                <td>{{ file.size_bytes }}</td>
+                <td>{{ file.modified_at }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">No source files found under raw/.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
 {% if corpus %}
 <section class="panel">
     <h3>Corpus Snapshot</h3>
@@ -100,5 +200,71 @@
     border-color: #2f6fed;
     background: #eef4ff;
 }
+
+.run-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.5rem 1rem;
+}
 </style>
+
+<script>
+(() => {
+    const statusEl = document.getElementById("run-status");
+    const stageEl = document.getElementById("run-stage");
+    const runIdEl = document.getElementById("run-id");
+    const startedEl = document.getElementById("run-started");
+    const finishedEl = document.getElementById("run-finished");
+    const lastLineEl = document.getElementById("run-last-line");
+    const logEl = document.getElementById("run-log-tail");
+    const changesTable = document.getElementById("recent-changes-table");
+
+    if (!statusEl || !stageEl || !runIdEl || !startedEl || !finishedEl || !lastLineEl || !logEl || !changesTable) {
+        return;
+    }
+
+    const applyStatus = (payload) => {
+        const state = payload.run_state || {};
+        statusEl.textContent = state.status || "idle";
+        stageEl.textContent = state.stage || "idle";
+        runIdEl.textContent = state.run_id || "-";
+        startedEl.textContent = state.started_at || "-";
+        finishedEl.textContent = state.finished_at || "-";
+        lastLineEl.textContent = state.latest_line || "-";
+
+        const logTail = Array.isArray(payload.run_log_tail) ? payload.run_log_tail : [];
+        logEl.textContent = logTail.length > 0 ? logTail.join("\n") : "No run log entries yet.";
+
+        const changes = payload.recent_changes && Array.isArray(payload.recent_changes.items)
+            ? payload.recent_changes.items
+            : [];
+        const tbody = changesTable.querySelector("tbody");
+        if (!tbody) {
+            return;
+        }
+        if (changes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3">No changed files detected for the current baseline.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = changes.map((item) => (
+            `<tr><td class="monospace small">${item.path || ""}</td><td>${item.family || ""}</td><td>${item.modified_at || ""}</td></tr>`
+        )).join("");
+    };
+
+    const poll = async () => {
+        try {
+            const response = await fetch("/local-knowledge-ui/status", { headers: { "Accept": "application/json" } });
+            if (!response.ok) {
+                return;
+            }
+            const payload = await response.json();
+            applyStatus(payload);
+        } catch (_error) {
+            // Keep current values on transient polling failures.
+        }
+    };
+
+    setInterval(poll, 5000);
+})();
+</script>
 {% endblock %}

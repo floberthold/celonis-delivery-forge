@@ -257,6 +257,31 @@ def test_celonis_data_agent_invoke_requires_delegated_token() -> None:
         assert response.status_code == 400
         assert "Delegated Celonis user token required" in response.text
 
+        payload = response.json()
+        assert isinstance(payload.get("detail"), dict)
+        assert payload["detail"]["error_code"] == "CELONIS_TOKEN_REQUIRED"
+        assert payload["detail"].get("request_id")
+
+
+def test_celonis_data_agent_invoke_unknown_tool_returns_structured_error() -> None:
+    _reset_db()
+    person_id, organization_id, client_id = _seed_actor_org_client_connection()
+    auth_token = create_access_token(person_id, organization_id)
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.post(
+            "/celonis/data-agent/tools/unknown_tool/invoke",
+            json={"client_id": client_id, "inputs": {}},
+        )
+
+    assert response.status_code == 404
+    payload = response.json()
+    assert isinstance(payload.get("detail"), dict)
+    assert payload["detail"]["error_code"] == "CELONIS_TOOL_NOT_FOUND"
+    assert payload["detail"]["message"] == "Celonis data-agent tool not found"
+    assert payload["detail"].get("request_id")
+
 
 def test_celonis_data_agent_invoke_logs_connection_and_quest(monkeypatch) -> None:
     _reset_db()
