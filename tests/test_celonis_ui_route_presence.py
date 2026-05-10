@@ -23,6 +23,7 @@ def test_celonis_ui_endpoints_are_registered() -> None:
         for path in [
             "/celonis-credentials-ui",
             "/celonis-token-admin-ui",
+            "/foundry-admin-ui",
             "/celonis-discovery-ui",
             "/celonis-deployments-ui",
             "/celonis-tool-hub-ui",

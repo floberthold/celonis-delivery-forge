@@ -424,7 +424,10 @@ def extract(
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
+    request_id = str(uuid4())
     settings = get_settings()
+    if payload.organization_id is not None and payload.organization_id != current_actor.organization.id:
+        raise HTTPException(status_code=400, detail="organization_id does not match current actor organization")
     connection = _get_connection_or_404(session, payload.client_id, current_actor.organization.id)
     token_override = _resolve_actor_token_override(session, current_actor)
     try:
@@ -438,8 +441,26 @@ def extract(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Celonis extract failed: {exc}") from exc
 
+    log_activity(
+        session,
+        entity_type=EntityType.celonis_connection,
+        entity_id=connection.id,
+        actor_id=current_actor.person.id,
+        organization_id=current_actor.organization.id,
+        action="celonis.extract",
+        metadata={
+            "request_id": request_id,
+            "client_id": str(payload.client_id),
+            "source_path": payload.source_path,
+            "url": result.url,
+            "status_code": result.status_code,
+            "ok": result.ok,
+        },
+    )
+
     return CelonisActionResult(
         client_id=payload.client_id,
+        request_id=request_id,
         action=result.action,
         url=result.url,
         status_code=result.status_code,
@@ -454,7 +475,10 @@ def import_data(
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
+    request_id = str(uuid4())
     settings = get_settings()
+    if payload.organization_id is not None and payload.organization_id != current_actor.organization.id:
+        raise HTTPException(status_code=400, detail="organization_id does not match current actor organization")
     connection = _get_connection_or_404(session, payload.client_id, current_actor.organization.id)
     token_override = _resolve_actor_token_override(session, current_actor)
     try:
@@ -469,8 +493,26 @@ def import_data(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Celonis import failed: {exc}") from exc
 
+    log_activity(
+        session,
+        entity_type=EntityType.celonis_connection,
+        entity_id=connection.id,
+        actor_id=current_actor.person.id,
+        organization_id=current_actor.organization.id,
+        action="celonis.import",
+        metadata={
+            "request_id": request_id,
+            "client_id": str(payload.client_id),
+            "target_path": payload.target_path,
+            "url": result.url,
+            "status_code": result.status_code,
+            "ok": result.ok,
+        },
+    )
+
     return CelonisActionResult(
         client_id=payload.client_id,
+        request_id=request_id,
         action=result.action,
         url=result.url,
         status_code=result.status_code,

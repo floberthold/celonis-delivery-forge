@@ -285,17 +285,20 @@ class CelonisUserTokenStatus(BaseModel):
 
 class CelonisExtractRequest(BaseModel):
     client_id: UUID
+    organization_id: Optional[UUID] = None
     source_path: str = "/process-mining/api/teams"
 
 
 class CelonisImportRequest(BaseModel):
     client_id: UUID
+    organization_id: Optional[UUID] = None
     target_path: str = "/process-mining/api/teams"
     payload: dict = Field(default_factory=dict)
 
 
 class CelonisActionResult(BaseModel):
     client_id: UUID
+    request_id: str
     action: str
     url: str
     status_code: int

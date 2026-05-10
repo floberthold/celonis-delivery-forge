@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Foundry Admin | Foundry{% endblock %}
+
+{% block content %}
+<section class="panel hero-panel glass-panel" style="margin-bottom: 1.25rem;">
+    <div class="hero-panel-header">
+        <div>
+            <p class="eyebrow">Global control</p>
+            <h2 class="hero-title">Foundry Admin Console</h2>
+            <p class="hero-copy">Cross-organization visibility for your full tenant landscape. Review org health, scope, and operational footprint from one place.</p>
+        </div>
+    </div>
+</section>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="cards" style="margin-bottom: 1.35rem;">
+    <div class="card stats-card">
+        <p class="metric-label">Organizations</p>
+        <span class="metric-value">{{ totals.orgs }}</span>
+    </div>
+    <div class="card stats-card">
+        <p class="metric-label">Members</p>
+        <span class="metric-value">{{ totals.members }}</span>
+    </div>
+    <div class="card stats-card">
+        <p class="metric-label">Clients</p>
+        <span class="metric-value">{{ totals.clients }}</span>
+    </div>
+    <div class="card stats-card">
+        <p class="metric-label">Projects</p>
+        <span class="metric-value">{{ totals.projects }}</span>
+    </div>
+    <div class="card stats-card">
+        <p class="metric-label">Assets</p>
+        <span class="metric-value">{{ totals.assets }}</span>
+    </div>
+    <div class="card stats-card">
+        <p class="metric-label">Snapshots</p>
+        <span class="metric-value">{{ totals.snapshots }}</span>
+    </div>
+    <div class="card stats-card">
+        <p class="metric-label">Todos</p>
+        <span class="metric-value">{{ totals.todos }}</span>
+    </div>
+    <div class="card stats-card">
+        <p class="metric-label">Activities</p>
+        <span class="metric-value">{{ totals.activities }}</span>
+    </div>
+</section>
+
+<section class="grid" style="margin-bottom: 1.35rem;">
+    <section class="panel glass-panel">
+        <div class="section-heading">
+            <div>
+                <h3>Create account</h3>
+                <p class="section-subtitle">Create a user once and optionally place them into an organization immediately.</p>
+            </div>
+        </div>
+        <form method="post" action="/foundry-admin-ui/users/create" class="form-card">
+            <label>Name
+                <input type="text" name="name" required>
+            </label>
+            <label>Email
+                <input type="email" name="email" required>
+            </label>
+            <label>Global Role
+                <select name="role_global" required>
+                    {% for option in global_role_options %}
+                    <option value="{{ option }}">{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Password
+                <input type="password" name="password" required>
+            </label>
+            <label>Confirm Password
+                <input type="password" name="confirm_password" required>
+            </label>
+            <label>Initial Organization (optional)
+                <select name="organization_id">
+                    <option value="">No initial organization</option>
+                    {% for org in org_options %}
+                    <option value="{{ org.id }}">{{ org.name }} ({{ org.slug }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Initial Org Role
+                <select name="org_role" required>
+                    {% for option in org_role_options %}
+                    <option value="{{ option }}">{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit">Create Account</button>
+        </form>
+    </section>
+
+    <section class="panel glass-panel">
+        <div class="section-heading">
+            <div>
+                <h3>User management policy</h3>
+                <p class="section-subtitle">Global admins can manage all users and memberships across all orgs.</p>
+            </div>
+        </div>
+        <ul class="link-list">
+            <li><strong>Account scope:</strong> User identity is global. Organization access is membership-based.</li>
+            <li><strong>Global role:</strong> Controls platform-level capabilities such as Foundry Admin.</li>
+            <li><strong>Org role:</strong> Controls what the user can do inside a specific organization.</li>
+            <li><strong>Safety check:</strong> Last owner/admin of an org cannot be removed by accident.</li>
+        </ul>
+    </section>
+</section>
+
+<section class="panel glass-panel" style="margin-bottom: 1.35rem;">
+    <div class="section-heading">
+        <div>
+            <h3>Accounts across all organizations</h3>
+            <p class="section-subtitle">Edit user profile, global role, password, and memberships from one console.</p>
+        </div>
+    </div>
+
+    {% if user_rows %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Account</th>
+                    <th>Update User</th>
+                    <th>Organization Access</th>
+                    <th>Add Org Access</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in user_rows %}
+                <tr>
+                    <td>
+                        <strong>{{ user.name }}</strong>
+                        <div class="muted-note">{{ user.email }}</div>
+                        <div class="muted-note">global role: {{ user.role_global }}</div>
+                        <div class="muted-note">memberships: {{ user.membership_count }}</div>
+                        <div class="muted-note">created: {{ user.created_at.strftime("%Y-%m-%d") if user.created_at else "-" }}</div>
+                    </td>
+                    <td>
+                        <form method="post" action="/foundry-admin-ui/users/update" class="admin-inline-stack">
+                            <input type="hidden" name="person_id" value="{{ user.id }}">
+                            <label>Name
+                                <input type="text" name="name" value="{{ user.name }}" required>
+                            </label>
+                            <label>Email
+                                <input type="email" name="email" value="{{ user.email }}" required>
+                            </label>
+                            <label>Global Role
+                                <select name="role_global" required>
+                                    {% for option in global_role_options %}
+                                    <option value="{{ option }}"{% if option == user.role_global %} selected{% endif %}>{{ option }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>New Password (optional)
+                                <input type="password" name="password" placeholder="Leave blank to keep existing">
+                            </label>
+                            <label>Confirm Password
+                                <input type="password" name="confirm_password" placeholder="Only required when changing password">
+                            </label>
+                            <button type="submit">Save User</button>
+                        </form>
+                    </td>
+                    <td>
+                        {% if user.memberships %}
+                        <div class="admin-membership-list">
+                            {% for membership in user.memberships %}
+                            <div class="admin-membership-item">
+                                <div class="admin-membership-title">{{ membership.organization_name }}</div>
+                                <form method="post" action="/foundry-admin-ui/memberships/update" class="admin-inline-row">
+                                    <input type="hidden" name="membership_id" value="{{ membership.id }}">
+                                    <select name="role" required>
+                                        {% for option in org_role_options %}
+                                        <option value="{{ option }}"{% if option == membership.role %} selected{% endif %}>{{ option }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit">Save</button>
+                                </form>
+                                <form method="post" action="/foundry-admin-ui/memberships/delete" class="inline-form">
+                                    <input type="hidden" name="membership_id" value="{{ membership.id }}">
+                                    <button type="submit" class="button-danger">Remove</button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="muted-note">No org memberships</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="/foundry-admin-ui/memberships/create" class="admin-inline-stack">
+                            <input type="hidden" name="person_id" value="{{ user.id }}">
+                            <label>Organization
+                                <select name="organization_id" required>
+                                    {% for org in org_options %}
+                                    <option value="{{ org.id }}">{{ org.name }} ({{ org.slug }})</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>Org Role
+                                <select name="role" required>
+                                    {% for option in org_role_options %}
+                                    <option value="{{ option }}">{{ option }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <button type="submit">Add Membership</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="muted-note">No user accounts found.</p>
+    {% endif %}
+</section>
+
+<section class="panel glass-panel">
+    <div class="section-heading">
+        <div>
+            <h3>Organizations and underlying data</h3>
+            <p class="section-subtitle">Each row summarizes one org and key entities under it.</p>
+        </div>
+    </div>
+
+    {% if rows %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Organization</th>
+                    <th>Members</th>
+                    <th>Clients</th>
+                    <th>Projects</th>
+                    <th>Assets</th>
+                    <th>Reviews</th>
+                    <th>Todos</th>
+                    <th>Connections</th>
+                    <th>Snapshots</th>
+                    <th>Activities</th>
+                    <th>Last Activity</th>
+                    <th>Underneath Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>
+                        <strong>{{ row.name }}</strong>
+                        <div class="muted-note">slug: {{ row.slug }}</div>
+                        <div class="muted-note">created: {{ row.created_at.strftime("%Y-%m-%d") if row.created_at else "-" }}</div>
+                    </td>
+                    <td>{{ row.members }}</td>
+                    <td>{{ row.clients }}</td>
+                    <td>{{ row.projects }}</td>
+                    <td>{{ row.assets }}</td>
+                    <td>{{ row.reviews }}</td>
+                    <td>{{ row.todos }}</td>
+                    <td>{{ row.connections }}</td>
+                    <td>{{ row.snapshots }}</td>
+                    <td>{{ row.activities }}</td>
+                    <td>{{ row.last_activity_at.strftime("%Y-%m-%d %H:%M") if row.last_activity_at else "-" }}</td>
+                    <td>
+                        <div class="admin-nested-list">
+                            <div><strong>Members:</strong> {{ row.member_names|join(", ") if row.member_names else "-" }}</div>
+                            <div><strong>Clients:</strong> {{ row.client_names|join(", ") if row.client_names else "-" }}</div>
+                            <div><strong>Projects:</strong> {{ row.project_names|join(", ") if row.project_names else "-" }}</div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="muted-note">No organizations found.</p>
+    {% endif %}
+</section>
+{% endblock %}

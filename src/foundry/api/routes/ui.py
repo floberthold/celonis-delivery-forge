@@ -8,6 +8,7 @@ from typing import Any, Sequence
 from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlsplit, urlunsplit
 from uuid import UUID, uuid4
 
+from sqlalchemy import func
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -191,6 +192,184 @@ def _enum_or_value(value: object, default: str = "") -> str:
     if isinstance(enum_value, str):
         return enum_value
     return str(value)
+
+
+def _is_global_admin(person: Person | None) -> bool:
+    return bool(person and person.role_global == GlobalRole.admin)
+
+
+def _count_by_org(session: Session, model: type[Any]) -> dict[UUID, int]:
+    if not hasattr(model, "organization_id"):
+        return {}
+
+    rows = session.exec(
+        select(model.organization_id, func.count())
+        .where(model.organization_id.is_not(None))
+        .group_by(model.organization_id)
+    ).all()
+    return {org_id: int(count) for org_id, count in rows if org_id is not None}
+
+
+def _recent_names_by_org(
+    session: Session,
+    model: type[Any],
+    *,
+    name_attr: str = "name",
+    limit: int = 4,
+) -> dict[UUID, list[str]]:
+    if not hasattr(model, "organization_id") or not hasattr(model, name_attr):
+        return {}
+
+    rows = session.exec(
+        select(model.organization_id, getattr(model, name_attr))
+        .where(model.organization_id.is_not(None))
+        .order_by(getattr(model, name_attr))
+    ).all()
+
+    result: dict[UUID, list[str]] = {}
+    for org_id, value in rows:
+        if org_id is None or value is None:
+            continue
+        bucket = result.setdefault(org_id, [])
+        if len(bucket) < limit:
+            bucket.append(str(value))
+    return result
+
+
+def _build_foundry_admin_context(session: Session) -> dict[str, Any]:
+    organizations = list(session.exec(select(Organization).order_by(Organization.name)).all())
+
+    membership_count_by_org = _count_by_org(session, OrganizationMembership)
+    client_count_by_org = _count_by_org(session, Client)
+    project_count_by_org = _count_by_org(session, Project)
+    asset_count_by_org = _count_by_org(session, Asset)
+    review_count_by_org = _count_by_org(session, ReviewRequest)
+    todo_count_by_org = _count_by_org(session, Todo)
+    quest_count_by_org = _count_by_org(session, Quest)
+    connection_count_by_org = _count_by_org(session, CelonisConnection)
+    snapshot_count_by_org = _count_by_org(session, CelonisSnapshot)
+    activity_count_by_org = _count_by_org(session, ActivityLog)
+
+    people_count_rows = session.exec(
+        select(
+            OrganizationMembership.organization_id,
+            func.count(func.distinct(OrganizationMembership.person_id)),
+        ).group_by(OrganizationMembership.organization_id)
+    ).all()
+    people_count_by_org = {
+        org_id: int(count) for org_id, count in people_count_rows if org_id is not None
+    }
+
+    last_activity_rows = session.exec(
+        select(ActivityLog.organization_id, func.max(ActivityLog.timestamp))
+        .where(ActivityLog.organization_id.is_not(None))
+        .group_by(ActivityLog.organization_id)
+    ).all()
+    last_activity_by_org = {
+        org_id: timestamp for org_id, timestamp in last_activity_rows if org_id is not None
+    }
+
+    client_names_by_org = _recent_names_by_org(session, Client)
+    project_names_by_org = _recent_names_by_org(session, Project)
+
+    member_name_rows = session.exec(
+        select(OrganizationMembership.organization_id, Person.name)
+        .join(Person, Person.id == OrganizationMembership.person_id)
+        .order_by(Person.name)
+    ).all()
+    member_names_by_org: dict[UUID, list[str]] = {}
+    for org_id, name in member_name_rows:
+        if org_id is None or not name:
+            continue
+        bucket = member_names_by_org.setdefault(org_id, [])
+        if len(bucket) < 5:
+            bucket.append(name)
+
+    org_rows: list[dict[str, Any]] = []
+    for org in organizations:
+        org_rows.append(
+            {
+                "id": org.id,
+                "name": org.name,
+                "slug": org.slug,
+                "created_at": org.created_at,
+                "members": people_count_by_org.get(org.id, 0),
+                "memberships": membership_count_by_org.get(org.id, 0),
+                "clients": client_count_by_org.get(org.id, 0),
+                "projects": project_count_by_org.get(org.id, 0),
+                "assets": asset_count_by_org.get(org.id, 0),
+                "reviews": review_count_by_org.get(org.id, 0),
+                "todos": todo_count_by_org.get(org.id, 0),
+                "quests": quest_count_by_org.get(org.id, 0),
+                "connections": connection_count_by_org.get(org.id, 0),
+                "snapshots": snapshot_count_by_org.get(org.id, 0),
+                "activities": activity_count_by_org.get(org.id, 0),
+                "client_names": client_names_by_org.get(org.id, []),
+                "project_names": project_names_by_org.get(org.id, []),
+                "member_names": member_names_by_org.get(org.id, []),
+                "last_activity_at": last_activity_by_org.get(org.id),
+            }
+        )
+
+    totals = {
+        "orgs": len(org_rows),
+        "members": sum(row["members"] for row in org_rows),
+        "clients": sum(row["clients"] for row in org_rows),
+        "projects": sum(row["projects"] for row in org_rows),
+        "assets": sum(row["assets"] for row in org_rows),
+        "reviews": sum(row["reviews"] for row in org_rows),
+        "todos": sum(row["todos"] for row in org_rows),
+        "connections": sum(row["connections"] for row in org_rows),
+        "snapshots": sum(row["snapshots"] for row in org_rows),
+        "activities": sum(row["activities"] for row in org_rows),
+    }
+
+    return {"rows": org_rows, "totals": totals}
+
+
+def _build_foundry_admin_user_context(session: Session) -> dict[str, Any]:
+    organizations = list(session.exec(select(Organization).order_by(Organization.name)).all())
+    people = list(session.exec(select(Person).order_by(Person.created_at.desc())).all())
+
+    membership_rows = session.exec(
+        select(OrganizationMembership, Organization.name)
+        .join(Organization, Organization.id == OrganizationMembership.organization_id)
+        .order_by(Organization.name)
+    ).all()
+
+    memberships_by_person_id: dict[UUID, list[dict[str, Any]]] = {}
+    for membership, org_name in membership_rows:
+        memberships_by_person_id.setdefault(membership.person_id, []).append(
+            {
+                "id": membership.id,
+                "organization_id": membership.organization_id,
+                "organization_name": org_name,
+                "role": _enum_or_value(membership.role, "member"),
+            }
+        )
+
+    user_rows: list[dict[str, Any]] = []
+    for person in people:
+        memberships = memberships_by_person_id.get(person.id, [])
+        user_rows.append(
+            {
+                "id": person.id,
+                "name": person.name,
+                "email": person.email,
+                "role_global": _enum_or_value(person.role_global, "member"),
+                "created_at": person.created_at,
+                "memberships": memberships,
+                "membership_count": len(memberships),
+            }
+        )
+
+    org_options = [{"id": org.id, "name": org.name, "slug": org.slug} for org in organizations]
+    return {
+        "user_rows": user_rows,
+        "org_options": org_options,
+        "global_role_options": [row.value for row in GlobalRole],
+        "org_role_options": [row.value for row in OrganizationRole],
+    }
 
 
 templates = Jinja2Templates(
@@ -2573,6 +2752,285 @@ def dashboard(
         "dashboard.html",
         _dashboard_context(request, session, current_actor),
     )
+
+
+@router.get("/foundry-admin-ui", include_in_schema=False)
+def foundry_admin_ui(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
+    if not _is_global_admin(current_person):
+        return _redirect_dashboard(err="Global admin access required")
+
+    context = _build_foundry_admin_context(session)
+    user_context = _build_foundry_admin_user_context(session)
+    return templates.TemplateResponse(
+        "foundry_admin.html",
+        {
+            "request": request,
+            "ok_message": request.query_params.get("ok"),
+            "error_message": request.query_params.get("err"),
+            "rows": context["rows"],
+            "totals": context["totals"],
+            "user_rows": user_context["user_rows"],
+            "org_options": user_context["org_options"],
+            "global_role_options": user_context["global_role_options"],
+            "org_role_options": user_context["org_role_options"],
+        },
+    )
+
+
+@router.post("/foundry-admin-ui/users/create", include_in_schema=False)
+def foundry_admin_create_user(
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    role_global: str = Form("member"),
+    organization_id: str = Form(""),
+    org_role: str = Form("member"),
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
+    if not _is_global_admin(current_person):
+        return _redirect_ui("/foundry-admin-ui", err="Global admin access required")
+
+    try:
+        normalized_name = name.strip()
+        normalized_email = email.strip().lower()
+        if not normalized_name:
+            return _redirect_ui("/foundry-admin-ui", err="Name is required")
+        if not normalized_email:
+            return _redirect_ui("/foundry-admin-ui", err="Email is required")
+
+        _validate_registration_password(password, confirm_password)
+
+        existing = session.exec(select(Person).where(Person.email == normalized_email)).first()
+        if existing is not None:
+            return _redirect_ui("/foundry-admin-ui", err="Email already exists")
+
+        person = Person(
+            name=normalized_name,
+            email=normalized_email,
+            hashed_password=hash_password(password),
+            role_global=GlobalRole(role_global),
+        )
+        session.add(person)
+        session.commit()
+        session.refresh(person)
+
+        linked_org_id: UUID | None = None
+        if organization_id.strip():
+            parsed_org_id = _parse_uuid(organization_id, "organization_id")
+            organization = session.get(Organization, parsed_org_id)
+            if organization is None:
+                return _redirect_ui("/foundry-admin-ui", err="Organization not found")
+            membership = OrganizationMembership(
+                organization_id=organization.id,
+                person_id=person.id,
+                role=OrganizationRole(org_role),
+            )
+            session.add(membership)
+            session.commit()
+            linked_org_id = organization.id
+
+        log_created(
+            session,
+            entity_type=EntityType.person,
+            entity_id=person.id,
+            actor_id=current_person.id,
+            organization_id=linked_org_id,
+            metadata={
+                "email": person.email,
+                "role_global": _enum_or_value(person.role_global, "member"),
+            },
+        )
+        return _redirect_ui("/foundry-admin-ui", ok=f"Created user '{person.email}'")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/foundry-admin-ui", err=f"Create user failed: {exc}")
+
+
+@router.post("/foundry-admin-ui/users/update", include_in_schema=False)
+def foundry_admin_update_user(
+    person_id: str = Form(...),
+    name: str = Form(...),
+    email: str = Form(...),
+    role_global: str = Form(...),
+    password: str = Form(""),
+    confirm_password: str = Form(""),
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
+    if not _is_global_admin(current_person):
+        return _redirect_ui("/foundry-admin-ui", err="Global admin access required")
+
+    try:
+        parsed_person_id = _parse_uuid(person_id, "person_id")
+        person = session.get(Person, parsed_person_id)
+        if person is None:
+            return _redirect_ui("/foundry-admin-ui", err="User not found")
+
+        normalized_name = name.strip()
+        normalized_email = email.strip().lower()
+        if not normalized_name:
+            return _redirect_ui("/foundry-admin-ui", err="Name is required")
+        if not normalized_email:
+            return _redirect_ui("/foundry-admin-ui", err="Email is required")
+
+        existing = session.exec(select(Person).where(Person.email == normalized_email)).first()
+        if existing and existing.id != person.id:
+            return _redirect_ui("/foundry-admin-ui", err="Email already exists")
+
+        person.name = normalized_name
+        person.email = normalized_email
+        person.role_global = GlobalRole(role_global)
+
+        has_password_input = bool(password.strip() or confirm_password.strip())
+        if has_password_input:
+            _validate_registration_password(password, confirm_password)
+            person.hashed_password = hash_password(password)
+
+        session.add(person)
+        session.commit()
+        session.refresh(person)
+
+        log_updated(
+            session,
+            entity_type=EntityType.person,
+            entity_id=person.id,
+            actor_id=current_person.id,
+            metadata={
+                "email": person.email,
+                "role_global": _enum_or_value(person.role_global, "member"),
+                "password_updated": has_password_input,
+            },
+        )
+        return _redirect_ui("/foundry-admin-ui", ok=f"Updated user '{person.email}'")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/foundry-admin-ui", err=f"Update user failed: {exc}")
+
+
+@router.post("/foundry-admin-ui/memberships/create", include_in_schema=False)
+def foundry_admin_create_membership(
+    person_id: str = Form(...),
+    organization_id: str = Form(...),
+    role: str = Form("member"),
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
+    if not _is_global_admin(current_person):
+        return _redirect_ui("/foundry-admin-ui", err="Global admin access required")
+
+    try:
+        parsed_person_id = _parse_uuid(person_id, "person_id")
+        parsed_org_id = _parse_uuid(organization_id, "organization_id")
+        person = session.get(Person, parsed_person_id)
+        organization = session.get(Organization, parsed_org_id)
+        if person is None:
+            return _redirect_ui("/foundry-admin-ui", err="User not found")
+        if organization is None:
+            return _redirect_ui("/foundry-admin-ui", err="Organization not found")
+
+        existing = _get_org_membership(session, parsed_person_id, parsed_org_id)
+        if existing is not None:
+            return _redirect_ui("/foundry-admin-ui", err="Membership already exists")
+
+        membership = OrganizationMembership(
+            organization_id=organization.id,
+            person_id=person.id,
+            role=OrganizationRole(role),
+        )
+        session.add(membership)
+        session.commit()
+        session.refresh(membership)
+
+        log_created(
+            session,
+            entity_type=EntityType.membership,
+            entity_id=membership.id,
+            actor_id=current_person.id,
+            organization_id=organization.id,
+            metadata={"person_id": str(person.id), "role": _enum_or_value(membership.role, "member")},
+        )
+        return _redirect_ui("/foundry-admin-ui", ok="Organization membership added")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/foundry-admin-ui", err=f"Add membership failed: {exc}")
+
+
+@router.post("/foundry-admin-ui/memberships/update", include_in_schema=False)
+def foundry_admin_update_membership(
+    membership_id: str = Form(...),
+    role: str = Form(...),
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
+    if not _is_global_admin(current_person):
+        return _redirect_ui("/foundry-admin-ui", err="Global admin access required")
+
+    try:
+        parsed_membership_id = _parse_uuid(membership_id, "membership_id")
+        membership = session.get(OrganizationMembership, parsed_membership_id)
+        if membership is None:
+            return _redirect_ui("/foundry-admin-ui", err="Membership not found")
+
+        membership.role = OrganizationRole(role)
+        session.add(membership)
+        session.commit()
+
+        log_updated(
+            session,
+            entity_type=EntityType.membership,
+            entity_id=membership.id,
+            actor_id=current_person.id,
+            organization_id=membership.organization_id,
+            metadata={"role": _enum_or_value(membership.role, "member")},
+        )
+        return _redirect_ui("/foundry-admin-ui", ok="Organization membership updated")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/foundry-admin-ui", err=f"Update membership failed: {exc}")
+
+
+@router.post("/foundry-admin-ui/memberships/delete", include_in_schema=False)
+def foundry_admin_delete_membership(
+    membership_id: str = Form(...),
+    session: Session = Depends(get_session),
+    current_person: Person = Depends(get_current_person),
+):
+    if not _is_global_admin(current_person):
+        return _redirect_ui("/foundry-admin-ui", err="Global admin access required")
+
+    try:
+        parsed_membership_id = _parse_uuid(membership_id, "membership_id")
+        membership = session.get(OrganizationMembership, parsed_membership_id)
+        if membership is None:
+            return _redirect_ui("/foundry-admin-ui", err="Membership not found")
+
+        if membership.role in {OrganizationRole.owner, OrganizationRole.admin}:
+            remaining_privileged = session.exec(
+                select(OrganizationMembership)
+                .where(
+                    OrganizationMembership.organization_id == membership.organization_id,
+                    OrganizationMembership.id != membership.id,
+                    OrganizationMembership.role.in_([OrganizationRole.owner, OrganizationRole.admin]),
+                )
+            ).first()
+            if remaining_privileged is None:
+                return _redirect_ui(
+                    "/foundry-admin-ui",
+                    err="Cannot remove the last owner/admin from an organization",
+                )
+
+        session.delete(membership)
+        session.commit()
+        return _redirect_ui("/foundry-admin-ui", ok="Organization membership removed")
+    except Exception as exc:
+        session.rollback()
+        return _redirect_ui("/foundry-admin-ui", err=f"Delete membership failed: {exc}")
 
 
 @router.get("/sales-ui", include_in_schema=False)

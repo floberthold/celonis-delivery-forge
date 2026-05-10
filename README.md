@@ -164,6 +164,45 @@ $env:FORGE_DATABASE_FALLBACK_TO_LOCAL="false"
 - **User Docs:** <http://127.0.0.1:8000/docs-site/user/>
 - **Developer Docs:** <http://127.0.0.1:8000/docs-site/developer/>
 
+### Foundry Admin Console (Global)
+
+Global admins can open a cross-organization control view at:
+
+- `http://127.0.0.1:8000/foundry-admin-ui`
+
+It summarizes all organizations and key data underneath each org (members, clients, projects, assets, reviews, todos, connections, snapshots, and activity volume).
+
+It now also includes centralized user management across all organizations:
+
+- Global account list (name, email, global role, membership count)
+- Create account with optional initial org membership
+- Update account profile, global role, and password
+- Add, update, and remove memberships for any organization
+- Built-in guardrail to prevent removing the last owner/admin from an org
+
+To promote an account to global admin:
+
+```powershell
+@'
+from sqlmodel import Session, select
+from foundry.db import engine
+from foundry.models import Person, GlobalRole
+
+EMAIL = "florian.berthold@roboyo.de"
+
+with Session(engine) as session:
+	person = session.exec(select(Person).where(Person.email == EMAIL)).first()
+	if person is None:
+		raise SystemExit(f"User not found: {EMAIL}")
+	person.role_global = GlobalRole.admin
+	session.add(person)
+	session.commit()
+	print("PROMOTED", EMAIL, "to global admin")
+'@ | python -
+```
+
+The navigation entry is visible under `Admin -> Foundry Admin` only when signed in as a global admin.
+
 Documentation source files are in `site_docs/` and are built with MkDocs Material.
 
 ## Admin Setup Guide (All Functionalities)

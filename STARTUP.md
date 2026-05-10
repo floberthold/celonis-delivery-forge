@@ -78,6 +78,7 @@ uvicorn foundry.api.main:app --reload
 |-----|-----------|
 | `http://127.0.0.1:8000/` | **Main Dashboard** (Start here!) |
 | `http://127.0.0.1:8000/celonis-tool-hub-ui` | Celonis Tool Hub UI |
+| `http://127.0.0.1:8000/foundry-admin-ui` | Foundry Admin Console (global admin only) |
 | `http://127.0.0.1:8000/docs` | API Documentation (Swagger) |
 | `http://127.0.0.1:8000/health` | Health Status Check |
 
@@ -133,6 +134,33 @@ $env:FORGE_SMTP_FROM_EMAIL="noreply@company.com"
 ```powershell
 $env:FORGE_CELONIS_API_TOKEN="your-celonis-token"
 ```
+
+### Foundry Admin Account (Cross-Org Visibility)
+
+The Foundry Admin Console is visible only for users with global role `admin`.
+
+Promote an existing user:
+
+```powershell
+@'
+from sqlmodel import Session, select
+from foundry.db import engine
+from foundry.models import Person, GlobalRole
+
+EMAIL = "florian.berthold@roboyo.de"
+
+with Session(engine) as session:
+	person = session.exec(select(Person).where(Person.email == EMAIL)).first()
+	if person is None:
+		raise SystemExit(f"User not found: {EMAIL}")
+	person.role_global = GlobalRole.admin
+	session.add(person)
+	session.commit()
+	print("PROMOTED", EMAIL, "to global admin")
+'@ | python -
+```
+
+After login, open `Admin -> Foundry Admin` to see all organizations, underlying data counts, and the cross-org account management console (create/update users and manage memberships).
 
 ### Use External Database (PostgreSQL)
 ```powershell
