@@ -22,3 +22,12 @@
 [submodule "external resources/Projects at Work/Celonis AI Demand Forecast App/dummy-data-creator-sap"]
 	path = external resources/Projects at Work/Celonis AI Demand Forecast App/dummy-data-creator-sap
 	url = https://roboyo@dev.azure.com/roboyo/Celonis%20Apps/_git/dummy-data-creator-sap
+[submodule "external resources/local-knowledge-model/local-llm-wiki-query"]
+	path = external resources/local-knowledge-model/local-llm-wiki-query
+	url = ./external resources/local-knowledge-model/local-llm-wiki-query
+[submodule "external resources/local-knowledge-model/my-obsidian-wiki"]
+	path = external resources/local-knowledge-model/my-obsidian-wiki
+	url = ./external resources/local-knowledge-model/my-obsidian-wiki
+[submodule "external resources/local-knowledge-model/obsidian-llm-wiki-local"]
+	path = external resources/local-knowledge-model/obsidian-llm-wiki-local
+	url = ./external resources/local-knowledge-model/obsidian-llm-wiki-local
