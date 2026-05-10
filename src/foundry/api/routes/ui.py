@@ -9,6 +9,7 @@ from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlsplit, u
 from uuid import UUID, uuid4
 
 from sqlalchemy import func
+import httpx
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -9577,6 +9578,16 @@ def local_knowledge_ui(
 
     open_webui_url = "http://127.0.0.1:3000"
     query_api_url = settings.local_knowledge_query_base_url.rstrip("/")
+    open_webui_running = False
+    open_webui_status = "Not Running"
+
+    try:
+        response = httpx.get(open_webui_url, timeout=2.0, follow_redirects=True)
+        if response.status_code < 500:
+            open_webui_running = True
+            open_webui_status = "Running"
+    except httpx.HTTPError:
+        open_webui_running = False
 
     return templates.TemplateResponse(
         "local-knowledge-ui.html",
@@ -9589,6 +9600,8 @@ def local_knowledge_ui(
             "health": health_payload,
             "corpus": corpus_payload,
             "open_webui_url": open_webui_url,
+            "open_webui_running": open_webui_running,
+            "open_webui_status": open_webui_status,
             "query_api_url": query_api_url,
             "vault_path": settings.local_knowledge_vault_path,
             "repo_path": settings.local_knowledge_repo_path,

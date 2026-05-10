@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Agentic Methodology | Foundry{% endblock %}
+
+{% block content %}
+<h2>Agentic Test Methodology</h2>
+<p class="muted-note">Standardized user-journey testing, bug triage, and implementation iteration directly from the product workspace.</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Execution Workflow</h3>
+    <ol class="ordered-list">
+        <li>Run standardized journeys across account, delivery, execution workspace, Celonis deployment, and admin flows.</li>
+        <li>Capture expected versus observed behavior with traces, screenshots, and route-level context.</li>
+        <li>Classify defects by severity (P0-P3), then fix in priority order.</li>
+        <li>Re-run failing journeys and regression suites before shipping.</li>
+    </ol>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>What Users Should Expect</h3>
+    <ul class="plain-list">
+        <li>Every journey has explicit expected outcomes and reproducible run identifiers.</li>
+        <li>Defect reports include impacted route, severity, expected behavior, observed behavior, and evidence links.</li>
+        <li>No release is approved while unresolved P0 or P1 workflow defects remain.</li>
+    </ul>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>MCP Tooling (Applicable Modules)</h3>
+    <p class="muted-note">These tools are registered in Tool Hub as MCP-oriented capabilities for repeatable execution and evidence retrieval.</p>
+    <table class="table compact-table">
+        <thead>
+            <tr>
+                <th>Tool</th>
+                <th>Purpose</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tool in mcp_tools %}
+            <tr>
+                <td><strong>{{ tool.name }}</strong></td>
+                <td>{{ tool.purpose }}</td>
+                <td>{{ tool.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+        <a href="/celonis-tool-hub-ui" class="button-link">Open Tool Hub</a>
+        <a href="/docs-site/developer/" class="button-link">Open Developer Docs</a>
+    </div>
+</section>
+
+<section class="panel">
+    <h3>Organization Context</h3>
+    <p class="muted-note">Current organization: <strong>{{ active_organization.name }}</strong></p>
+</section>
+
+<style>
+.button-link {
+    display: inline-block;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    border: 1px solid #d0d6e0;
+    text-decoration: none;
+    background: #f8fafc;
+    color: #1f2937;
+}
+.button-link:hover {
+    border-color: #2f6fed;
+    background: #eef4ff;
+}
+.ordered-list {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+.plain-list {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+</style>
+{% endblock %}

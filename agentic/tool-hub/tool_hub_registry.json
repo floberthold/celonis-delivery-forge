@@ -32,6 +32,66 @@
       "notes": "Local MCP server with stdio transport."
     },
     {
+      "id": "agentic-user-test-runner-mcp",
+      "display_name": "Agentic User Test Runner MCP",
+      "domain": "quality-automation",
+      "repo_path": ".",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "python -m foundry.mcp.agentic_test_runner",
+      "install_editable": true,
+      "activation_phase": 2,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Planned MCP server for standardized user-journey execution and run status retrieval."
+    },
+    {
+      "id": "agentic-bug-ledger-mcp",
+      "display_name": "Agentic Bug Ledger MCP",
+      "domain": "quality-automation",
+      "repo_path": ".",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "python -m foundry.mcp.agentic_bug_ledger",
+      "install_editable": true,
+      "activation_phase": 2,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Planned MCP server for defect aggregation with expected-versus-observed evidence."
+    },
+    {
+      "id": "agentic-evidence-retrieval-mcp",
+      "display_name": "Agentic Evidence Retrieval MCP",
+      "domain": "quality-automation",
+      "repo_path": ".",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "python -m foundry.mcp.agentic_evidence",
+      "install_editable": true,
+      "activation_phase": 3,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Planned MCP server for trace/screenshot/log retrieval tied to standardized runs."
+    },
+    {
+      "id": "agentic-deployment-readiness-mcp",
+      "display_name": "Agentic Deployment Readiness MCP",
+      "domain": "quality-automation",
+      "repo_path": ".",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "python -m foundry.mcp.agentic_deployment_readiness",
+      "install_editable": true,
+      "activation_phase": 3,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Planned MCP server for release gating checks across deployment and approval states."
+    },
+    {
       "id": "local-wiki-query-api",
       "display_name": "Local Wiki Query API",
       "domain": "knowledge-hub",

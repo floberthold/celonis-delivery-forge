@@ -278,3 +278,4 @@ local_*
 .local/
 private/
 *.local.*
+.webui_secret_key

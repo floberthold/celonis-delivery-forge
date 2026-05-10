@@ -13,7 +13,9 @@ def test_tool_hub_registry_includes_local_knowledge_tools() -> None:
     assert local_query is not None
     assert local_query.get("enabled") is True
     assert local_query.get("repo_path") == "."
-    assert "start_local_knowledge_gateway.ps1" in str(local_query.get("command", ""))
+    local_query_command = str(local_query.get("command", ""))
+    assert "local-llm-wiki-query" in local_query_command
+    assert "uvicorn" in local_query_command
 
     open_webui = by_id.get("local-wiki-open-webui")
     assert open_webui is not None

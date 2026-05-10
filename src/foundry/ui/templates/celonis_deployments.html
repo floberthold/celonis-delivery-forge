@@ -6,6 +6,7 @@
 <h2>Celonis Deployments</h2>
 <p class="muted-note">Track and govern app deployment requests. Each request must pass a preflight check and permission-diff acknowledgement before a reviewer can approve it.</p>
 <p class="muted-note">After you create a request, the agent keeps it in a supervised queue and guides it through gate checks (preflight, diff acknowledgement, and review) before it can proceed to approved execution readiness.</p>
+<p class="muted-note">Need quality gating context? <a href="/methodology-ui">Open Agentic Methodology</a> for standardized test runs, bug triage criteria, and MCP-supported evidence collection.</p>
 
 {% if ok_message %}
 <div class="alert success">{{ ok_message }}</div>
@@ -195,5 +196,6 @@
         the request returns to <code>draft</code> for correction and resubmission.
     </p>
     <p><a href="/celonis-discovery-ui">Go to Tenant Discovery →</a></p>
+    <p><a href="/methodology-ui">Go to Agentic Methodology →</a></p>
 </section>
 {% endblock %}

@@ -30,11 +30,20 @@
         <h3>Ollama</h3>
         <p class="metric">{{ "Connected" if health and health.ollama_available else "Unknown" }}</p>
     </div>
+    <div class="card">
+        <h3>Open WebUI</h3>
+        <p class="metric">{{ open_webui_status }}</p>
+    </div>
 </section>
 
 <section class="panel" style="margin-bottom: 1.5rem;">
     <h3>Launch</h3>
     <p class="muted-note">Use these links after starting tools from Tool Hub or scripts.</p>
+    {% if not open_webui_running %}
+    <div class="alert error" style="margin-bottom: 1rem;">
+        Open WebUI is not listening on {{ open_webui_url }}. Start it from Tool Hub or run <strong>.\scripts\start_open_webui_local_knowledge.ps1</strong> from the repo root.
+    </div>
+    {% endif %}
     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
         <a href="{{ open_webui_url }}" target="_blank" rel="noopener noreferrer" class="button-link">Open Open WebUI</a>
         <a href="{{ query_api_url }}/health" target="_blank" rel="noopener noreferrer" class="button-link">Open Query API Health</a>
@@ -53,6 +62,10 @@
             <tr>
                 <th>Open WebUI URL</th>
                 <td>{{ open_webui_url }}</td>
+            </tr>
+            <tr>
+                <th>Open WebUI Start Command</th>
+                <td>.\scripts\start_open_webui_local_knowledge.ps1</td>
             </tr>
             <tr>
                 <th>Local Knowledge Repo Path</th>
