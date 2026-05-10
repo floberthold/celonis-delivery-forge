@@ -52,6 +52,23 @@ def update_project(): ...
     - `src/foundry/api/routes/ui_knowledge_status.py`
 - Wired dedicated router in `src/foundry/api/main.py`.
 - Added/updated tests in `tests/test_local_knowledge_ui.py`.
+- Created package-compatible UI route skeleton by moving monolith to:
+    - `src/foundry/api/routes/ui/__init__.py`
+- Extracted shared redirect/query helper layer to:
+    - `src/foundry/api/routes/ui/shared.py`
+- Moved first navigation routes to dedicated module:
+    - `src/foundry/api/routes/ui/navigation.py` (`/tenant-ui`, `/workspace-ui`)
+- Added navigation route coverage in `tests/test_ui_navigation_routes.py`.
+- Started integrations extraction with first dedicated route slice:
+    - `src/foundry/api/routes/ui/integrations.py` (`/methodology-ui`, `/celonis-tool-hub-ui`)
+- Added integrations route coverage in `tests/test_ui_integrations_routes.py`.
+- Existing Celonis Tool Hub UI coverage remains green via `tests/test_celonis_tool_hub_ui.py`.
+- Started templates extraction with first dedicated route slice:
+    - `src/foundry/api/routes/ui/template_management.py` (`/templates-ui`)
+- Added templates route coverage in `tests/test_ui_templates_routes.py`.
+- Started admin-adjacent docu redirect extraction:
+    - `src/foundry/api/routes/ui/docu_redirects.py` (`/docu/*.html` redirects)
+- Added redirect coverage in `tests/test_ui_docu_redirect_routes.py`.
 
 This establishes the migration pattern for subsequent route slices while preserving endpoint behavior.
 

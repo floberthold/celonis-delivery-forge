@@ -17,6 +17,33 @@ Initial service-to-domain allocation is now published and validated:
 - `docs/service-domain-mapping.md`
 - `tests/test_service_domain_mapping.py`
 
+Scaffolding milestone implemented:
+
+- `src/foundry/services/platform/__init__.py`
+- `src/foundry/services/delivery/__init__.py`
+- `src/foundry/services/celonis/__init__.py`
+- `src/foundry/services/knowledge/__init__.py`
+- `src/foundry/services/integrations/__init__.py`
+- `src/foundry/services/orchestration/__init__.py`
+- `src/foundry/services/shared/__init__.py`
+- `tests/test_service_domain_package_scaffolding.py`
+
+Low-risk migration kickoff (compatibility shims retained):
+
+- `feature_rollout.py` moved to `services/platform/feature_rollout.py`
+- `email_service.py` moved to `services/integrations/email_service.py`
+- `template_seed.py` moved to `services/delivery/template_seed.py`
+- `use_case_views.py` moved to `services/knowledge/use_case_views.py`
+- `trycelonis_demo_rebuild.py` moved to `services/integrations/trycelonis_demo_rebuild.py`
+- `ingest_service.py` moved to `services/integrations/ingest_service.py`
+- `florian_script_seed.py` moved to `services/delivery/florian_script_seed.py`
+- Legacy imports preserved via shim modules for backward compatibility
+
+Validation evidence (targeted):
+
+- `tests/test_service_low_risk_shims.py`
+- `tests/test_ingest_repo_sync_api.py`
+
 This mapping is used as the migration source of truth for Phase 1b sequencing.
 
 ### Service Inventory

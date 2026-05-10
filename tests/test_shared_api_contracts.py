@@ -10,6 +10,11 @@ from foundry.contracts import (
     build_error_detail,
     HealthResponse,
 )
+from foundry.error_codes import (
+    CELONIS_TOOL_NOT_FOUND,
+    CELONIS_TOOL_UPSTREAM_ERROR,
+    RESOURCE_NOT_FOUND,
+)
 
 
 def test_build_error_detail_contains_required_fields() -> None:
@@ -65,3 +70,9 @@ def test_mcp_contracts_capture_invocation_and_response() -> None:
     assert invocation.timeout_ms == 5000
     assert response.success is True
     assert response.duration_ms == 120
+
+
+def test_error_code_constants_are_stable_strings() -> None:
+    assert RESOURCE_NOT_FOUND == "RESOURCE_NOT_FOUND"
+    assert CELONIS_TOOL_NOT_FOUND == "CELONIS_TOOL_NOT_FOUND"
+    assert CELONIS_TOOL_UPSTREAM_ERROR == "CELONIS_TOOL_UPSTREAM_ERROR"

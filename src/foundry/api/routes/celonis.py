@@ -7,6 +7,20 @@ from sqlmodel import Session, select
 from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.contracts import build_error_detail
 from foundry.db import get_session
+from foundry.error_codes import (
+    CELONIS_DEPLOYMENT_CLIENT_MISMATCH,
+    CELONIS_DEPLOYMENT_NOT_APPROVED,
+    CELONIS_DEPLOYMENT_PACKAGE_MISMATCH,
+    CELONIS_DEPLOYMENT_REQUEST_INVALID,
+    CELONIS_DEPLOYMENT_REQUEST_NOT_FOUND,
+    CELONIS_DEPLOYMENT_REQUEST_REQUIRED,
+    CELONIS_ORG_SCOPE_MISMATCH,
+    CELONIS_QUEST_NOT_FOUND,
+    CELONIS_TOKEN_REQUIRED,
+    CELONIS_TOOL_INVOCATION_ERROR,
+    CELONIS_TOOL_NOT_FOUND,
+    CELONIS_TOOL_UPSTREAM_ERROR,
+)
 from foundry.integrations.celonis_import import CelonisGateway
 from foundry.models import (
     ActivityLog,
@@ -102,7 +116,7 @@ def invoke_data_agent_tool_route(
     if tool_definition is None:
         _raise_http_error(
             status_code=404,
-            error_code="CELONIS_TOOL_NOT_FOUND",
+            error_code=CELONIS_TOOL_NOT_FOUND,
             message="Celonis data-agent tool not found",
             request_id=request_id,
         )
@@ -110,7 +124,7 @@ def invoke_data_agent_tool_route(
     if payload.organization_id is not None and payload.organization_id != current_actor.organization.id:
         _raise_http_error(
             status_code=400,
-            error_code="CELONIS_ORG_SCOPE_MISMATCH",
+            error_code=CELONIS_ORG_SCOPE_MISMATCH,
             message="organization_id does not match current actor organization",
             request_id=request_id,
         )
@@ -120,7 +134,7 @@ def invoke_data_agent_tool_route(
     if not token_override:
         _raise_http_error(
             status_code=400,
-            error_code="CELONIS_TOKEN_REQUIRED",
+            error_code=CELONIS_TOKEN_REQUIRED,
             message="Delegated Celonis user token required for data-agent tool invocation",
             request_id=request_id,
         )
@@ -131,7 +145,7 @@ def invoke_data_agent_tool_route(
         if linked_quest is None:
             _raise_http_error(
                 status_code=404,
-                error_code="CELONIS_QUEST_NOT_FOUND",
+                error_code=CELONIS_QUEST_NOT_FOUND,
                 message="Quest not found",
                 request_id=request_id,
             )
@@ -143,7 +157,7 @@ def invoke_data_agent_tool_route(
         if not isinstance(raw_deployment_request_id, str) or not raw_deployment_request_id.strip():
             _raise_http_error(
                 status_code=400,
-                error_code="CELONIS_DEPLOYMENT_REQUEST_REQUIRED",
+                error_code=CELONIS_DEPLOYMENT_REQUEST_REQUIRED,
                 message="Approved deployment_request_id required for Studio write tools",
                 request_id=request_id,
             )
@@ -152,7 +166,7 @@ def invoke_data_agent_tool_route(
         except ValueError:
             _raise_http_error(
                 status_code=400,
-                error_code="CELONIS_DEPLOYMENT_REQUEST_INVALID",
+                error_code=CELONIS_DEPLOYMENT_REQUEST_INVALID,
                 message="deployment_request_id must be a valid UUID",
                 request_id=request_id,
             )
@@ -161,21 +175,21 @@ def invoke_data_agent_tool_route(
         if deployment_request is None or deployment_request.organization_id != current_actor.organization.id:
             _raise_http_error(
                 status_code=404,
-                error_code="CELONIS_DEPLOYMENT_REQUEST_NOT_FOUND",
+                error_code=CELONIS_DEPLOYMENT_REQUEST_NOT_FOUND,
                 message="Deployment request not found",
                 request_id=request_id,
             )
         if deployment_request.client_id != payload.client_id:
             _raise_http_error(
                 status_code=400,
-                error_code="CELONIS_DEPLOYMENT_CLIENT_MISMATCH",
+                error_code=CELONIS_DEPLOYMENT_CLIENT_MISMATCH,
                 message="Deployment request client does not match invocation client",
                 request_id=request_id,
             )
         if deployment_request.status != CelonisDeploymentStatus.approved:
             _raise_http_error(
                 status_code=400,
-                error_code="CELONIS_DEPLOYMENT_NOT_APPROVED",
+                error_code=CELONIS_DEPLOYMENT_NOT_APPROVED,
                 message="Studio write tools require an approved deployment request",
                 request_id=request_id,
             )
@@ -184,7 +198,7 @@ def invoke_data_agent_tool_route(
             if package_key.strip() != deployment_request.target_package_key:
                 _raise_http_error(
                     status_code=400,
-                    error_code="CELONIS_DEPLOYMENT_PACKAGE_MISMATCH",
+                    error_code=CELONIS_DEPLOYMENT_PACKAGE_MISMATCH,
                     message="Invocation package_key does not match approved deployment request",
                     request_id=request_id,
                 )
@@ -200,14 +214,14 @@ def invoke_data_agent_tool_route(
     except CelonisDataAgentError as exc:
         _raise_http_error(
             status_code=400,
-            error_code="CELONIS_TOOL_INVOCATION_ERROR",
+            error_code=CELONIS_TOOL_INVOCATION_ERROR,
             message=str(exc),
             request_id=request_id,
         )
     except Exception as exc:
         _raise_http_error(
             status_code=502,
-            error_code="CELONIS_TOOL_UPSTREAM_ERROR",
+            error_code=CELONIS_TOOL_UPSTREAM_ERROR,
             message=f"Celonis data-agent invocation failed: {exc}",
             request_id=request_id,
         )

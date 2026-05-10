@@ -16,16 +16,18 @@ Scope: Integrated from analysis and roadmap documents listed in `docs/domain-sub
 ### 1) Phase 1 Contract Standardization
 
 - [x] Create shared API contract schemas for error/health DTOs.
-- [ ] Define and centralize error classification constants.
+- [x] Define and centralize error classification constants.
 - [x] Add multi-tenancy context contract type.
 - [x] Add MCP invocation/response DTO contract.
-- [ ] Publish contract usage guide in developer docs.
+- [x] Publish contract usage guide in developer docs.
 
 Evidence:
 
 - `src/foundry/contracts.py`
+- `src/foundry/error_codes.py`
 - `tests/test_shared_api_contracts.py`
 - `src/foundry/api/routes/celonis.py` (error helper now uses shared contract model)
+- `site_docs/developer/api-contracts.md`
 
 Documentation updates required:
 
@@ -60,12 +62,16 @@ Documentation updates required:
 - [x] Celonis data-agent contract tests (fallback and endpoint failure behavior).
 - [x] Structured invoke-route errors (`error_code`, `request_id`).
 - [x] Adapter timeout/rate-limit/upstream error semantics.
-- [ ] Standardized health probe response semantics across domains.
+- [x] Standardized health probe response semantics across domains.
 
 Evidence:
 
 - `tests/test_celonis_data_agent_contracts.py`
 - `tests/test_celonis_user_token_api.py`
+- `src/foundry/api/main.py`
+- `src/foundry/api/routes/local_knowledge.py`
+- `tests/test_startup_db_policy.py`
+- `tests/test_local_knowledge_health_contracts.py`
 
 Documentation updates required:
 
@@ -74,20 +80,35 @@ Documentation updates required:
 
 ### 4) Phase 1a UI Route Decomposition
 
-- [ ] Create `src/foundry/api/routes/ui/` package skeleton.
-- [ ] Extract shared helper layer from `ui.py`.
+- [x] Create `src/foundry/api/routes/ui/` package skeleton.
+- [x] Extract shared helper layer from `ui.py`.
 - [x] Move first extracted route to dedicated module (`/local-knowledge-ui/status`) + tests.
-- [ ] Move `navigation` routes + tests.
-- [ ] Move `integrations` routes + tests.
+- [x] Move `navigation` routes + tests.
+- [x] Move first `integrations` route slices (`/methodology-ui`, `/celonis-tool-hub-ui`) + tests.
 - [ ] Move `admin/templates/health` routes + tests.
 - [ ] Keep backward-compatible imports until full cutover.
+
+Progress note:
+
+- `templates` route slice extracted (`/templates-ui`) with dedicated coverage.
+- `admin`-adjacent documentation redirect routes extracted (`/docu/*.html`) with dedicated coverage.
 
 Evidence:
 
 - `src/foundry/api/routes/ui_knowledge_status.py`
 - `src/foundry/api/main.py`
-- `src/foundry/api/routes/ui.py`
+- `src/foundry/api/routes/ui/__init__.py`
+- `src/foundry/api/routes/ui/shared.py`
+- `src/foundry/api/routes/ui/navigation.py`
+- `src/foundry/api/routes/ui/integrations.py`
+- `src/foundry/api/routes/ui/template_management.py`
+- `src/foundry/api/routes/ui/docu_redirects.py`
 - `tests/test_local_knowledge_ui.py`
+- `tests/test_ui_navigation_routes.py`
+- `tests/test_ui_integrations_routes.py`
+- `tests/test_celonis_tool_hub_ui.py`
+- `tests/test_ui_templates_routes.py`
+- `tests/test_ui_docu_redirect_routes.py`
 
 Documentation updates required:
 
@@ -97,7 +118,7 @@ Documentation updates required:
 ### 5) Phase 1b Service Domain Restructuring
 
 - [x] Publish service-to-domain mapping table.
-- [ ] Create package scaffolding (`platform`, `delivery`, `celonis`, `knowledge`, `integrations`, `orchestration`, `shared`).
+- [x] Create package scaffolding (`platform`, `delivery`, `celonis`, `knowledge`, `integrations`, `orchestration`, `shared`).
 - [ ] Migrate low-risk services and keep shims.
 - [ ] Migrate high-coupling services and remove shims.
 - [ ] Confirm import stability with test suite.
@@ -107,6 +128,30 @@ Evidence:
 - `config/service_domain_mapping.json`
 - `docs/service-domain-mapping.md`
 - `tests/test_service_domain_mapping.py`
+- `src/foundry/services/platform/__init__.py`
+- `src/foundry/services/delivery/__init__.py`
+- `src/foundry/services/celonis/__init__.py`
+- `src/foundry/services/knowledge/__init__.py`
+- `src/foundry/services/integrations/__init__.py`
+- `src/foundry/services/orchestration/__init__.py`
+- `src/foundry/services/shared/__init__.py`
+- `tests/test_service_domain_package_scaffolding.py`
+- `src/foundry/services/platform/feature_rollout.py`
+- `src/foundry/services/integrations/email_service.py`
+- `src/foundry/services/delivery/template_seed.py`
+- `src/foundry/services/knowledge/use_case_views.py`
+- `src/foundry/services/integrations/trycelonis_demo_rebuild.py`
+- `src/foundry/services/integrations/ingest_service.py`
+- `src/foundry/services/delivery/florian_script_seed.py`
+- `src/foundry/services/feature_rollout.py` (compat shim)
+- `src/foundry/services/email_service.py` (compat shim)
+- `src/foundry/services/template_seed.py` (compat shim)
+- `src/foundry/services/use_case_views.py` (compat shim)
+- `src/foundry/services/trycelonis_demo_rebuild.py` (compat shim)
+- `src/foundry/services/ingest_service.py` (compat shim)
+- `src/foundry/services/florian_script_seed.py` (compat shim)
+- `tests/test_service_low_risk_shims.py`
+- `tests/test_ingest_repo_sync_api.py`
 
 Documentation updates required:
 
@@ -116,7 +161,7 @@ Documentation updates required:
 ### 6) Phase 2 Extraction Readiness
 
 - [x] Define extraction boundary checklist for Celonis split.
-- [ ] Confirm all boundary tests green in full regression pack.
+- [x] Confirm all boundary tests green in full regression pack.
 - [ ] Publish extraction runbook draft.
 
 Evidence:
@@ -133,4 +178,4 @@ Documentation updates required:
 - Targeted suites (Celonis + contracts): passing
 - Multi-profile regression pack: passing
 - Last known full artifact:
-  - `./.orchestration/test-runs/profile-regression/regression-pack-20260510T140245Z.json`
+  - `./.orchestration/test-runs/profile-regression/regression-pack-20260510T145844Z.json`

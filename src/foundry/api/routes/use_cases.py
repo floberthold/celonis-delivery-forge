@@ -28,7 +28,10 @@ from foundry.schemas import (
     UseCaseUpdate,
 )
 from foundry.services.activity_log import log_activity, log_created, log_updated
-from foundry.services.use_case_views import to_industry_benchmark_summary, to_view_payload
+from foundry.services.knowledge.use_case_views import (
+    to_industry_benchmark_summary,
+    to_view_payload,
+)
 
 router = APIRouter(prefix="/use-cases", tags=["use-cases"])
 

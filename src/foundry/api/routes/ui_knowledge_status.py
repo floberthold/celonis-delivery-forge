@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from foundry.api.deps import CurrentActor, get_current_actor_with_org
-from foundry.services.feature_rollout import enabled_domains_for_org
+from foundry.services.platform.feature_rollout import enabled_domains_for_org
 from foundry.services.local_knowledge_control import LocalKnowledgeControlService
 from foundry.settings import get_settings
 

@@ -6,7 +6,7 @@ from sqlmodel import Session
 from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
 from foundry.schemas import FlorianScriptRegisterOut, FlorianScriptProjectOut
-from foundry.services.florian_script_seed import register_florian_script_assets
+from foundry.services.delivery.florian_script_seed import register_florian_script_assets
 from foundry.settings import get_settings
 
 router = APIRouter(prefix="/florian-assets", tags=["florian-assets"])

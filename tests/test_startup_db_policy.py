@@ -76,9 +76,9 @@ def test_health_reports_database_startup_mode(monkeypatch) -> None:
 
     payload = main_module.healthcheck()
 
-    assert payload == {
-        "status": "ok",
-        "app": "Forge",
+    assert payload.status == "healthy"
+    assert payload.version == "Forge"
+    assert payload.components == {
         "env": "dev",
         "database_backend": "sqlite",
         "database_startup_mode": "local_fallback",

@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote_plus
 
@@ -35,6 +36,7 @@ from foundry.api.routes import (
     use_cases,
     users,
 )
+from foundry.contracts import HealthResponse
 from foundry.db import get_database_backend, get_database_startup_mode, init_db
 from foundry.settings import get_settings
 
@@ -135,15 +137,18 @@ if docs_site_dir:
     )
 
 
-@app.get("/health")
-def healthcheck():
-    return {
-        "status": "ok",
-        "app": settings.app_name,
-        "env": settings.env,
-        "database_backend": get_database_backend(),
-        "database_startup_mode": get_database_startup_mode(),
-    }
+@app.get("/health", response_model=HealthResponse)
+def healthcheck() -> HealthResponse:
+    return HealthResponse(
+        status="healthy",
+        version=str(settings.app_name),
+        timestamp=datetime.now(timezone.utc),
+        components={
+            "env": settings.env,
+            "database_backend": get_database_backend(),
+            "database_startup_mode": get_database_startup_mode(),
+        },
+    )
 
 
 app.include_router(ui.router)

@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Sequence
-from urllib.parse import parse_qsl, quote_plus, urlencode, urlparse, urlsplit, urlunsplit
+from urllib.parse import quote_plus, urlparse
 from uuid import UUID, uuid4
 
 from sqlalchemy import func
@@ -128,10 +128,10 @@ from foundry.services.local_knowledge_control import (
     LocalKnowledgeControlError,
     LocalKnowledgeControlService,
 )
-from foundry.services.email_service import send_email
+from foundry.services.integrations.email_service import send_email
 from foundry.services.template_seed import seed_default_templates
 from foundry.services.template_service import TemplateService
-from foundry.services.trycelonis_demo_rebuild import sync_trycelonis_demos
+from foundry.services.integrations.trycelonis_demo_rebuild import sync_trycelonis_demos
 from foundry.services.todo_service import (
     delete_todo_with_children,
     make_document_url,
@@ -149,7 +149,7 @@ from foundry.services.snapshot_coverage_service import (
     build_snapshot_coverage_filename,
     build_snapshot_coverage_report,
 )
-from foundry.services.feature_rollout import enabled_domains_for_org, resolve_rollout_profile
+from foundry.services.platform.feature_rollout import enabled_domains_for_org, resolve_rollout_profile
 from foundry.services.quest_service import (
     create_assignment as create_assignment_service,
     create_objective as create_objective_service,
@@ -167,13 +167,24 @@ from foundry.services.quest_service import (
     update_objective as update_objective_service,
     update_quest as update_quest_service,
 )
+from . import integrations
+from . import navigation
+from . import docu_redirects
+from . import template_management
+from .shared import redirect_dashboard as _redirect_dashboard
+from .shared import redirect_ui as _redirect_ui
+from .shared import with_query_params as _with_query_params
 
 router = APIRouter(tags=["ui"])
-UI_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "ui" / "templates"
+router.include_router(integrations.router)
+router.include_router(navigation.router)
+router.include_router(docu_redirects.router)
+router.include_router(template_management.router)
+UI_TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "ui" / "templates"
 
 
 def _docu_dir() -> Path | None:
-    candidates: list[Path] = [Path(__file__).resolve().parents[4] / "docu"]
+    candidates: list[Path] = [Path(__file__).resolve().parents[5] / "docu"]
     meipass = getattr(sys, "_MEIPASS", None)
     if meipass:
         candidates.append(Path(meipass) / "docu")
@@ -439,33 +450,6 @@ def _clickable_url(value: str | None) -> Markup:
 templates.env.filters["normalized_url"] = _normalize_http_url
 templates.env.filters["clickable_url"] = _clickable_url
 templates.env.filters["render_markdown"] = render_markdown
-
-
-def _with_query_params(path: str, **params: str | None) -> str:
-    parts = urlsplit(path)
-    query = dict(parse_qsl(parts.query, keep_blank_values=True))
-    for key, value in params.items():
-        if value is None:
-            query.pop(key, None)
-        else:
-            query[key] = value
-    return urlunsplit(("", "", parts.path or "/", urlencode(query), parts.fragment))
-
-
-def _redirect_dashboard(*, ok: str | None = None, err: str | None = None) -> RedirectResponse:
-    if ok:
-        return RedirectResponse(url=_with_query_params("/dashboard", ok=ok), status_code=303)
-    if err:
-        return RedirectResponse(url=_with_query_params("/dashboard", err=err), status_code=303)
-    return RedirectResponse(url="/dashboard", status_code=303)
-
-
-def _redirect_ui(path: str, *, ok: str | None = None, err: str | None = None) -> RedirectResponse:
-    if ok:
-        return RedirectResponse(url=_with_query_params(path, ok=ok), status_code=303)
-    if err:
-        return RedirectResponse(url=_with_query_params(path, err=err), status_code=303)
-    return RedirectResponse(url=path, status_code=303)
 
 
 def _org_enabled_domains(organization: Organization) -> list[str]:
@@ -7076,82 +7060,6 @@ def gitlab_repo_overview_ui(
     )
 
 
-@router.get("/templates-ui")
-def templates_ui(
-    request: Request,
-    session: Session = Depends(get_session),
-    current_actor: CurrentActor = Depends(get_current_actor_with_org),
-):
-    libraries = sorted(
-        [
-            row
-            for row in _org_template_libraries(session, current_actor.organization.id)
-            if row.library_type == LibraryType.template
-        ],
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    templates_rows = sorted(
-        _org_templates(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    instantiations = sorted(
-        _org_template_instantiations(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    clients = sorted(
-        _org_clients(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    projects = sorted(
-        _org_projects(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-    people = sorted(
-        _org_people(session, current_actor.organization.id),
-        key=lambda row: _sort_datetime_key(row.created_at),
-        reverse=True,
-    )
-
-    library_name_by_id = {library.id: library.name for library in libraries}
-    rows = [
-        {
-            "id": row.id,
-            "title": row.title,
-            "library_id": row.library_id,
-            "library_name": library_name_by_id.get(row.library_id, "Unknown"),
-            "category": row.category,
-            "storage_type": row.storage_type.value,
-            "storage_url": row.storage_url,
-            "requires_review": row.requires_review,
-            "is_active": row.is_active,
-            "created_at": row.created_at,
-        }
-        for row in templates_rows
-    ]
-
-    return templates.TemplateResponse(
-        "templates.html",
-        {
-            "request": request,
-            "ok_message": request.query_params.get("ok"),
-            "error_message": request.query_params.get("err"),
-            "rows": rows,
-            "libraries": libraries,
-            "clients": clients,
-            "projects": projects,
-            "people": people,
-            "instantiations": instantiations[:20],
-            "template_scope_options": [row.value for row in TemplateScope],
-            "template_storage_options": [row.value for row in TemplateStorageType],
-        },
-    )
-
-
 @router.post("/templates-ui/create-library", include_in_schema=False)
 def templates_ui_create_library(
     name: str = Form(...),
@@ -7750,36 +7658,6 @@ def timeline_ui_delete(
         return _redirect_ui("/timeline-ui", err=f"Delete timeline event failed: {exc}")
 
 
-@router.get("/docu/user.html")
-def docu_user(request: Request):
-    return RedirectResponse(url="/docs-site/user/", status_code=307)
-
-
-@router.get("/docu/developer.html")
-def docu_developer(request: Request):
-    return RedirectResponse(url="/docs-site/developer/", status_code=307)
-
-
-@router.get("/docu/guide-admin-setup.html")
-def docu_guide_admin_setup(request: Request):
-    return RedirectResponse(url="/docs-site/admin/full-setup/", status_code=307)
-
-
-@router.get("/docu/guide-account-flows.html")
-def docu_guide_account_flows(request: Request):
-    return RedirectResponse(url="/docs-site/guides/account-flows/", status_code=307)
-
-
-@router.get("/docu/guide-delivery-walkthrough.html")
-def docu_guide_delivery_walkthrough(request: Request):
-    return RedirectResponse(url="/docs-site/guides/delivery-walkthrough/", status_code=307)
-
-
-@router.get("/docu/guide-action-flow-templates.html")
-def docu_guide_action_flow_templates(request: Request):
-    return RedirectResponse(url="/docs-site/guides/action-flow-template-catalog/", status_code=307)
-
-
 # ---------------------------------------------------------------------------
 # Celonis Token Admin page
 # ---------------------------------------------------------------------------
@@ -8328,61 +8206,6 @@ def _get_deploy_request(
     return req
 
 
-@router.get("/celonis-tool-hub-ui", include_in_schema=False)
-def celonis_tool_hub_ui(
-    request: Request,
-    session: Session = Depends(get_session),
-    current_actor: CurrentActor = Depends(get_current_actor_with_org),
-):
-    gated = _redirect_if_domain_disabled(
-        current_actor.organization,
-        "celonis-agent",
-        fallback_path="/dashboard",
-    )
-    if gated:
-        return gated
-
-    clients = sorted(
-        _org_clients(session, current_actor.organization.id),
-        key=lambda c: c.name.lower(),
-    )
-    approved_deployments = [
-        req
-        for req in list_deployment_requests(session, organization_id=current_actor.organization.id)
-        if req.status == CelonisDeploymentStatus.approved
-    ]
-    client_map = {str(c.id): c.name for c in clients}
-    approved_deployment_rows = [
-        {
-            "id": req.id,
-            "client_name": client_map.get(str(req.client_id), str(req.client_id)),
-            "target_package_key": req.target_package_key,
-            "target_package_name": req.target_package_name,
-        }
-        for req in approved_deployments
-    ]
-    quest_rows = list(
-        session.exec(
-            select(Quest)
-            .where(Quest.organization_id == current_actor.organization.id)
-            .order_by(Quest.created_at.desc())
-        ).all()
-    )[:20]
-    return templates.TemplateResponse(
-        "celonis_tool_hub.html",
-        {
-            "request": request,
-            "active_organization": current_actor.organization,
-            "current_person": current_actor.person,
-            "error_message": request.query_params.get("err"),
-            "clients": clients,
-            "approved_deployments": approved_deployment_rows,
-            "quests": quest_rows,
-            "tools": list_data_agent_tools(),
-        },
-    )
-
-
 @router.get("/celonis-deployments-ui", include_in_schema=False)
 def celonis_deployments_ui(
     request: Request,
@@ -8593,28 +8416,6 @@ def celonis_deployments_cancel(
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/celonis-deployments-ui", err=f"Cancel request failed: {exc}")
-
-
-@router.get("/tenant-ui")
-def tenant_ui(request: Request):
-    return templates.TemplateResponse(
-        "tenant.html",
-        {
-            "request": request,
-        },
-    )
-
-
-@router.get("/workspace-ui")
-def workspace_ui(request: Request):
-    tenant_url = request.query_params.get("url") or "https://id.celonis.cloud/user/ui/login"
-    return templates.TemplateResponse(
-        "workspace.html",
-        {
-            "request": request,
-            "tenant_url": tenant_url,
-        },
-    )
 
 
 def _kpis_list_context(

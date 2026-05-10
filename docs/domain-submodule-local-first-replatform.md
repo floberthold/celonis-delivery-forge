@@ -53,6 +53,10 @@ Profiles are maintained in `agentic/tool-hub/tool_hub_profiles.json`.
 - Profile: `full`
 - Goal: all validated domains enabled.
 
+Latest cross-profile verification artifact:
+
+- `./.orchestration/test-runs/profile-regression/regression-pack-20260510T145844Z.json`
+
 ## Operational Commands
 
 ```powershell
@@ -104,9 +108,9 @@ Completed:
 
 Next in Phase 1:
 
-- Introduce shared API contract schema module for standardized error/health DTOs.
-- Add profile-aware health summary in Tool Hub `status` output.
-- Add profile-specific seed fixtures for pilot runs.
+- Standardize error classification constants and route adoption.
+- Publish developer-facing API contract usage guide.
+- Expand standardized health probe response semantics to additional specialized domains as extraction proceeds.
 
 ### Phase 1a (UI Route Refactoring) - Planned Tranche Order
 

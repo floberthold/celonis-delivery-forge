@@ -168,9 +168,9 @@ class MCPToolResponse(BaseModel):
 
 #### Deliverables
 
-- [ ] Error codes standardization
-- [ ] API contract documentation
-- [ ] Health probe specification
+- [x] Error codes standardization
+- [x] API contract documentation
+- [x] Health probe specification
 - [x] MCP invocation contract (shared DTOs added)
 - [x] Multi-tenancy enforcement spec (tenancy context contract type added)
 - [x] Observability/logging standards (shared structured error detail contract in Celonis route)
@@ -178,8 +178,14 @@ class MCPToolResponse(BaseModel):
 Implemented artifacts (2026-05-10):
 
 - `src/foundry/contracts.py`
+- `src/foundry/error_codes.py`
+- `src/foundry/api/main.py`
+- `src/foundry/api/routes/local_knowledge.py`
 - `tests/test_shared_api_contracts.py`
+- `tests/test_startup_db_policy.py`
+- `tests/test_local_knowledge_health_contracts.py`
 - `src/foundry/api/routes/celonis.py`
+- `site_docs/developer/api-contracts.md`
 
 **Status:** 🚧 In progress
 
@@ -212,6 +218,12 @@ Implemented tranche (2026-05-10):
 - Extracted `/local-knowledge-ui/status` from `src/foundry/api/routes/ui.py` to `src/foundry/api/routes/ui_knowledge_status.py`.
 - Router wiring added in `src/foundry/api/main.py`.
 - Coverage updated in `tests/test_local_knowledge_ui.py`.
+- Introduced package skeleton via `src/foundry/api/routes/ui/__init__.py`.
+- Extracted shared redirect/query helpers to `src/foundry/api/routes/ui/shared.py`.
+- Extracted initial navigation routes to `src/foundry/api/routes/ui/navigation.py` with tests in `tests/test_ui_navigation_routes.py`.
+- Extracted first integrations route slices to `src/foundry/api/routes/ui/integrations.py` (`/methodology-ui`, `/celonis-tool-hub-ui`) with coverage in `tests/test_ui_integrations_routes.py` and `tests/test_celonis_tool_hub_ui.py`.
+- Extracted first templates route slice to `src/foundry/api/routes/ui/template_management.py` (`/templates-ui`) with coverage in `tests/test_ui_templates_routes.py`.
+- Extracted docu/admin redirect slice to `src/foundry/api/routes/ui/docu_redirects.py` (`/docu/*.html`) with coverage in `tests/test_ui_docu_redirect_routes.py`.
 
 **Status:** 🚧 In progress
 
@@ -239,10 +251,20 @@ services/
 #### Tasks
 
 - [x] Map current services to domains (published in `config/service_domain_mapping.json`)
-- [ ] Create new directory structure
+- [x] Create new directory structure
 - [ ] Extract services by domain
 - [ ] Update all imports
 - [ ] Test and verify
+
+Low-risk migration kickoff (2026-05-10):
+
+- Moved `feature_rollout.py` to `services/platform/feature_rollout.py` with legacy shim preserved
+- Moved `email_service.py` to `services/integrations/email_service.py` with legacy shim preserved
+- Moved `template_seed.py` to `services/delivery/template_seed.py` with legacy shim preserved
+- Moved `use_case_views.py` to `services/knowledge/use_case_views.py` with legacy shim preserved
+- Moved `trycelonis_demo_rebuild.py` to `services/integrations/trycelonis_demo_rebuild.py` with legacy shim preserved
+- Moved `ingest_service.py` to `services/integrations/ingest_service.py` with legacy shim preserved
+- Moved `florian_script_seed.py` to `services/delivery/florian_script_seed.py` with legacy shim preserved
 
 **Status:** 📋 Not started
 
@@ -291,7 +313,7 @@ tests/
 
 Latest full-pack artifact:
 
-- `./.orchestration/test-runs/profile-regression/regression-pack-20260510T141345Z.json`
+- `./.orchestration/test-runs/profile-regression/regression-pack-20260510T145844Z.json`
 
 **Status:** 🚧 In progress (major hardening complete; additional suite consolidation pending)
 

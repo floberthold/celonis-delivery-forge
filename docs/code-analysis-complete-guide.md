@@ -191,7 +191,7 @@ pre-commit install
 
 # Phase 1: Define contracts (30-40 hours)
 → See "Priority 1-4" in code-quality-and-cleanup-roadmap.md
-→ Create: src/foundry/schemas/contracts.py
+→ Create/extend: src/foundry/contracts.py and src/foundry/error_codes.py
 
 # Phase 1a: Refactor UI routes (40-60 hours)
 → Follow: refactoring-ui-routes.md step-by-step
@@ -257,10 +257,10 @@ pre-commit install
 - [ ] Create GitHub Actions for CI/CD
 
 ### Phase 1 - Critical
-- [ ] Define API contracts (input/output, errors, health)
-- [ ] Standardize error classification
-- [ ] Create MCP tool contracts
-- [ ] Define multi-tenancy enforcement spec
+- [x] Define API contracts (input/output, errors, health)
+- [x] Standardize error classification
+- [x] Create MCP tool contracts
+- [x] Define multi-tenancy enforcement spec
 - [ ] Split ui.py into 10 modules (avg 900 lines each)
 - [ ] Update all imports for new routes
 - [ ] Reorganize services into 6 domains
@@ -268,6 +268,14 @@ pre-commit install
 - [ ] Add profile activation tests
 - [ ] Add MCP lifecycle tests
 - [ ] Increase test coverage to >85%
+
+Phase 1 contract implementation update (2026-05-10):
+
+- Shared DTOs implemented in `src/foundry/contracts.py`
+- Centralized error code constants implemented in `src/foundry/error_codes.py`
+- Contract usage guide published in `site_docs/developer/api-contracts.md`
+- Route adoption started in `src/foundry/api/routes/celonis.py`
+- Contract coverage in `tests/test_shared_api_contracts.py`
 
 ### Phase 2 - Celonis Extraction
 - [ ] Create separate submodule

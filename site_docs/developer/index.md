@@ -6,9 +6,10 @@ This section explains how to build, test, and extend the application safely.
 
 1. [Local Development](local-development.md)
 2. [Architecture](architecture.md)
-3. [Data Models and Migrations](data-models-and-migrations.md)
-4. [Auth and Access Control](auth-and-access-control.md)
-5. [Testing](testing.md)
+3. [API Contracts](api-contracts.md)
+4. [Data Models and Migrations](data-models-and-migrations.md)
+5. [Auth and Access Control](auth-and-access-control.md)
+6. [Testing](testing.md)
 
 ## Domain-Specific Pages
 

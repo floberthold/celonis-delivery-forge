@@ -383,7 +383,7 @@ See [docs/DOCUMENTATION_STRUCTURE.md](documentation-structure.md) for recommende
 ### Phase 1: Architecture Contracts (Weeks 1-2)
 - [ ] Finalize input/output DTOs per domain
 - [ ] Define error classification and response formats
-- [ ] Standardize health probe semantics
+- [x] Standardize health probe semantics
 - [ ] Document MCP invocation contract
 
 ### Phase 1a: UI Route Refactoring (Weeks 2-4)

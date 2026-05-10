@@ -44,6 +44,7 @@ nav:
       - Overview: developer/index.md
       - Local Development: developer/local-development.md
       - Architecture: developer/architecture.md
+      - API Contracts: developer/api-contracts.md
       - Module Map: developer/module-map.md
       - Data Models and Migrations: developer/data-models-and-migrations.md
       - Auth and Access Control: developer/auth-and-access-control.md
