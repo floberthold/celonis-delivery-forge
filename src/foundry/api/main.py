@@ -20,6 +20,7 @@ from foundry.api.routes import (
     ingest,
     kpi_book,
     kpis,
+    local_knowledge,
     orgs,
     projects,
     quests,
@@ -72,6 +73,7 @@ _API_PATH_PREFIXES = (
     "/ingest",
     "/snapshots",
     "/kpi-book",
+    "/local-knowledge",
     "/tool-hub",
     "/health",
     "/docs",
@@ -167,3 +169,4 @@ app.include_router(ingest.router)
 app.include_router(snapshots.router)
 app.include_router(tool_hub.router)
 app.include_router(kpi_book.router)
+app.include_router(local_knowledge.router)

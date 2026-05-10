@@ -120,6 +120,7 @@ from foundry.services.celonis_deployment_service import (
     list_deployment_requests,
     submit_deployment_for_approval,
 )
+from foundry.services.local_knowledge_gateway import LocalKnowledgeGateway
 from foundry.services.email_service import send_email
 from foundry.services.template_seed import seed_default_templates
 from foundry.services.template_service import TemplateService
@@ -9075,6 +9076,47 @@ def tool_hub_ui(
                 "error_message": error_message,
             },
         )
+
+
+@router.get("/local-knowledge-ui")
+def local_knowledge_ui(
+    request: Request,
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    settings = get_settings()
+    gateway = LocalKnowledgeGateway(settings)
+
+    health_payload: dict[str, Any] | None = None
+    corpus_payload: dict[str, Any] | None = None
+    error_message: str | None = request.query_params.get("err")
+    ok_message: str | None = request.query_params.get("ok")
+
+    if settings.local_knowledge_enabled:
+        try:
+            health_payload = gateway.health()
+            corpus_payload = gateway.corpus()
+        except Exception as exc:
+            error_message = f"Local knowledge gateway unavailable: {exc}"
+
+    open_webui_url = "http://127.0.0.1:3000"
+    query_api_url = settings.local_knowledge_query_base_url.rstrip("/")
+
+    return templates.TemplateResponse(
+        "local-knowledge-ui.html",
+        {
+            "request": request,
+            "active_organization": current_actor.organization,
+            "ok_message": ok_message,
+            "error_message": error_message,
+            "integration_enabled": settings.local_knowledge_enabled,
+            "health": health_payload,
+            "corpus": corpus_payload,
+            "open_webui_url": open_webui_url,
+            "query_api_url": query_api_url,
+            "vault_path": settings.local_knowledge_vault_path,
+            "repo_path": settings.local_knowledge_repo_path,
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

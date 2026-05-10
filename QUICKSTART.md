@@ -55,6 +55,28 @@ Legacy API-only mode:
 ### Restart the Server
 Just press `Ctrl+C` and run `.\START.ps1` again.
 
+### Fast Developer Commands
+
+Use the unified dev helper for fast loops:
+
+```powershell
+.\scripts\dev.ps1 -Action start-fast    # API fast start (no reload watcher)
+.\scripts\dev.ps1 -Action test-smoke    # quick smoke tests
+.\scripts\dev.ps1 -Action test-celonis  # Celonis focused tests
+.\scripts\dev.ps1 -Action stop-all      # stop tool hub + related forge processes
+.\scripts\dev.ps1 -Action reset         # stop + cleanup scan
+.\scripts\dev.ps1 -Action repo-cleanup-scan
+.\scripts\dev.ps1 -Action repo-cleanup-clean
+```
+
+Command Prompt wrapper:
+
+```cmd
+scripts\dev.bat start-fast
+scripts\dev.bat test-smoke
+scripts\dev.bat stop-all
+```
+
 ### Use a Different Port
 Edit `START.ps1` or run manually:
 ```powershell
@@ -63,6 +85,18 @@ uvicorn foundry.api.main:app --reload --port 9000
 
 ### View Server Logs
 Logs are saved to: `AppData\Local\CelonisDeliveryForge\desktop.log`
+
+### Repo Cleanup (Scan First)
+
+```powershell
+.\scripts\repo_cleanup.ps1 -Mode scan
+```
+
+Apply cleanup only when you are ready:
+
+```powershell
+.\scripts\repo_cleanup.ps1 -Mode clean
+```
 
 ### Install New Dependencies
 ```powershell

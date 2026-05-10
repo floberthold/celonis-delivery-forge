@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Local Knowledge | Foundry{% endblock %}
+
+{% block content %}
+<h2>Local Knowledge Hub</h2>
+<p class="muted-note">Central access for Local Wiki Query API and Open WebUI across the Delivery Forge workspace.</p>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="cards" style="margin-bottom: 1.5rem;">
+    <div class="card">
+        <h3>Integration</h3>
+        <p class="metric">{{ "Enabled" if integration_enabled else "Disabled" }}</p>
+    </div>
+    <div class="card">
+        <h3>Gateway Status</h3>
+        <p class="metric">{{ health.status if health else "Unavailable" }}</p>
+    </div>
+    <div class="card">
+        <h3>Documents</h3>
+        <p class="metric">{{ health.document_count if health else 0 }}</p>
+    </div>
+    <div class="card">
+        <h3>Ollama</h3>
+        <p class="metric">{{ "Connected" if health and health.ollama_available else "Unknown" }}</p>
+    </div>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Launch</h3>
+    <p class="muted-note">Use these links after starting tools from Tool Hub or scripts.</p>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{{ open_webui_url }}" target="_blank" rel="noopener noreferrer" class="button-link">Open Open WebUI</a>
+        <a href="{{ query_api_url }}/health" target="_blank" rel="noopener noreferrer" class="button-link">Open Query API Health</a>
+        <a href="/celonis-tool-hub-ui" class="button-link">Open Tool Hub</a>
+    </div>
+</section>
+
+<section class="panel" style="margin-bottom: 1.5rem;">
+    <h3>Configuration</h3>
+    <table class="table compact-table">
+        <tbody>
+            <tr>
+                <th>Query API Base URL</th>
+                <td>{{ query_api_url }}</td>
+            </tr>
+            <tr>
+                <th>Open WebUI URL</th>
+                <td>{{ open_webui_url }}</td>
+            </tr>
+            <tr>
+                <th>Local Knowledge Repo Path</th>
+                <td>{{ repo_path }}</td>
+            </tr>
+            <tr>
+                <th>Vault Path</th>
+                <td>{{ vault_path }}</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+{% if corpus %}
+<section class="panel">
+    <h3>Corpus Snapshot</h3>
+    <pre class="code-block">{{ corpus | tojson(indent=2) }}</pre>
+</section>
+{% endif %}
+
+<style>
+.button-link {
+    display: inline-block;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    border: 1px solid #d0d6e0;
+    text-decoration: none;
+    background: #f8fafc;
+    color: #1f2937;
+}
+.button-link:hover {
+    border-color: #2f6fed;
+    background: #eef4ff;
+}
+</style>
+{% endblock %}

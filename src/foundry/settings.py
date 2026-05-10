@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     registration_token_expire_minutes: int = 60
     password_reset_token_expire_minutes: int = 30
     registration_join_single_existing_org: bool = True
+    local_knowledge_enabled: bool = True
+    local_knowledge_query_base_url: str = "http://127.0.0.1:8008"
+    local_knowledge_timeout_seconds: int = 30
+    local_knowledge_repo_path: str = "./external resources/local-knowledge-model/local-llm-wiki-query"
+    local_knowledge_vault_path: str = "./external resources/local-knowledge-model/my-obsidian-wiki"
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="FORGE_", extra="ignore")
 

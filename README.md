@@ -71,6 +71,82 @@ If you prefer to run commands yourself:
 	- **API Docs (Swagger):** <http://127.0.0.1:8000/docs>
 	- **Health Check:** <http://127.0.0.1:8000/health>
 
+### Developer Productivity Commands
+
+For fast local development loops, use the unified helper script:
+
+```powershell
+.\scripts\dev.ps1 -Action start
+.\scripts\dev.ps1 -Action start-fast
+.\scripts\dev.ps1 -Action test-smoke
+.\scripts\dev.ps1 -Action test-celonis
+.\scripts\dev.ps1 -Action test-all
+.\scripts\dev.ps1 -Action stop-all
+.\scripts\dev.ps1 -Action reset
+.\scripts\dev.ps1 -Action repo-cleanup-scan
+.\scripts\dev.ps1 -Action repo-cleanup-clean
+.\scripts\repo_cleanup.ps1 -Mode scan
+```
+
+- `start`: regular tool-hub startup (same as `START.ps1` default)
+- `start-fast`: API fast mode without reload watcher
+- `test-smoke`: quick smoke tests for rapid feedback
+- `test-celonis`: focused Celonis integration tests
+- `test-all`: full test suite
+- `stop-all`: stop tool-hub processes and additional Forge dev processes for this repo
+- `reset`: stop processes and run a cleanup scan
+- `repo-cleanup-scan|repo-cleanup-clean`: repo cleanup helper actions
+- `repo_cleanup.ps1 -Mode scan|clean`: final cleanup helper for caches/temp test artifacts
+
+### Local Knowledge Model Integration
+
+This repo now includes a built-in gateway for the local knowledge model under:
+
+- `external resources/local-knowledge-model/local-llm-wiki-query`
+- `external resources/local-knowledge-model/my-obsidian-wiki`
+
+1. Start the local knowledge sidecar API:
+
+```powershell
+.\scripts\start_local_knowledge_gateway.ps1
+```
+
+Start Open WebUI wired to the local wiki query adapter:
+
+```powershell
+.\scripts\start_open_webui_local_knowledge.ps1
+```
+
+Optional overrides:
+
+```powershell
+.\scripts\start_local_knowledge_gateway.ps1 -Port 8010 -FastModel qwen3:4b
+```
+
+2. Start Foundry as usual:
+
+```powershell
+.\START.ps1
+```
+
+3. Use the integrated endpoints (authenticated):
+
+- `GET /local-knowledge/health`
+- `GET /local-knowledge/corpus`
+- `POST /local-knowledge/search`
+- `POST /local-knowledge/answer`
+- `GET /local-knowledge/documents/{relative_path}`
+
+4. Use the web UI:
+
+- Dashboard card: `/local-knowledge-ui`
+- Tool catalog and start commands: `/celonis-tool-hub-ui`
+- Open WebUI (external): `http://127.0.0.1:3000`
+
+Configuration is available via `FORGE_LOCAL_KNOWLEDGE_*` variables in `.env` / environment.
+
+Both Local Wiki Query and Open WebUI are also registered in `agentic/tool-hub/tool_hub_registry.json`, so they appear in Tool Hub dry-run/start workflows from repo root.
+
 ### Database
 
 The default local profile uses **SQLite** — no external database needed!

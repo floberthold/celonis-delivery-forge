@@ -30,6 +30,36 @@
       "notes": "Local MCP server with stdio transport."
     },
     {
+      "id": "local-wiki-query-api",
+      "display_name": "Local Wiki Query API",
+      "repo_path": ".",
+      "enabled": true,
+      "shell": "powershell",
+      "command": ".\\scripts\\start_local_knowledge_gateway.ps1",
+      "install_editable": false,
+      "activation_phase": 1,
+      "health_probe": {
+        "type": "http",
+        "url": "http://127.0.0.1:8008/health"
+      },
+      "notes": "Knowledge retrieval API backed by local wiki vault."
+    },
+    {
+      "id": "local-wiki-open-webui",
+      "display_name": "Open WebUI (Local Wiki)",
+      "repo_path": ".",
+      "enabled": true,
+      "shell": "powershell",
+      "command": ".\\scripts\\start_open_webui_local_knowledge.ps1",
+      "install_editable": false,
+      "activation_phase": 1,
+      "health_probe": {
+        "type": "http",
+        "url": "http://127.0.0.1:3000/"
+      },
+      "notes": "Open WebUI configured to call Local Wiki Query OpenAI adapter."
+    },
+    {
       "id": "pycelonis-tools",
       "display_name": "pyCelonis tools",
       "repo_path": "external resources/Projects at Work/pyCelonis-tools",

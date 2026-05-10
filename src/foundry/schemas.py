@@ -324,6 +324,7 @@ class CelonisDataAgentCatalogOut(BaseModel):
 
 class CelonisDataAgentInvokeRequest(BaseModel):
     client_id: UUID
+    organization_id: Optional[UUID] = None
     inputs: dict = Field(default_factory=dict)
     quest_id: Optional[UUID] = None
 
@@ -331,6 +332,7 @@ class CelonisDataAgentInvokeRequest(BaseModel):
 class CelonisDataAgentInvokeResult(BaseModel):
     client_id: UUID
     tool_key: str
+    request_id: str
     ok: bool
     source: str = "external_mcp"
     token_configured: bool
