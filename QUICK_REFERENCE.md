@@ -20,9 +20,9 @@
 
 ## 🎯 Critical Issues At A Glance
 
-### 🔴 CRITICAL: UI Routes File (9,810 lines)
+### 🔴 CRITICAL: UI Routes File (9,656 lines)
 
-**File:** `src/foundry/api/routes/ui.py`  
+**File:** `src/foundry/api/routes/ui/__init__.py`  
 **Issue:** Monolithic, unmaintainable  
 **Solution:** Split into 10 modules  
 **Guide:** refactoring-ui-routes.md  
@@ -46,7 +46,7 @@
 
 ---
 
-### 🟠 HIGH: External Resources (4.3M lines)
+### 🟠 HIGH: External Resources (5.09M lines)
 
 **Directory:** `external resources/`  
 **Issue:** Repository bloat  
@@ -75,11 +75,11 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total files scanned** | 48,254 |
-| **Total lines** | 24.7M |
-| **Production code** | 26,709 lines ✅ |
-| **Test code** | 8,281 lines ✅ |
-| **Largest file** | ui.py (9,810 lines) ⚠️ |
+| **Total text files scanned** | 31,236 |
+| **Total text lines** | 5.19M |
+| **Production code** | 27,643 lines ✅ |
+| **Test code** | 9,162 lines ✅ |
+| **Largest file** | ui/__init__.py (9,656 lines) ⚠️ |
 | **Service modules** | 25 (needs org) |
 | **Time to fix** | 12 weeks |
 | **Team effort** | 120-160 hours |
@@ -91,7 +91,7 @@
 ```
 Week 1:  Phase 0 - Setup & governance
 Week 2:  Phase 1 - Define contracts
-Week 3:  Phase 1a - Refactor routes (split ui.py)
+Week 3:  Phase 1a - Refactor routes (decompose ui/__init__.py)
 Week 4:  Phase 1b - Reorganize services
 Week 5:  Phase 1c - Harden tests
 Week 6:  Phase 2 - Extract Celonis (start)
@@ -121,7 +121,7 @@ Week 12: Phase 6 - Cleanup & consolidation
 
 | Metric | Now | Target |
 |--------|-----|--------|
-| Largest file | 9,810 lines | <1,500 |
+| Largest file | 9,656 lines | <1,500 |
 | Avg file size | 392 lines | <500 |
 | Test coverage | ~60% | >80% |
 | Review time | 2-3 days | <24 hours |

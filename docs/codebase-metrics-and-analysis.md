@@ -8,13 +8,13 @@
 
 ## Executive Summary
 
-The Celonis Delivery Forge is a **multi-tenant delivery governance platform** with approximately **5.5M lines of Python code** across the codebase. However, the actual project implementation is significantly smaller (~27K lines of production code in `src/`), with the majority of lines coming from external dependencies and reference implementations.
+The Celonis Delivery Forge is a **multi-tenant delivery governance platform** with approximately **5.19M text lines** across the codebase view used in this report. However, the actual project implementation is significantly smaller (~27K lines of production Python in `src/`), with the majority of lines coming from external dependencies and reference implementations.
 
 **Key Findings:**
 - ✅ **Clean separation of concerns** between API, services, database, and UI layers
-- ⚠️ **Critical complexity hotspot**: `src/foundry/api/routes/ui.py` at 9,810 lines (should be <1000)
-- ✅ **Comprehensive test coverage** with 8,281 lines of tests
-- ⚠️ **External resources bloat**: 4.3M lines of reference code and external libraries mixed with source
+- ⚠️ **Critical complexity hotspot**: `src/foundry/api/routes/ui/__init__.py` at 9,656 lines (should be <1000)
+- ✅ **Comprehensive test coverage** with 9,162 lines of tests
+- ⚠️ **External resources bloat**: 5.09M lines of reference code and external libraries mixed with source
 - ✅ **Well-structured migrations** with Alembic (1,838 lines across 23 versions)
 
 ---
@@ -25,16 +25,15 @@ The Celonis Delivery Forge is a **multi-tenant delivery governance platform** wi
 
 | Component | Files | Lines | Purpose |
 |-----------|-------|-------|---------|
-| **External Resources** | 23,605 | 4,382,779 | Reference code, libraries, external projects |
-| **Virtual Environment** | 2,981 | 1,092,445 | Python dependencies and packages |
-| **Source Code** | 68 | 26,709 | Core application logic (production) |
-| **Tests** | 48 | 8,281 | Test suite (pytest + Playwright) |
+| **External Resources** | 34,104 | 5,093,145 | Reference code, libraries, external projects |
+| **Source Code** | 91 | 27,643 | Core application logic (production, Python) |
+| **Tests** | 59 | 9,162 | Test suite (pytest + Playwright) |
 | **Database Migrations** | 23 | 1,838 | Alembic schema versions |
 | **Scripts** | 8 | 1,227 | Automation and tooling |
-| **Documentation** | 10,279 | 400,113 | Markdown docs and specs |
-| **Other** | 10,148 | 17,704,950 | Binaries, pickles, CSVs, models, etc. |
+| **Documentation (docs)** | 39 | 6,893 | Project documentation sources |
+| **Other Active Text** | 6,912 | 54,628 | Templates, config, and auxiliary text files |
 
-**Total: 48,254 files, 24.7M lines**
+**Total: 31,236 text files, 5.19M text lines**
 
 ---
 
@@ -56,14 +55,14 @@ src/
 └── ...
 ```
 
-**Total Production Python: 26,709 lines across 68 files**  
-**Average File Size: 392 lines**
+**Total Production Python: 27,643 lines across 91 files**  
+**Average File Size: 304 lines**
 
 ---
 
 ## Complexity Hotspots & Cleanup Opportunities
 
-### 🔴 **CRITICAL: src/foundry/api/routes/ui.py (9,810 lines)**
+### 🔴 **CRITICAL: src/foundry/api/routes/ui/__init__.py (9,656 lines)**
 
 **Issue:** Single monolithic UI route file exceeding best practices by 10x
 
@@ -76,7 +75,7 @@ src/
 **Recommendation:**
 ```
 src/foundry/api/routes/
-├── ui.py                          [Keep only root router setup]
+├── ui/__init__.py                 [Keep only root router setup]
 ├── ui_navigation.py               [Navigation/menu endpoints]
 ├── ui_dashboard.py                [Dashboard and home views]
 ├── ui_projects.py                 [Project management views]
@@ -95,7 +94,7 @@ src/foundry/api/routes/
 
 ---
 
-### 🟠 **HIGH: External Resources Directory (4.3M lines)**
+### 🟠 **HIGH: External Resources Directory (5.09M lines)**
 
 **Issue:** `external resources/` folder contains:
 - Duplicate reference implementations (pyCelonis, OCPMbootstrapper)
@@ -180,7 +179,7 @@ services/
 
 ### 🟡 **MEDIUM: Test Organization**
 
-**Current:** 48 test files, 8,281 lines  
+**Current:** 48 test files, 9,162 lines  
 **Status:** ✅ Good coverage, but organization could improve
 
 **Suggested Structure:**
@@ -371,7 +370,7 @@ See [docs/DOCUMENTATION_STRUCTURE.md](documentation-structure.md) for recommende
 ### Areas Requiring Attention ⚠️
 
 1. **Monolithic Routes File**: ui.py needs urgent refactoring
-2. **External Resources**: 4.3M lines of reference code cluttering repo
+2. **External Resources**: 5.09M lines of reference code cluttering repo
 3. **Service Layer**: 25+ modules need clearer boundaries
 4. **Documentation**: Scattered across multiple markdown files
 5. **MCP Contracts**: Health probes and invocation patterns need standardization
@@ -478,7 +477,7 @@ See [docs/DOCUMENTATION_STRUCTURE.md](documentation-structure.md) for recommende
 ### Cyclomatic Complexity Hotspots (Estimated)
 
 Files likely to have high complexity:
-- `src/foundry/api/routes/ui.py` (9,810 lines) - **Estimated CC: 150+** ⚠️
+- `src/foundry/api/routes/ui/__init__.py` (9,656 lines) - **Estimated CC: 150+** ⚠️
 - `src/foundry/services/celonis_service.py` - **Estimated CC: 35-50**
 - Integration services - **Estimated CC: 20-35**
 
@@ -516,7 +515,7 @@ radon mi src/ -m  # Maintainability index
 
 2. **Short-term** (Next 2 weeks):
    - Define API contracts per domain
-   - Begin ui.py refactoring
+   - Continue ui/__init__.py decomposition
    - Consolidate service documentation
 
 3. **Medium-term** (Weeks 3-8):

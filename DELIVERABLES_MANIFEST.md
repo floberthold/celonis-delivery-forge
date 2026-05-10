@@ -205,21 +205,20 @@
 ## 📊 Analysis Scope
 
 ### Code Analyzed
-- **Total Files:** 48,254
-- **Total Lines:** 24.7M
+- **Total Text Files:** 31,236
+- **Total Text Lines:** 5.19M
 - **Languages:** Python (26K files), JS, HTML, CSS, JSON, YAML, etc.
 - **Scope:** Complete repo including submodules and external resources
 
 ### Code Breakdown
 ```
-External Resources/Ref Code: 4,382,779 lines (17.7%)
-Virtual Environments:         1,092,445 lines (4.4%)
-Production Code:                26,709 lines (0.1%) ✅ Well-organized
-Test Suite:                      8,281 lines (0.03%) ✅ Comprehensive
-Database Migrations:             1,838 lines (0.007%) ✅ Tracked
-Scripts:                         1,227 lines (0.005%) ✅ Utilities
-Documentation:                 400,113 lines (1.6%)
-Other (binaries, models):   17,704,950 lines (71%)
+External Resources/Ref Code: 5,093,145 lines
+Virtual Environments:        excluded from text-baseline metrics
+Production Code:               27,643 lines ✅ Well-organized
+Test Suite:                     9,162 lines ✅ Comprehensive
+Database Migrations:            1,838 lines ✅ Tracked
+Scripts:                        1,227 lines ✅ Utilities
+Active text baseline total: 5,194,169 lines
 ```
 
 ### Technologies Identified
@@ -237,8 +236,8 @@ Other (binaries, models):   17,704,950 lines (71%)
 ## 🎯 Critical Findings
 
 ### Issue #1: Monolithic UI Routes File
-- **File:** `src/foundry/api/routes/ui.py`
-- **Size:** 9,810 lines
+- **File:** `src/foundry/api/routes/ui/__init__.py`
+- **Size:** 9,656 lines
 - **Impact:** 🔴 CRITICAL
 - **Recommendation:** Split into 10 focused modules
 - **Effort:** 40-60 hours
@@ -256,7 +255,7 @@ Other (binaries, models):   17,704,950 lines (71%)
 
 ### Issue #3: Repository Bloat
 - **Directory:** `external resources/`
-- **Size:** 4.3M lines
+- **Size:** 5.09M lines
 - **Impact:** 🟠 HIGH
 - **Recommendation:** Archive to separate location
 - **Effort:** Low (mostly cleanup)
@@ -291,7 +290,7 @@ Other (binaries, models):   17,704,950 lines (71%)
 ### Code Quality Baseline
 | Metric | Current | Target |
 |--------|---------|--------|
-| Largest file | 9,810 lines | <1,500 |
+| Largest file | 9,656 lines | <1,500 |
 | Average file size | 392 lines | <500 |
 | Test coverage | ~60% | >80% |
 | Cyclomatic complexity | High | <15 per function |
@@ -316,7 +315,7 @@ Other (binaries, models):   17,704,950 lines (71%)
 - Define standards
 
 ### Phase 1a: UI Routes (Weeks 2-4)
-- Split monolithic ui.py
+- Decompose large ui/__init__.py
 - Achieve <1,500 lines per file
 - Complete test coverage
 

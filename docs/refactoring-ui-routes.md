@@ -9,7 +9,7 @@
 
 ## Problem Statement
 
-The `src/foundry/api/routes/ui.py` file has grown to **9,810 lines**, making it:
+The `src/foundry/api/routes/ui/__init__.py` file has grown to **9,656 lines**, making it:
 
 - ❌ Impossible to review or understand at a glance
 - ❌ Difficult to test individual endpoints
@@ -21,7 +21,7 @@ The `src/foundry/api/routes/ui.py` file has grown to **9,810 lines**, making it:
 ### Current Structure
 
 ```python
-# src/foundry/api/routes/ui.py (9,810 lines)
+# src/foundry/api/routes/ui/__init__.py (9,656 lines)
 
 from fastapi import APIRouter, Request, Depends, HTTPException
 # ... 200 imports ...
@@ -249,7 +249,7 @@ async def get_projects(
    - `src/foundry/api/main.py`
    - Any other files importing from ui.py
 3. **Run full test suite** to ensure nothing broke
-4. **Delete old** `src/foundry/api/routes/ui.py`
+4. **Delete old** `src/foundry/api/routes/ui/__init__.py`
 
 ---
 

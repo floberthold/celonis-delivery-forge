@@ -16,6 +16,7 @@ from foundry.api.routes import (
     celonis_marketplace,
     clients,
     files,
+    florian_assets,
     forum_insights,
     gitlab,
     ingest,
@@ -174,6 +175,7 @@ app.include_router(gitlab.router)
 app.include_router(use_cases.router)
 app.include_router(ingest.router)
 app.include_router(snapshots.router)
+app.include_router(florian_assets.router)
 app.include_router(tool_hub.router)
 app.include_router(kpi_book.router)
 app.include_router(local_knowledge.router)

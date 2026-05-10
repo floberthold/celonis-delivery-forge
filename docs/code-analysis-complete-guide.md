@@ -10,20 +10,20 @@
 
 We conducted a comprehensive analysis of the entire Celonis Delivery Forge repository:
 
-- **Total Files Scanned:** 48,254
-- **Total Lines:** 24.7M (includes dependencies, external resources)
-- **Production Code:** 26,709 lines in `src/`
-- **Test Code:** 8,281 lines in `tests/`
+- **Total Text Files Scanned:** 31,236
+- **Total Text Lines:** 5.19M (includes dependencies, external resources)
+- **Production Code:** 27,643 lines in `src/`
+- **Test Code:** 9,162 lines in `tests/`
 - **Database Migrations:** 1,838 lines in `alembic/`
 - **Documentation:** 400,113 lines across markdown files
 
 ### Code Distribution
 
 ```
-External Resources: 4,382,779 lines (reference code, external projects)
-Virtual Environments: 1,092,445 lines (dependencies)
-Production Code:        26,709 lines ✅ (well-organized)
-Test Suite:              8,281 lines ✅ (comprehensive)
+External Resources: 5,093,145 lines (reference code, external projects)
+Virtual Environments: excluded from text-baseline metrics
+Production Code:        27,643 lines ✅ (well-organized)
+Test Suite:              9,162 lines ✅ (comprehensive)
 Database Migrations:     1,838 lines ✅ (tracked)
 Scripts:                 1,227 lines ✅ (utilities)
 ```
@@ -45,7 +45,7 @@ Scripts:                 1,227 lines ✅ (utilities)
 
 ### ⚠️ Areas Needing Improvement
 
-1. **🔴 CRITICAL: UI Routes File** (9,810 lines)
+1. **🔴 CRITICAL: UI Routes File** (9,656 lines)
    - Single monolithic file containing 150+ route handlers
    - Violates best practices (max ~1,000 lines/file)
    - Hard to test and maintain
@@ -58,7 +58,7 @@ Scripts:                 1,227 lines ✅ (utilities)
    - Makes future extraction challenging
    - **See:** [service-layer-restructuring.md](service-layer-restructuring.md)
 
-3. **🟠 HIGH: External Resources Bloat** (4.3M lines)
+3. **🟠 HIGH: External Resources Bloat** (5.09M lines)
    - Repository contains old projects and reference implementations
    - Clutters git history and slow operations
    - Belongs in separate archives
@@ -114,7 +114,7 @@ We created five comprehensive guides for cleanup and improvement:
 - Rollout checklist
 - Expected benefits
 
-**Follow this** to split the 9,810-line ui.py into focused modules.
+**Follow this** to decompose the 9,656-line ui/__init__.py into focused modules.
 
 **Timeline:** Weeks 2-4 of main roadmap | **Effort:** 40-60 hours | **Priority:** 🔴 CRITICAL
 
@@ -437,7 +437,7 @@ pytest tests/ --cov=src/
 ### Code Quality
 
 **Before:**
-- Monolithic ui.py (9,810 lines)
+- Monolithic ui/__init__.py (9,656 lines)
 - Unclear service boundaries
 - ~60% test coverage
 
@@ -494,7 +494,7 @@ This analysis consists of 5 detailed guides:
 
 1. **codebase-metrics-and-analysis.md** - What we found
 2. **code-quality-and-cleanup-roadmap.md** - Master plan for fixes
-3. **refactoring-ui-routes.md** - How to split ui.py
+3. **refactoring-ui-routes.md** - How to decompose ui/__init__.py
 4. **service-layer-restructuring.md** - How to reorganize services
 5. **documentation-consolidation-plan.md** - How to consolidate docs
 

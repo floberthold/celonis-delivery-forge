@@ -7,7 +7,7 @@
 ## 📊 What Was Analyzed
 
 Your entire Celonis Delivery Forge repository:
-- **48,254 files** scanned
+- **31,236 text files** scanned
 - **24.7 million lines** analyzed
 - **All Python code, dependencies, external resources, tests, and documentation** reviewed
 
@@ -26,9 +26,9 @@ Your entire Celonis Delivery Forge repository:
 
 | Issue | Severity | Action | Timeline |
 |-------|----------|--------|----------|
-| **ui.py is 9,810 lines** (monolithic) | 🔴 CRITICAL | Split into 10 modules | Week 4 |
+| **ui.py is 9,656 lines** (monolithic) | 🔴 CRITICAL | Split into 10 modules | Week 4 |
 | **Services lack domain organization** | 🟠 HIGH | Reorganize into 6 domains | Week 4 |
-| **External resources clutter** (4.3M lines) | 🟠 HIGH | Archive to separate location | Week 12 |
+| **External resources clutter** (5.09M lines) | 🟠 HIGH | Archive to separate location | Week 12 |
 | **Documentation scattered** | 🟡 MEDIUM | Consolidate into one site | Week 12 |
 
 ---
@@ -45,7 +45,7 @@ Your entire Celonis Delivery Forge repository:
 ### Technical Deep Dives
 4. **codebase-metrics-and-analysis.md** - Code metrics and diagnostics
 5. **code-quality-and-cleanup-roadmap.md** - 12-week implementation plan
-6. **refactoring-ui-routes.md** - How to split ui.py
+6. **refactoring-ui-routes.md** - How to decompose ui/__init__.py
 7. **service-layer-restructuring.md** - How to reorganize services
 8. **documentation-consolidation-plan.md** - How to consolidate docs
 
@@ -250,10 +250,10 @@ Week 12: Final Cleanup (Phase 6)
 
 | Metric | Value |
 |--------|-------|
-| **Files analyzed** | 48,254 |
-| **Lines analyzed** | 24.7M |
-| **Production code** | 26,709 lines |
-| **Largest file** | ui.py (9,810 lines) |
+| **Text files analyzed** | 31,236 |
+| **Text lines analyzed** | 5.19M |
+| **Production code** | 27,643 lines |
+| **Largest file** | ui/__init__.py (9,656 lines) |
 | **Service modules** | 25 (needs organizing) |
 | **Documents created** | 8 guides |
 | **Total documentation** | ~160 pages |

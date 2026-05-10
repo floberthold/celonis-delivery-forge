@@ -9,7 +9,7 @@
 
 ## Overview
 
-Based on comprehensive analysis of the 5.5M-line codebase, this document provides a prioritized roadmap for improving code quality and reducing complexity. The actual project code (27K lines) is well-structured, but three areas require immediate attention.
+Based on comprehensive analysis of the 5.19M-line text codebase, this document provides a prioritized roadmap for improving code quality and reducing complexity. The actual project code (27K lines) is well-structured, but three areas require immediate attention.
 
 ---
 
@@ -193,7 +193,7 @@ Implemented artifacts (2026-05-10):
 
 ### 🔴 Phase 1a: UI Route Refactoring (Weeks 2-4)
 
-**Objective:** Split monolithic ui.py (9,810 lines)  
+**Objective:** Split monolithic ui/__init__.py (9,656 lines)  
 **Effort:** 40-60 hours  
 **Priority:** CRITICAL  
 **See:** [refactoring-ui-routes.md](refactoring-ui-routes.md)
@@ -208,14 +208,14 @@ Implemented artifacts (2026-05-10):
 
 | Metric | Before | Target |
 |--------|--------|--------|
-| Largest file | 9,810 lines | <1,500 lines |
-| Avg file size | 9,810 | 900 lines |
+| Largest file | 9,656 lines | <1,500 lines |
+| Avg file size | 9,656 | 900 lines |
 | Test coverage | ~70% | >85% |
 | Build time | 3-5s | 2-3s |
 
 Implemented tranche (2026-05-10):
 
-- Extracted `/local-knowledge-ui/status` from `src/foundry/api/routes/ui.py` to `src/foundry/api/routes/ui_knowledge_status.py`.
+- Extracted `/local-knowledge-ui/status` from `src/foundry/api/routes/ui/__init__.py` to `src/foundry/api/routes/ui_knowledge_status.py`.
 - Router wiring added in `src/foundry/api/main.py`.
 - Coverage updated in `tests/test_local_knowledge_ui.py`.
 - Introduced package skeleton via `src/foundry/api/routes/ui/__init__.py`.
@@ -497,21 +497,21 @@ radon mi src/ -m
 
 | Hotspot | File | Lines | Issue | Phase |
 |---------|------|-------|-------|-------|
-| UI Routes | src/foundry/api/routes/ui.py | 9,810 | Monolithic | 1a |
+| UI Routes | src/foundry/api/routes/ui/__init__.py | 9,656 | Monolithic | 1a |
 | Service Layer | src/foundry/services/ | 8,000+ | No domain organization | 1b |
 
 ### 🟠 High (Should Fix)
 
 | Hotspot | File | Lines | Issue | Phase |
 |---------|------|-------|-------|-------|
-| External Resources | external resources/ | 4.3M | Repository bloat | 6 |
+| External Resources | external resources/ | 5.09M | Repository bloat | 6 |
 
 ### 🟡 Medium (Nice to Fix)
 
 | Hotspot | File | Lines | Issue | Phase |
 |---------|------|-------|-------|-------|
 | Documentation | scattered | 400K | Scattered & duplicate | 6 |
-| Test Organization | tests/ | 8,281 | Structure could improve | 1c |
+| Test Organization | tests/ | 9,162 | Structure could improve | 1c |
 
 ---
 
@@ -579,7 +579,7 @@ Track these during refactoring:
 | Metric | Current | Target | Phase |
 |--------|---------|--------|-------|
 | Avg file size | 392 lines | <500 lines | 1a,1b |
-| Max file size | 9,810 lines | <1,500 lines | 1a |
+| Max file size | 9,656 lines | <1,500 lines | 1a |
 | Cyclomatic complexity | High | <15 per function | 1-3 |
 | Test coverage | ~60% | >80% | 1c |
 | Build time | 3-5s | 2-3s | 1a |
