@@ -9,7 +9,7 @@ import pytest
 from sqlmodel import Session, select
 
 from foundry.models import CelonisSnapshot, SnapshotTask, SnapshotChangeType
-from foundry.services.snapshot_detail_extractors import (
+from foundry.services.celonis.snapshot_detail_extractors import (
     fetch_asset_detail_by_family,
     crawl_asset_dependencies,
 )

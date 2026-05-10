@@ -69,6 +69,15 @@ def update_project(): ...
 - Started admin-adjacent docu redirect extraction:
     - `src/foundry/api/routes/ui/docu_redirects.py` (`/docu/*.html` redirects)
 - Added redirect coverage in `tests/test_ui_docu_redirect_routes.py`.
+- Extracted admin management routes to dedicated module:
+    - `src/foundry/api/routes/ui/admin_management.py` (`/foundry-admin-ui*`)
+- Added admin route coverage in `tests/test_foundry_admin_ui.py`.
+- Extracted onboarding Celonis setup routes to dedicated module:
+    - `src/foundry/api/routes/ui/celonis_setup_wizard.py` (`/onboarding/celonis-setup*`)
+- Added onboarding route coverage in `tests/test_tenant_setup_wizard_ui.py`.
+- Extracted client health routes to dedicated module:
+    - `src/foundry/api/routes/ui/client_health.py` (`/client-health-ui*`)
+- Added client health route coverage in `tests/test_client_health_ui.py`.
 
 This establishes the migration pattern for subsequent route slices while preserving endpoint behavior.
 

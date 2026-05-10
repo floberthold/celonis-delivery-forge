@@ -23,7 +23,7 @@ from foundry.models import (
     SnapshotTask,
     SnapshotTaskDetail,
 )
-from foundry.services.snapshot_export_service import (
+from foundry.services.celonis.snapshot_export_service import (
     build_snapshot_delta_report,
     build_snapshot_replay_plan,
 )

@@ -31,6 +31,7 @@ Defines the initial service-to-domain allocation used to drive Phase 1b migratio
 - template_seed.py
 - todo_service.py
 - activity_log.py
+- florian_script_seed.py
 
 ### celonis
 
@@ -49,7 +50,6 @@ Defines the initial service-to-domain allocation used to drive Phase 1b migratio
 - local_knowledge_gateway.py
 - local_knowledge_control.py
 - use_case_views.py
-- florian_script_seed.py
 
 ### integrations
 

@@ -37,7 +37,7 @@ from foundry.services.integrations.ingest_service import (
     execute_code_drop_ingest,
     execute_repo_sync_ingest,
 )
-from foundry.services.snapshot_git_service import materialize_asset_snapshot_git_history
+from foundry.services.celonis.snapshot_git_service import materialize_asset_snapshot_git_history
 from foundry.settings import get_settings
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])

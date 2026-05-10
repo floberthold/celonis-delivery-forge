@@ -18,6 +18,21 @@
       "notes": "Primary local API runtime."
     },
     {
+      "id": "agentic-code-analysis-mcp",
+      "display_name": "Agentic Code Analysis MCP",
+      "domain": "quality-automation",
+      "repo_path": ".",
+      "enabled": true,
+      "shell": "powershell",
+      "command": "python -m foundry.mcp.agentic_code_analysis run",
+      "install_editable": true,
+      "activation_phase": 1,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Recomputes codebase metrics, refreshes report values, and emits an LLM next-improvements prompt."
+    },
+    {
       "id": "celonis-data-agent-mcp",
       "display_name": "Celonis Data Agent MCP",
       "domain": "celonis-agent",

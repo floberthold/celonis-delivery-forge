@@ -26,6 +26,15 @@ from foundry.services.florian_script_seed import (
     import_florian_scripts_to_project as old_import_florian_scripts_to_project,
     register_florian_script_assets as old_register_florian_script_assets,
 )
+from foundry.services.project_service import ProjectService as old_project_service
+from foundry.services.review_service import ReviewService as old_review_service
+from foundry.services.template_service import TemplateService as old_template_service
+from foundry.services.todo_service import delete_todo_with_children as old_delete_todo_with_children
+from foundry.services.activity_log import (
+    log_activity as old_log_activity,
+    log_created as old_log_created,
+    log_updated as old_log_updated,
+)
 from foundry.services.integrations.email_service import send_email as new_send_email
 from foundry.services.platform.feature_rollout import (
     enabled_domains_for_org as new_enabled_domains_for_org,
@@ -51,6 +60,17 @@ from foundry.services.integrations.ingest_service import (
 from foundry.services.delivery.florian_script_seed import (
     import_florian_scripts_to_project as new_import_florian_scripts_to_project,
     register_florian_script_assets as new_register_florian_script_assets,
+)
+from foundry.services.delivery.project_service import ProjectService as new_project_service
+from foundry.services.delivery.review_service import ReviewService as new_review_service
+from foundry.services.delivery.template_service import TemplateService as new_template_service
+from foundry.services.delivery.todo_service import (
+    delete_todo_with_children as new_delete_todo_with_children,
+)
+from foundry.services.delivery.activity_log import (
+    log_activity as new_log_activity,
+    log_created as new_log_created,
+    log_updated as new_log_updated,
 )
 
 
@@ -87,3 +107,25 @@ def test_ingest_service_shim_exports_new_symbols() -> None:
 def test_florian_script_seed_shim_exports_new_symbols() -> None:
     assert old_register_florian_script_assets is new_register_florian_script_assets
     assert old_import_florian_scripts_to_project is new_import_florian_scripts_to_project
+
+
+def test_project_service_shim_exports_new_symbol() -> None:
+    assert old_project_service is new_project_service
+
+
+def test_review_service_shim_exports_new_symbol() -> None:
+    assert old_review_service is new_review_service
+
+
+def test_template_service_shim_exports_new_symbol() -> None:
+    assert old_template_service is new_template_service
+
+
+def test_todo_service_shim_exports_new_symbol() -> None:
+    assert old_delete_todo_with_children is new_delete_todo_with_children
+
+
+def test_activity_log_shim_exports_new_symbols() -> None:
+    assert old_log_activity is new_log_activity
+    assert old_log_created is new_log_created
+    assert old_log_updated is new_log_updated

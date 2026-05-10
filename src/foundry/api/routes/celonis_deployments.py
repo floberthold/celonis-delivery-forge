@@ -15,7 +15,7 @@ from foundry.schemas import (
     CelonisDeploymentRequestOut,
     CelonisDeploymentReviewerAssignCreate,
 )
-from foundry.services.celonis_deployment_service import (
+from foundry.services.celonis.celonis_deployment_service import (
     CelonisDeploymentServiceError,
     acknowledge_deployment_diff,
     assign_deployment_reviewer,

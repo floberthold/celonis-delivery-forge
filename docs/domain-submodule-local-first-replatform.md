@@ -137,6 +137,7 @@ Next in Phase 1:
 Readiness checklist:
 
 - `docs/celonis-extraction-readiness-checklist.md`
+- `docs/celonis-extraction-runbook-draft.md`
 
 ## Documentation Sync Protocol
 

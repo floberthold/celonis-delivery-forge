@@ -16,7 +16,7 @@ from foundry.models import (
     IngestRun,
     IngestRunStatus,
 )
-from foundry.services.snapshot_git_service import (
+from foundry.services.celonis.snapshot_git_service import (
     archive_asset_snapshot_payload,
     materialize_asset_snapshot_git_history,
 )

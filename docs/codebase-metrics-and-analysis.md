@@ -26,8 +26,8 @@ The Celonis Delivery Forge is a **multi-tenant delivery governance platform** wi
 | Component | Files | Lines | Purpose |
 |-----------|-------|-------|---------|
 | **External Resources** | 34,104 | 5,093,145 | Reference code, libraries, external projects |
-| **Source Code** | 91 | 27,643 | Core application logic (production, Python) |
-| **Tests** | 59 | 9,162 | Test suite (pytest + Playwright) |
+| **Source Code** | 95 | 28,232 | Core application logic (production, Python) |
+| **Tests** | 60 | 9,222 | Test suite (pytest + Playwright) |
 | **Database Migrations** | 23 | 1,838 | Alembic schema versions |
 | **Scripts** | 8 | 1,227 | Automation and tooling |
 | **Documentation (docs)** | 39 | 6,893 | Project documentation sources |
@@ -55,7 +55,7 @@ src/
 └── ...
 ```
 
-**Total Production Python: 27,643 lines across 91 files**  
+**Total Production Python: 28,232 lines across 95 files**  
 **Average File Size: 304 lines**
 
 ---

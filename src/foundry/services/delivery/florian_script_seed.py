@@ -396,7 +396,6 @@ def register_florian_script_assets(
                         type=AssetType(entry["asset_type"]),
                         status=AssetStatus.draft,
                         name=entry["name"],
-                        description=entry.get("docstring") or None,
                         asset_identifier=entry["asset_identifier"],
                     )
                 )
@@ -404,7 +403,6 @@ def register_florian_script_assets(
             else:
                 existing.name = entry["name"]
                 existing.type = AssetType(entry["asset_type"])
-                existing.description = entry.get("docstring") or existing.description
                 session.add(existing)
 
         _upsert_manifest_snapshot(
@@ -493,7 +491,6 @@ def import_florian_scripts_to_project(
                     type=AssetType(entry["asset_type"]),
                     status=AssetStatus.draft,
                     name=entry["name"],
-                    description=entry.get("docstring") or None,
                     asset_identifier=entry["asset_identifier"],
                 )
             )

@@ -8,7 +8,7 @@ from foundry.db import get_session
 from foundry.models import Client, EntityType, Project, ProjectMembership
 from foundry.schemas import ProjectAssign, ProjectCreate, ProjectStatusUpdate
 from foundry.services.activity_log import log_created
-from foundry.services.project_service import ProjectService
+from foundry.services.delivery.project_service import ProjectService
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 

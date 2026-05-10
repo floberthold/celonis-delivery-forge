@@ -36,11 +36,11 @@ from foundry.models import (
     SnapshotTransformation,
 )
 from foundry.settings import get_settings
-from foundry.services.snapshot_detail_extractors import (
+from foundry.services.celonis.snapshot_detail_extractors import (
     crawl_asset_dependencies,
     fetch_asset_detail_by_family,
 )
-from foundry.services.snapshot_git_service import materialize_celonis_snapshot_git_history
+from foundry.services.celonis.snapshot_git_service import materialize_celonis_snapshot_git_history
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -1086,7 +1086,7 @@ def run_snapshot(
 
         # Auto-generate a local export bundle + docs for every completed snapshot.
         try:
-            from foundry.services.snapshot_export_service import build_snapshot_export
+            from foundry.services.celonis.snapshot_export_service import build_snapshot_export
 
             export_result = build_snapshot_export(
                 session,

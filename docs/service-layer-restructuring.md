@@ -37,12 +37,39 @@ Low-risk migration kickoff (compatibility shims retained):
 - `trycelonis_demo_rebuild.py` moved to `services/integrations/trycelonis_demo_rebuild.py`
 - `ingest_service.py` moved to `services/integrations/ingest_service.py`
 - `florian_script_seed.py` moved to `services/delivery/florian_script_seed.py`
+- `activity_log.py` moved to `services/delivery/activity_log.py`
+- `project_service.py` moved to `services/delivery/project_service.py`
+- `review_service.py` moved to `services/delivery/review_service.py`
+- `template_service.py` moved to `services/delivery/template_service.py`
+- `todo_service.py` moved to `services/delivery/todo_service.py`
+- `celonis_contracts.py` moved to `services/celonis/celonis_contracts.py`
+- `celonis_data_agent_service.py` moved to `services/celonis/celonis_data_agent_service.py`
+- `celonis_deployment_service.py` moved to `services/celonis/celonis_deployment_service.py`
+- `celonis_payload_extractors.py` moved to `services/celonis/celonis_payload_extractors.py`
+- `snapshot_service.py` moved to `services/celonis/snapshot_service.py`
+- `snapshot_coverage_service.py` moved to `services/celonis/snapshot_coverage_service.py`
+- `snapshot_detail_extractors.py` moved to `services/celonis/snapshot_detail_extractors.py`
+- `snapshot_export_service.py` moved to `services/celonis/snapshot_export_service.py`
+- `snapshot_git_service.py` moved to `services/celonis/snapshot_git_service.py`
 - Legacy imports preserved via shim modules for backward compatibility
+
+High-coupling cutover update:
+
+- Root high-coupling service modules were removed after import migration to celonis-domain modules.
+- Route and test imports now reference `foundry.services.celonis.*` paths directly.
 
 Validation evidence (targeted):
 
 - `tests/test_service_low_risk_shims.py`
 - `tests/test_ingest_repo_sync_api.py`
+- `tests/test_foundry_admin_ui.py`
+- `tests/test_tenant_setup_wizard_ui.py`
+- `tests/test_client_health_ui.py`
+- `tests/test_ui_templates_routes.py`
+- `tests/test_celonis_ui_route_presence.py`
+- `tests/test_celonis_data_agent_contracts.py`
+- `tests/test_snapshot_detail_extraction.py`
+- `tests/test_snapshots_api.py`
 
 This mapping is used as the migration source of truth for Phase 1b sequencing.
 

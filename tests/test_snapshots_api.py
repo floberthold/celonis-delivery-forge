@@ -715,7 +715,7 @@ def test_trigger_snapshot_ui_uses_saved_user_token(monkeypatch) -> None:
         captured["token_override"] = token_override or ""
         return session.get(CelonisSnapshot, UUID(seed["current_snapshot_id"]))
 
-    monkeypatch.setattr("foundry.services.snapshot_service.run_snapshot", _patched_run_snapshot)
+    monkeypatch.setattr("foundry.services.celonis.snapshot_service.run_snapshot", _patched_run_snapshot)
 
     with TestClient(app) as api_client:
         api_client.cookies.set("foundry_access_token", auth_token)
@@ -869,11 +869,11 @@ def test_snapshot_run_captures_all_artifact_types(tmp_path, monkeypatch) -> None
         session.commit()
 
     monkeypatch.setattr(
-        "foundry.services.snapshot_service.CelonisGateway.extract_full",
+        "foundry.services.celonis.snapshot_service.CelonisGateway.extract_full",
         _fake_extract_full,
     )
     monkeypatch.setattr(
-        "foundry.services.snapshot_service.get_settings",
+        "foundry.services.celonis.snapshot_service.get_settings",
         lambda: SimpleNamespace(
             celonis_api_token="tok",
             celonis_timeout_seconds=10,
@@ -882,14 +882,14 @@ def test_snapshot_run_captures_all_artifact_types(tmp_path, monkeypatch) -> None
     )
     # stub export so it doesn't fail without a real ZipFile
     monkeypatch.setattr(
-        "foundry.services.snapshot_export_service.build_snapshot_export",
+        "foundry.services.celonis.snapshot_export_service.build_snapshot_export",
         lambda *a, **kw: {
             "bundle_path": "", "docs_path": "", "generated_at": datetime.utcnow(),
             "delta_counts": {}, "relationship_graph": {},
         },
     )
     monkeypatch.setattr(
-        "foundry.services.snapshot_service.materialize_celonis_snapshot_git_history",
+        "foundry.services.celonis.snapshot_service.materialize_celonis_snapshot_git_history",
         lambda *a, **kw: {},
     )
 

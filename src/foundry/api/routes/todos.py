@@ -9,7 +9,7 @@ from foundry.db import get_session
 from foundry.models import EntityType, Todo, TodoStatus
 from foundry.schemas import TodoCreate, TodoOut, TodoUpdate
 from foundry.services.activity_log import log_activity
-from foundry.services.todo_service import delete_todo_with_children
+from foundry.services.delivery.todo_service import delete_todo_with_children
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 

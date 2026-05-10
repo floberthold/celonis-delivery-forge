@@ -6,7 +6,7 @@ from foundry.db import get_session
 from foundry.models import EntityType, Project, ReviewComment, ReviewRequest
 from foundry.schemas import ReviewCommentCreate, ReviewDecisionCreate, ReviewRequestCreate, ReviewRequestOut
 from foundry.services.activity_log import log_updated
-from foundry.services.review_service import ReviewService
+from foundry.services.delivery.review_service import ReviewService
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 

@@ -224,6 +224,10 @@ Implemented tranche (2026-05-10):
 - Extracted first integrations route slices to `src/foundry/api/routes/ui/integrations.py` (`/methodology-ui`, `/celonis-tool-hub-ui`) with coverage in `tests/test_ui_integrations_routes.py` and `tests/test_celonis_tool_hub_ui.py`.
 - Extracted first templates route slice to `src/foundry/api/routes/ui/template_management.py` (`/templates-ui`) with coverage in `tests/test_ui_templates_routes.py`.
 - Extracted docu/admin redirect slice to `src/foundry/api/routes/ui/docu_redirects.py` (`/docu/*.html`) with coverage in `tests/test_ui_docu_redirect_routes.py`.
+- Extracted admin management route slice to `src/foundry/api/routes/ui/admin_management.py` (`/foundry-admin-ui*`) with coverage in `tests/test_foundry_admin_ui.py`.
+- Extracted onboarding route slice to `src/foundry/api/routes/ui/celonis_setup_wizard.py` (`/onboarding/celonis-setup*`) with coverage in `tests/test_tenant_setup_wizard_ui.py`.
+- Extracted client health route slice to `src/foundry/api/routes/ui/client_health.py` (`/client-health-ui*`) with coverage in `tests/test_client_health_ui.py`.
+- Wired `florian_assets` router in `src/foundry/api/main.py` and validated registration flow in `tests/test_florian_assets_api.py`.
 
 **Status:** 🚧 In progress
 
@@ -252,9 +256,9 @@ services/
 
 - [x] Map current services to domains (published in `config/service_domain_mapping.json`)
 - [x] Create new directory structure
-- [ ] Extract services by domain
-- [ ] Update all imports
-- [ ] Test and verify
+- [x] Extract services by domain (low-risk tranche complete)
+- [x] Update all imports (low-risk tranche consumers updated)
+- [x] Test and verify (targeted suites)
 
 Low-risk migration kickoff (2026-05-10):
 
@@ -265,8 +269,19 @@ Low-risk migration kickoff (2026-05-10):
 - Moved `trycelonis_demo_rebuild.py` to `services/integrations/trycelonis_demo_rebuild.py` with legacy shim preserved
 - Moved `ingest_service.py` to `services/integrations/ingest_service.py` with legacy shim preserved
 - Moved `florian_script_seed.py` to `services/delivery/florian_script_seed.py` with legacy shim preserved
+- Moved `activity_log.py` to `services/delivery/activity_log.py` with legacy shim preserved
+- Moved `project_service.py` to `services/delivery/project_service.py` with legacy shim preserved
+- Moved `review_service.py` to `services/delivery/review_service.py` with legacy shim preserved
+- Moved `template_service.py` to `services/delivery/template_service.py` with legacy shim preserved
+- Moved `todo_service.py` to `services/delivery/todo_service.py` with legacy shim preserved
+- Updated route consumers to canonical delivery imports in `src/foundry/api/routes/` and `src/foundry/api/routes/ui/__init__.py`
+- Expanded shim parity coverage in `tests/test_service_low_risk_shims.py`
+- Completed high-coupling Celonis/snapshot cutover to `src/foundry/services/celonis/*.py`
+- Updated all route/service/test imports to celonis-domain paths
+- Removed legacy root high-coupling modules after import cutover
+- Verified Celonis/snapshot behavior with `tests/test_celonis_data_agent_contracts.py`, `tests/test_snapshot_detail_extraction.py`, and `tests/test_snapshots_api.py`
 
-**Status:** 📋 Not started
+**Status:** ✅ Completed (Phase 1b migration and import-stability checks complete)
 
 ---
 
@@ -347,6 +362,7 @@ Extract to separate repo/submodule:
 - [x] MCP tool specifications (invocation metadata, approval-bound write semantics)
 - [x] Celonis error/request observability contract for invoke routes
 - [x] Extraction readiness checklist artifact (`docs/celonis-extraction-readiness-checklist.md`)
+- [x] Extraction runbook draft (`docs/celonis-extraction-runbook-draft.md`)
 - [ ] Test coverage >85%
 - [ ] Documentation
 

@@ -10,7 +10,8 @@
       "template_service.py",
       "template_seed.py",
       "todo_service.py",
-      "activity_log.py"
+      "activity_log.py",
+      "florian_script_seed.py"
     ],
     "celonis": [
       "celonis_contracts.py",
@@ -26,8 +27,7 @@
     "knowledge": [
       "local_knowledge_gateway.py",
       "local_knowledge_control.py",
-      "use_case_views.py",
-      "florian_script_seed.py"
+      "use_case_views.py"
     ],
     "integrations": [
       "email_service.py",

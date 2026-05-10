@@ -22,9 +22,11 @@ def test_service_domain_mapping_lists_all_service_modules_once() -> None:
         mapped_files.extend(files)
 
     expected_files = sorted(
-        path.name
-        for path in SERVICES_DIR.glob("*.py")
-        if path.name != "__init__.py"
+        {
+            path.name
+            for path in SERVICES_DIR.rglob("*.py")
+            if path.name != "__init__.py"
+        }
     )
 
     assert sorted(mapped_files) == expected_files

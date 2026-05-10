@@ -48,9 +48,9 @@ from foundry.schemas import (
     CelonisUserTokenUpdate,
 )
 from foundry.settings import get_settings
-from foundry.services.activity_log import log_activity, log_created, log_updated
-from foundry.services.celonis_contracts import CelonisDataAgentInvocationContract
-from foundry.services.celonis_data_agent_service import (
+from foundry.services.delivery.activity_log import log_activity, log_created, log_updated
+from foundry.services.celonis.celonis_contracts import CelonisDataAgentInvocationContract
+from foundry.services.celonis.celonis_data_agent_service import (
     CelonisDataAgentError,
     get_data_agent_tool_definition,
     invoke_data_agent_tool,

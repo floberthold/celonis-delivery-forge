@@ -10,7 +10,7 @@ from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
 from foundry.integrations.celonis_import import CelonisGateway
 from foundry.models import Client, EntityType, SensitivityLevel
-from foundry.services.activity_log import log_activity, log_created, log_updated
+from foundry.services.delivery.activity_log import log_activity, log_created, log_updated
 from foundry.settings import get_settings
 from .shared import redirect_ui as _redirect_ui
 

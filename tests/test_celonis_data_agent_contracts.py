@@ -6,8 +6,8 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from foundry.services.celonis_contracts import CelonisDataAgentInvocationContract
-from foundry.services.celonis_data_agent_service import (
+from foundry.services.celonis.celonis_contracts import CelonisDataAgentInvocationContract
+from foundry.services.celonis.celonis_data_agent_service import (
     CelonisDataAgentError,
     _request_json,
     get_data_agent_tool_definition,
@@ -103,7 +103,7 @@ def test_celonis_preflight_maps_gateway_result(monkeypatch) -> None:
             response_preview="{}",
         )
 
-    monkeypatch.setattr("foundry.services.celonis_data_agent_service.CelonisGateway.preflight", _patched_preflight)
+    monkeypatch.setattr("foundry.services.celonis.celonis_data_agent_service.CelonisGateway.preflight", _patched_preflight)
 
     payload = invoke_data_agent_tool(
         settings,
@@ -138,7 +138,7 @@ def test_list_pools_tool_falls_back_to_next_endpoint(monkeypatch) -> None:
             raise CelonisDataAgentError("timeout")
         return {"pools": [{"id": "pool-1", "name": "Main Pool"}]}
 
-    monkeypatch.setattr("foundry.services.celonis_data_agent_service._request_json", _patched_request_json)
+    monkeypatch.setattr("foundry.services.celonis.celonis_data_agent_service._request_json", _patched_request_json)
 
     payload = invoke_data_agent_tool(
         settings,
@@ -159,7 +159,7 @@ def test_list_pools_tool_raises_when_all_endpoints_fail(monkeypatch) -> None:
     def _always_fail(*args, **kwargs):
         raise CelonisDataAgentError("rate limited")
 
-    monkeypatch.setattr("foundry.services.celonis_data_agent_service._request_json", _always_fail)
+    monkeypatch.setattr("foundry.services.celonis.celonis_data_agent_service._request_json", _always_fail)
 
     with pytest.raises(CelonisDataAgentError, match="rate limited"):
         invoke_data_agent_tool(
@@ -187,7 +187,7 @@ def test_request_json_maps_timeout_to_celonis_data_agent_error(monkeypatch) -> N
         def request(self, *args, **kwargs):
             raise httpx.ReadTimeout("request timed out")
 
-    monkeypatch.setattr("foundry.services.celonis_data_agent_service.httpx.Client", _TimeoutClient)
+    monkeypatch.setattr("foundry.services.celonis.celonis_data_agent_service.httpx.Client", _TimeoutClient)
 
     with pytest.raises(CelonisDataAgentError, match="timeout"):
         _request_json(
@@ -224,7 +224,7 @@ def test_request_json_maps_429_to_rate_limited_error(monkeypatch) -> None:
         def request(self, *args, **kwargs):
             return _Response()
 
-    monkeypatch.setattr("foundry.services.celonis_data_agent_service.httpx.Client", _Client)
+    monkeypatch.setattr("foundry.services.celonis.celonis_data_agent_service.httpx.Client", _Client)
 
     with pytest.raises(CelonisDataAgentError, match="rate limited"):
         _request_json(

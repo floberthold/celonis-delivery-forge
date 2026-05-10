@@ -27,7 +27,7 @@ from foundry.schemas import (
     UseCaseRoadmapItemUpdate,
     UseCaseUpdate,
 )
-from foundry.services.activity_log import log_activity, log_created, log_updated
+from foundry.services.delivery.activity_log import log_activity, log_created, log_updated
 from foundry.services.knowledge.use_case_views import (
     to_industry_benchmark_summary,
     to_view_payload,

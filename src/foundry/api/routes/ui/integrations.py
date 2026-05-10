@@ -12,8 +12,8 @@ from sqlmodel import Session, select
 from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
 from foundry.models import CelonisDeploymentStatus, Client, Organization, Quest
-from foundry.services.celonis_deployment_service import list_deployment_requests
-from foundry.services.celonis_data_agent_service import list_data_agent_tools
+from foundry.services.celonis.celonis_deployment_service import list_deployment_requests
+from foundry.services.celonis.celonis_data_agent_service import list_data_agent_tools
 from foundry.services.platform.feature_rollout import enabled_domains_for_org
 from foundry.settings import get_settings
 

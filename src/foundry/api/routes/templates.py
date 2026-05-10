@@ -14,7 +14,7 @@ from foundry.schemas import (
     TemplateOut,
 )
 from foundry.services.activity_log import log_created
-from foundry.services.template_service import TemplateService
+from foundry.services.delivery.template_service import TemplateService
 
 router = APIRouter(prefix="/templates", tags=["templates"])
 

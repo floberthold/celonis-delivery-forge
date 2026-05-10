@@ -85,8 +85,8 @@ Documentation updates required:
 - [x] Move first extracted route to dedicated module (`/local-knowledge-ui/status`) + tests.
 - [x] Move `navigation` routes + tests.
 - [x] Move first `integrations` route slices (`/methodology-ui`, `/celonis-tool-hub-ui`) + tests.
-- [ ] Move `admin/templates/health` routes + tests.
-- [ ] Keep backward-compatible imports until full cutover.
+- [x] Move `admin/templates/health` routes + tests.
+- [x] Keep backward-compatible imports until full cutover.
 
 Progress note:
 
@@ -103,12 +103,18 @@ Evidence:
 - `src/foundry/api/routes/ui/integrations.py`
 - `src/foundry/api/routes/ui/template_management.py`
 - `src/foundry/api/routes/ui/docu_redirects.py`
+- `src/foundry/api/routes/ui/admin_management.py`
+- `src/foundry/api/routes/ui/celonis_setup_wizard.py`
+- `src/foundry/api/routes/ui/client_health.py`
 - `tests/test_local_knowledge_ui.py`
 - `tests/test_ui_navigation_routes.py`
 - `tests/test_ui_integrations_routes.py`
 - `tests/test_celonis_tool_hub_ui.py`
 - `tests/test_ui_templates_routes.py`
 - `tests/test_ui_docu_redirect_routes.py`
+- `tests/test_foundry_admin_ui.py`
+- `tests/test_tenant_setup_wizard_ui.py`
+- `tests/test_client_health_ui.py`
 
 Documentation updates required:
 
@@ -119,9 +125,9 @@ Documentation updates required:
 
 - [x] Publish service-to-domain mapping table.
 - [x] Create package scaffolding (`platform`, `delivery`, `celonis`, `knowledge`, `integrations`, `orchestration`, `shared`).
-- [ ] Migrate low-risk services and keep shims.
-- [ ] Migrate high-coupling services and remove shims.
-- [ ] Confirm import stability with test suite.
+- [x] Migrate low-risk services and keep shims.
+- [x] Migrate high-coupling services and remove shims.
+- [x] Confirm import stability with test suite.
 
 Evidence:
 
@@ -150,8 +156,41 @@ Evidence:
 - `src/foundry/services/trycelonis_demo_rebuild.py` (compat shim)
 - `src/foundry/services/ingest_service.py` (compat shim)
 - `src/foundry/services/florian_script_seed.py` (compat shim)
+- `src/foundry/services/delivery/activity_log.py`
+- `src/foundry/services/delivery/project_service.py`
+- `src/foundry/services/delivery/review_service.py`
+- `src/foundry/services/delivery/template_service.py`
+- `src/foundry/services/delivery/todo_service.py`
+- `src/foundry/services/activity_log.py` (compat shim)
+- `src/foundry/services/project_service.py` (compat shim)
+- `src/foundry/services/review_service.py` (compat shim)
+- `src/foundry/services/template_service.py` (compat shim)
+- `src/foundry/services/todo_service.py` (compat shim)
+- `src/foundry/services/celonis/celonis_contracts.py`
+- `src/foundry/services/celonis/celonis_data_agent_service.py`
+- `src/foundry/services/celonis/celonis_deployment_service.py`
+- `src/foundry/services/celonis/celonis_payload_extractors.py`
+- `src/foundry/services/celonis/snapshot_service.py`
+- `src/foundry/services/celonis/snapshot_coverage_service.py`
+- `src/foundry/services/celonis/snapshot_detail_extractors.py`
+- `src/foundry/services/celonis/snapshot_export_service.py`
+- `src/foundry/services/celonis/snapshot_git_service.py`
+- `src/foundry/api/routes/celonis.py`
+- `src/foundry/api/routes/celonis_deployments.py`
+- `src/foundry/api/routes/snapshots.py`
+- `src/foundry/api/routes/ingest.py`
+- `src/foundry/api/routes/ui/integrations.py`
 - `tests/test_service_low_risk_shims.py`
 - `tests/test_ingest_repo_sync_api.py`
+- `tests/test_foundry_admin_ui.py`
+- `tests/test_tenant_setup_wizard_ui.py`
+- `tests/test_client_health_ui.py`
+- `tests/test_ui_templates_routes.py`
+- `tests/test_celonis_ui_route_presence.py`
+- `tests/test_celonis_data_agent_contracts.py`
+- `tests/test_snapshot_detail_extraction.py`
+- `tests/test_snapshots_api.py`
+- `tests/test_service_domain_mapping.py`
 
 Documentation updates required:
 
@@ -162,11 +201,12 @@ Documentation updates required:
 
 - [x] Define extraction boundary checklist for Celonis split.
 - [x] Confirm all boundary tests green in full regression pack.
-- [ ] Publish extraction runbook draft.
+- [x] Publish extraction runbook draft.
 
 Evidence:
 
 - `docs/celonis-extraction-readiness-checklist.md`
+- `docs/celonis-extraction-runbook-draft.md`
 
 Documentation updates required:
 

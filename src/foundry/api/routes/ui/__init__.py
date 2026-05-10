@@ -110,11 +110,11 @@ from foundry.security import (
     hash_password,
     verify_password,
 )
-from foundry.services.project_service import ProjectService
-from foundry.services.review_service import ReviewService
-from foundry.services.activity_log import log_activity, log_created, log_updated
-from foundry.services.celonis_data_agent_service import list_data_agent_tools
-from foundry.services.celonis_deployment_service import (
+from foundry.services.delivery.project_service import ProjectService
+from foundry.services.delivery.review_service import ReviewService
+from foundry.services.delivery.activity_log import log_activity, log_created, log_updated
+from foundry.services.celonis.celonis_data_agent_service import list_data_agent_tools
+from foundry.services.celonis.celonis_deployment_service import (
     CelonisDeploymentServiceError,
     acknowledge_deployment_diff,
     cancel_deployment_request,
@@ -130,9 +130,9 @@ from foundry.services.local_knowledge_control import (
 )
 from foundry.services.integrations.email_service import send_email
 from foundry.services.template_seed import seed_default_templates
-from foundry.services.template_service import TemplateService
+from foundry.services.delivery.template_service import TemplateService
 from foundry.services.integrations.trycelonis_demo_rebuild import sync_trycelonis_demos
-from foundry.services.todo_service import (
+from foundry.services.delivery.todo_service import (
     delete_todo_with_children,
     make_document_url,
     normalize_tag_name,
@@ -140,12 +140,12 @@ from foundry.services.todo_service import (
     render_markdown,
     store_uploaded_document,
 )
-from foundry.services.snapshot_export_service import (
+from foundry.services.celonis.snapshot_export_service import (
     build_snapshot_delta_report,
     build_snapshot_export,
     build_snapshot_replay_plan,
 )
-from foundry.services.snapshot_coverage_service import (
+from foundry.services.celonis.snapshot_coverage_service import (
     build_snapshot_coverage_filename,
     build_snapshot_coverage_report,
 )
@@ -7956,7 +7956,7 @@ def trigger_snapshot_ui(
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
-    from foundry.services.snapshot_service import run_snapshot
+    from foundry.services.celonis.snapshot_service import run_snapshot
     try:
         client = _get_org_client(session, client_id, current_actor.organization.id)
         if client is None:

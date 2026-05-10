@@ -31,17 +31,17 @@ from foundry.schemas import (
     SnapshotTaskDetailOut,
     SnapshotTaskOut,
 )
-from foundry.services.snapshot_export_service import (
+from foundry.services.celonis.snapshot_export_service import (
     build_snapshot_delta_report,
     build_snapshot_export,
     build_snapshot_replay_plan,
 )
-from foundry.services.snapshot_coverage_service import (
+from foundry.services.celonis.snapshot_coverage_service import (
     build_snapshot_coverage_filename,
     build_snapshot_coverage_report,
 )
-from foundry.services.snapshot_git_service import materialize_celonis_snapshot_git_history
-from foundry.services.snapshot_service import preflight_snapshot_endpoints, run_snapshot
+from foundry.services.celonis.snapshot_git_service import materialize_celonis_snapshot_git_history
+from foundry.services.celonis.snapshot_service import preflight_snapshot_endpoints, run_snapshot
 from foundry.settings import get_settings
 
 router = APIRouter(prefix="/snapshots", tags=["snapshots"])
