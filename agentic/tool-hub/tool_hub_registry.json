@@ -35,7 +35,7 @@
       "repo_path": ".",
       "enabled": true,
       "shell": "powershell",
-      "command": ".\\scripts\\start_local_knowledge_gateway.ps1",
+      "command": "$env:LWQ_VAULT_PATH=(Resolve-Path '.\\external resources\\local-knowledge-model\\my-obsidian-wiki').Path; $env:LWQ_API_PORT='8008'; python -m uvicorn local_wiki_query.api:create_app --factory --host 127.0.0.1 --port 8008 --app-dir '.\\external resources\\local-knowledge-model\\local-llm-wiki-query\\src'",
       "install_editable": false,
       "activation_phase": 1,
       "health_probe": {

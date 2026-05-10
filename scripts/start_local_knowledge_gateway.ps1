@@ -1,6 +1,6 @@
 param(
     [string]$VaultPath = "",
-    [string]$Host = "127.0.0.1",
+    [string]$BindHost = "127.0.0.1",
     [int]$Port = 8008,
     [string]$FastModel = "",
     [string]$HeavyModel = ""
@@ -36,6 +36,6 @@ if (-not [string]::IsNullOrWhiteSpace($HeavyModel)) {
 
 Write-Host "Starting local knowledge gateway..."
 Write-Host "  LWQ_VAULT_PATH=$env:LWQ_VAULT_PATH"
-Write-Host "  Host=$Host Port=$Port"
+Write-Host "  Host=$BindHost Port=$Port"
 
-python -m uvicorn local_wiki_query.api:create_app --factory --host $Host --port $Port --app-dir "$querySrcPath"
+python -m uvicorn local_wiki_query.api:create_app --factory --host $BindHost --port $Port --app-dir "$querySrcPath"
