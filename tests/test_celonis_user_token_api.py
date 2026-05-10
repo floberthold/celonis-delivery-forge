@@ -169,3 +169,40 @@ def test_celonis_preflight_prefers_user_token_override(monkeypatch) -> None:
 
     assert observed_token_overrides[0] is None
     assert observed_token_overrides[1] == "delegated-user-token"
+
+
+def test_celonis_data_agent_tool_catalog_reflects_token_status() -> None:
+    _reset_db()
+    person_id, organization_id, _ = _seed_actor_org_client_connection()
+    auth_token = create_access_token(person_id, organization_id)
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+
+        initial = api_client.get("/celonis/data-agent/tools")
+        assert initial.status_code == 200, initial.text
+        initial_payload = initial.json()
+        assert initial_payload["tool_count"] == 7
+        assert initial_payload["token_configured"] is False
+
+        tool_keys = {tool["key"] for tool in initial_payload["tools"]}
+        assert tool_keys == {
+            "celonis_preflight",
+            "list_data_models_tool",
+            "list_pools_tool",
+            "list_tables_tool",
+            "list_pool_tables_tool",
+            "list_data_model_table_row_counts_tool",
+            "query_data_model_sql_tool",
+        }
+        assert all(tool["read_only"] is True for tool in initial_payload["tools"])
+        assert all(tool["requires_user_token"] is True for tool in initial_payload["tools"])
+
+        save = api_client.put("/celonis/user-token", json={"token_value": "delegated-user-token"})
+        assert save.status_code == 200
+
+        configured = api_client.get("/celonis/data-agent/tools")
+        assert configured.status_code == 200, configured.text
+        configured_payload = configured.json()
+        assert configured_payload["tool_count"] == 7
+        assert configured_payload["token_configured"] is True

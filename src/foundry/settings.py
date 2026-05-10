@@ -23,11 +23,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 720
     celonis_api_token: str = ""
-    celonis_timeout_seconds: int = 60
+    celonis_rtoken: str = ""
+    celonis_rtoken_header: str = ""
+    celonis_timeout_seconds: int = 20
     gitlab_base_url: str = ""
     gitlab_api_token: str = ""
-    input_dir: str = "./data/input"
-    generated_dir: str = "./data/generated"
+    uploads_dir: str = "./uploads"
     celonis_shared_dir: str = "./Code from Celonis"
     trycelonis_catalog_url: str = "https://partners.try.celonis.cloud/try/ui/demo-portal/ui"
     trycelonis_manifest_path: str = ""

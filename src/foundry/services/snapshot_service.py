@@ -224,7 +224,18 @@ def _fetch_endpoint_items(
             "ok": result.ok,
         }
         if not result.ok or not result.body:
-            entry["error"] = "non-2xx response or empty body"
+            if result.status_code in {301, 302, 303, 307, 308}:
+                location = (result.redirect_location or "").strip()
+                if location:
+                    entry["redirect_location"] = location
+                if "/ui" in location or "/login" in location or "/sso" in location:
+                    entry["error"] = "redirect-to-login"
+                else:
+                    entry["error"] = "http-redirect"
+            elif not result.ok:
+                entry["error"] = "non-2xx response"
+            else:
+                entry["error"] = "empty body"
             endpoint_log.append(entry)
             break
 
@@ -441,6 +452,43 @@ def _extract_jobs(
     return _dedupe_by_preferred_keys(rows, ("id", "name")), stats
 
 
+def _extract_jobs_for_pool(
+    gw: CelonisGateway,
+    base_url: str,
+    pool_id: str,
+    token_override: str | None = None,
+) -> tuple[list[dict], dict[str, Any]]:
+    """Roboyo fallback: some tenants expose jobs only at pool-scoped endpoints."""
+    rows, stats = _collect_entities(
+        gw,
+        base_url,
+        endpoints=(
+            f"/integration/api/pools/{pool_id}/jobs",
+            f"/integration/api/v1/pools/{pool_id}/jobs",
+        ),
+        list_keys=("jobs", "data"),
+        token_override=token_override,
+    )
+    return _dedupe_by_preferred_keys(rows, ("id", "name", "jobId")), stats
+
+
+def _merge_stats(*stats_items: dict[str, Any]) -> dict[str, Any]:
+    merged: dict[str, Any] = {
+        "endpoints_attempted": 0,
+        "endpoints_with_data": 0,
+    }
+    errors: list[dict] = []
+    for stats in stats_items:
+        if not stats:
+            continue
+        merged["endpoints_attempted"] += int(stats.get("endpoints_attempted", 0) or 0)
+        merged["endpoints_with_data"] += int(stats.get("endpoints_with_data", 0) or 0)
+        errors.extend(_safe_list(stats.get("endpoint_errors")))
+    if errors:
+        merged["endpoint_errors"] = errors
+    return merged
+
+
 def _extract_knowledge_models(
     gw: CelonisGateway,
     base_url: str,
@@ -628,41 +676,109 @@ def preflight_snapshot_endpoints(
     gw = CelonisGateway(get_settings())
     base_url = conn.tenant_base_url
     report: dict[str, Any] = {"base_url": base_url, "families": {}}
+    def _probe_path(path: str, list_keys: tuple[str, ...]) -> dict[str, Any]:
+        extract_kwargs: dict[str, Any] = {}
+        if token_override:
+            extract_kwargs["token_override"] = token_override
+        result = gw.extract_full(
+            tenant_base_url=base_url,
+            source_path=path,
+            **extract_kwargs,
+        )
+        entry: dict[str, Any] = {
+            "path": path,
+            "url": result.url,
+            "status_code": result.status_code,
+            "ok": result.ok,
+        }
+
+        if result.status_code in {301, 302, 303, 307, 308}:
+            location = (result.redirect_location or "").strip()
+            if location:
+                entry["redirect_location"] = location
+            if "/ui" in location or "/login" in location or "/sso" in location:
+                entry["error"] = "redirect-to-login"
+            else:
+                entry["error"] = f"HTTP {result.status_code}"
+            entry["body_preview"] = (result.body or "")[:300]
+            return entry
+
+        if result.ok and result.body:
+            try:
+                payload = json.loads(result.body)
+                entry["detected_list_key"] = _detect_list_key(payload, list_keys)
+                items = _extract_items(payload, list_keys)
+                entry["items_detected"] = len(items)
+                if isinstance(payload, dict):
+                    entry["top_level_keys"] = list(payload.keys())
+            except json.JSONDecodeError:
+                entry["error"] = "non-JSON response body (possible SSO redirect)"
+                entry["body_preview"] = result.body[:300]
+        elif not result.ok:
+            entry["error"] = f"HTTP {result.status_code}"
+            entry["body_preview"] = (result.body or "")[:300]
+        else:
+            entry["error"] = "empty response body"
+        return entry
 
     for family, cfg in _ALL_FAMILY_ENDPOINTS.items():
         family_results: list[dict] = []
         for path in cfg["endpoints"]:
-            extract_kwargs: dict[str, Any] = {}
-            if token_override:
-                extract_kwargs["token_override"] = token_override
-            result = gw.extract_full(
-                tenant_base_url=base_url,
-                source_path=path,
-                **extract_kwargs,
-            )
-            entry: dict[str, Any] = {
-                "path": path,
-                "url": result.url,
-                "status_code": result.status_code,
-                "ok": result.ok,
-            }
-            if result.ok and result.body:
-                try:
-                    payload = json.loads(result.body)
-                    entry["detected_list_key"] = _detect_list_key(payload, tuple(cfg["list_keys"]))
-                    items = _extract_items(payload, tuple(cfg["list_keys"]))
-                    entry["items_detected"] = len(items)
-                    if isinstance(payload, dict):
-                        entry["top_level_keys"] = list(payload.keys())
-                except json.JSONDecodeError:
-                    entry["error"] = "non-JSON response body (possible SSO redirect)"
-                    entry["body_preview"] = result.body[:300]
-            elif not result.ok:
-                entry["error"] = f"HTTP {result.status_code}"
-                entry["body_preview"] = (result.body or "")[:300]
-            else:
-                entry["error"] = "empty response body"
-            family_results.append(entry)
+            family_results.append(_probe_path(path, tuple(cfg["list_keys"])))
+
+        # Tenant-specific fallback probes for jobs/transformations.
+        has_items = any((entry.get("items_detected") or 0) > 0 for entry in family_results)
+        if family in {"jobs", "transformations"} and not has_items:
+            raw_pools, _ = _extract_data_pools(gw, base_url, token_override=token_override)
+            for pool in raw_pools:
+                pool_id = str(pool.get("id", ""))
+                if not pool_id:
+                    continue
+                if family == "jobs":
+                    pool_paths = (
+                        f"/integration/api/pools/{pool_id}/jobs",
+                        f"/integration/api/v1/pools/{pool_id}/jobs",
+                    )
+                    list_keys = ("jobs", "data")
+                else:
+                    pool_paths = (
+                        f"/integration/api/pools/{pool_id}/transformations",
+                        f"/integration/api/v1/pools/{pool_id}/transformations",
+                        f"/integration/api/pools/{pool_id}/jobs",
+                        f"/integration/api/v1/pools/{pool_id}/jobs",
+                    )
+                    list_keys = ("transformations", "jobs", "data")
+
+                for path in pool_paths:
+                    entry = _probe_path(path, list_keys)
+                    if family == "transformations" and path.endswith("/jobs"):
+                        # Some tenants expose transformation metadata only via pool jobs.
+                        # Do not count all jobs as transformations; only TRANSFORM* job types.
+                        try:
+                            extract_kwargs: dict[str, Any] = {}
+                            if token_override:
+                                extract_kwargs["token_override"] = token_override
+                            probe = gw.extract_full(
+                                tenant_base_url=base_url,
+                                source_path=path,
+                                **extract_kwargs,
+                            )
+                            payload = json.loads(probe.body or "[]")
+                            rows = _extract_items(payload, ("jobs", "data"))
+                            candidates = sum(
+                                1
+                                for row in rows
+                                if "TRANSFORM" in str(row.get("type") or "").upper()
+                            )
+                            entry["transformation_candidates"] = candidates
+                            entry["items_detected"] = candidates
+                            if candidates:
+                                entry["detected_list_key"] = "jobs(type=TRANSFORM*)"
+                        except Exception:
+                            entry["transformation_candidates"] = 0
+                            entry["items_detected"] = 0
+                    family_results.append(entry)
+
         report["families"][family] = family_results
 
     return report
@@ -706,10 +822,30 @@ def run_snapshot(
         raw_spaces, spaces_stats = _extract_spaces(gw, base_url, token_override=token_override)
         raw_packages, packages_stats = _extract_packages(gw, base_url, token_override=token_override)
         raw_data_models, data_models_stats = _extract_data_models(gw, base_url, token_override=token_override)
-        raw_jobs, jobs_stats = _extract_jobs(gw, base_url, token_override=token_override)
+        raw_jobs_global, jobs_global_stats = _extract_jobs(gw, base_url, token_override=token_override)
         raw_knowledge_models, kms_stats = _extract_knowledge_models(gw, base_url, token_override=token_override)
         raw_apps, apps_stats = _extract_apps(gw, base_url, token_override=token_override)
         raw_pools, pools_stats = _extract_data_pools(gw, base_url, token_override=token_override)
+
+        # Some tenants expose jobs only at pool-scoped endpoints.
+        per_pool_jobs: list[dict] = []
+        jobs_pool_stats_parts: list[dict[str, Any]] = []
+        if not raw_jobs_global:
+            for pool in raw_pools:
+                pid = str(pool.get("id", ""))
+                if not pid:
+                    continue
+                pool_jobs, pool_jobs_stats = _extract_jobs_for_pool(
+                    gw,
+                    base_url,
+                    pid,
+                    token_override=token_override,
+                )
+                per_pool_jobs.extend(pool_jobs)
+                jobs_pool_stats_parts.append(pool_jobs_stats)
+        jobs_pool_stats = _merge_stats(*jobs_pool_stats_parts)
+        raw_jobs = _dedupe_by_preferred_keys(raw_jobs_global or per_pool_jobs, ("id", "name", "jobId"))
+        jobs_stats = _merge_stats(jobs_global_stats, jobs_pool_stats)
 
         # Global transformations endpoint (falls back gracefully)
         raw_transformations_global, transformations_global_stats = _extract_transformations(
@@ -735,6 +871,34 @@ def run_snapshot(
                     per_pool_transformations.extend(tf_rows)
                     transformation_pool_endpoint_attempts += tf_stats["endpoints_attempted"]
                     transformation_pool_endpoint_hits += tf_stats["endpoints_with_data"]
+
+                    # Tenant-specific fallback: transformation metadata can be exposed via pool jobs.
+                    pool_jobs_rows, pool_jobs_tf_stats = _extract_jobs_for_pool(
+                        gw,
+                        base_url,
+                        pid,
+                        token_override=token_override,
+                    )
+                    transformation_pool_endpoint_attempts += int(
+                        pool_jobs_tf_stats.get("endpoints_attempted", 0)
+                    )
+                    transformation_pool_endpoint_hits += int(
+                        pool_jobs_tf_stats.get("endpoints_with_data", 0)
+                    )
+                    for job in pool_jobs_rows:
+                        job_type = str(job.get("type") or "").upper()
+                        if "TRANSFORM" not in job_type:
+                            continue
+                        synthetic = {
+                            "id": job.get("id") or job.get("jobId"),
+                            "name": job.get("name") or job.get("id") or job.get("jobId"),
+                            "poolId": job.get("poolId") or job.get("dataPoolId") or pid,
+                            "poolName": job.get("poolName"),
+                            "_source": "pool-jobs-transformation-fallback",
+                            "_job": job,
+                        }
+                        if synthetic["id"]:
+                            per_pool_transformations.append(synthetic)
         raw_transformations = _dedupe_by_preferred_keys(
             raw_transformations_global or per_pool_transformations,
             ("id", "name"),
@@ -940,6 +1104,8 @@ def run_snapshot(
                     "endpoints_with_data": package_assets_endpoint_hits,
                 },
                 "data_models": data_models_stats,
+                "jobs_global": jobs_global_stats,
+                "jobs_by_pool": jobs_pool_stats,
                 "jobs": jobs_stats,
                 "knowledge_models": kms_stats,
                 "apps": apps_stats,

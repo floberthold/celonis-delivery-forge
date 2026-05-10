@@ -23,7 +23,9 @@ class CelonisHttpFullResult:
     url: str
     status_code: int
     ok: bool
-    body: str | None  # complete response text; None on network/decode error
+    body: str | None  # complete response text; None on decode error
+    redirect_location: str | None = None
+    content_type: str | None = None
 
 
 @dataclass
@@ -81,17 +83,18 @@ class CelonisGateway:
         with httpx.Client(timeout=self._settings.celonis_timeout_seconds) as client:
             response = client.get(url, headers=self._headers(token_override))
         body: str | None = None
-        if response.is_success:
-            try:
-                body = response.text
-            except Exception:
-                body = None
+        try:
+            body = response.text
+        except Exception:
+            body = None
         return CelonisHttpFullResult(
             action="extract_full",
             url=url,
             status_code=response.status_code,
             ok=response.is_success,
             body=body,
+            redirect_location=response.headers.get("location"),
+            content_type=response.headers.get("content-type"),
         )
 
     def import_data(
@@ -184,14 +187,27 @@ class CelonisGateway:
         )
 
     def _headers(self, token_override: str | None = None) -> dict:
-        token = (token_override or self._settings.celonis_api_token or "").strip()
-        if not token:
+        bearer_token = (
+            token_override
+            or self._settings.celonis_api_token
+            or self._settings.celonis_rtoken
+            or ""
+        ).strip()
+        sandbox_token = (self._settings.celonis_rtoken or "").strip()
+        sandbox_header_name = (self._settings.celonis_rtoken_header or "").strip()
+
+        if not bearer_token and not (sandbox_token and sandbox_header_name):
             raise ValueError("FORGE_CELONIS_API_TOKEN is not configured")
-        return {
-            "Authorization": f"Bearer {token}",
+
+        headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
+        if bearer_token:
+            headers["Authorization"] = f"Bearer {bearer_token}"
+        if sandbox_token and sandbox_header_name:
+            headers[sandbox_header_name] = sandbox_token
+        return headers
 
     @staticmethod
     def _normalize_base_url(value: str) -> str:

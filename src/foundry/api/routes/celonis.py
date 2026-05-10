@@ -10,6 +10,8 @@ from foundry.integrations.celonis_import import CelonisGateway
 from foundry.models import ActivityLog, CelonisConnection, CelonisUserToken, Client, EntityType
 from foundry.schemas import (
     CelonisActionResult,
+    CelonisDataAgentCatalogOut,
+    CelonisDataAgentToolOut,
     CelonisPreflightBatchResult,
     CelonisConnectionOut,
     CelonisConnectionUpsert,
@@ -22,8 +24,35 @@ from foundry.schemas import (
 )
 from foundry.settings import get_settings
 from foundry.services.activity_log import log_activity, log_created, log_updated
+from foundry.services.celonis_data_agent_service import list_data_agent_tools
 
 router = APIRouter(prefix="/celonis", tags=["celonis"])
+
+
+@router.get("/data-agent/tools", response_model=CelonisDataAgentCatalogOut)
+def list_data_agent_tool_catalog(
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    token_configured = _resolve_actor_token_override(session, current_actor) is not None
+    tools = [
+        CelonisDataAgentToolOut(
+            key=tool.key,
+            display_name=tool.display_name,
+            description=tool.description,
+            required_inputs=list(tool.required_inputs),
+            optional_inputs=list(tool.optional_inputs),
+            read_only=tool.read_only,
+            requires_user_token=tool.requires_user_token,
+            source=tool.source,
+        )
+        for tool in list_data_agent_tools()
+    ]
+    return CelonisDataAgentCatalogOut(
+        tool_count=len(tools),
+        token_configured=token_configured,
+        tools=tools,
+    )
 
 
 def _parse_services_or_default(raw_services: str | None) -> list[str]:

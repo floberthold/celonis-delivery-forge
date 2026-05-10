@@ -302,6 +302,23 @@ class CelonisActionResult(BaseModel):
     response_preview: str
 
 
+class CelonisDataAgentToolOut(BaseModel):
+    key: str
+    display_name: str
+    description: str
+    required_inputs: list[str] = Field(default_factory=list)
+    optional_inputs: list[str] = Field(default_factory=list)
+    read_only: bool = True
+    requires_user_token: bool = True
+    source: str = "external_mcp"
+
+
+class CelonisDataAgentCatalogOut(BaseModel):
+    tool_count: int
+    token_configured: bool
+    tools: list[CelonisDataAgentToolOut] = Field(default_factory=list)
+
+
 class AssetSourceCreate(BaseModel):
     organization_id: Optional[UUID] = None
     name: str
