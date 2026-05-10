@@ -10,6 +10,11 @@
     <a class="skip-link" href="#main-content">Skip to content</a>
     <header class="site-header">
         {% set current_path = request.url.path if request and request.url else "" %}
+        {% set domains = feature_domains or ['*'] %}
+        {% set has_all_domains = '*' in domains %}
+        {% set has_celonis_agent = has_all_domains or 'celonis-agent' in domains %}
+        {% set has_knowledge_hub = has_all_domains or 'knowledge-hub' in domains %}
+        {% set has_workspace_ide = has_all_domains or 'workspace-ide' in domains %}
         {% set operations_active = current_path.startswith('/orchestration-ui') or current_path.startswith('/client-health-ui') or current_path.startswith('/timeline-ui') or current_path.startswith('/kpis-ui') or current_path.startswith('/celonis-credentials-ui') or current_path.startswith('/celonis-discovery-ui') or current_path.startswith('/celonis-deployments-ui') or current_path.startswith('/celonis-tool-hub-ui') %}
         {% set admin_active = current_path.startswith('/people-ui') or current_path.startswith('/clients-ui') or current_path.startswith('/templates-ui') or current_path.startswith('/files-ui') or current_path.startswith('/tenant-ui') or current_path.startswith('/workspace-ui') or current_path.startswith('/celonis-token-admin-ui') or current_path.startswith('/foundry-admin-ui') %}
         {% set is_global_admin = current_person and current_person.role_global and current_person.role_global.value == 'admin' %}
@@ -54,10 +59,15 @@
                                 <a href="/client-health-ui" class="secondary-nav-link{% if current_path.startswith('/client-health-ui') %} is-active{% endif %}"{% if current_path.startswith('/client-health-ui') %} aria-current="page"{% endif %}>Health</a>
                                 <a href="/timeline-ui" class="secondary-nav-link{% if current_path.startswith('/timeline-ui') %} is-active{% endif %}"{% if current_path.startswith('/timeline-ui') %} aria-current="page"{% endif %}>Timeline</a>
                                 <a href="/kpis-ui" class="secondary-nav-link{% if current_path.startswith('/kpis-ui') %} is-active{% endif %}"{% if current_path.startswith('/kpis-ui') %} aria-current="page"{% endif %}>KPI Editor</a>
-                                                            <a href="/celonis-credentials-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-credentials-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-credentials-ui') %} aria-current="page"{% endif %}>Celonis Credentials</a>
-                                                            <a href="/celonis-discovery-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-discovery-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-discovery-ui') %} aria-current="page"{% endif %}>Tenant Discovery</a>
-                                                            <a href="/celonis-deployments-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-deployments-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-deployments-ui') %} aria-current="page"{% endif %}>Deployments</a>
-                                                            <a href="/celonis-tool-hub-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-tool-hub-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-tool-hub-ui') %} aria-current="page"{% endif %}>Tool Hub</a>
+                                {% if has_knowledge_hub %}
+                                <a href="/local-knowledge-ui" class="secondary-nav-link{% if current_path.startswith('/local-knowledge-ui') %} is-active{% endif %}"{% if current_path.startswith('/local-knowledge-ui') %} aria-current="page"{% endif %}>Local Knowledge Hub</a>
+                                {% endif %}
+                                {% if has_celonis_agent %}
+                                <a href="/celonis-credentials-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-credentials-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-credentials-ui') %} aria-current="page"{% endif %}>Celonis Credentials</a>
+                                <a href="/celonis-discovery-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-discovery-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-discovery-ui') %} aria-current="page"{% endif %}>Tenant Discovery</a>
+                                <a href="/celonis-deployments-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-deployments-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-deployments-ui') %} aria-current="page"{% endif %}>Deployments</a>
+                                <a href="/celonis-tool-hub-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-tool-hub-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-tool-hub-ui') %} aria-current="page"{% endif %}>Tool Hub</a>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="nav-dropdown" data-dropdown>
@@ -78,9 +88,13 @@
                                 <a href="/clients-ui" class="secondary-nav-link{% if current_path.startswith('/clients-ui') %} is-active{% endif %}"{% if current_path.startswith('/clients-ui') %} aria-current="page"{% endif %}>Clients</a>
                                 <a href="/templates-ui" class="secondary-nav-link{% if current_path.startswith('/templates-ui') %} is-active{% endif %}"{% if current_path.startswith('/templates-ui') %} aria-current="page"{% endif %}>Templates</a>
                                 <a href="/files-ui" class="secondary-nav-link{% if current_path.startswith('/files-ui') %} is-active{% endif %}"{% if current_path.startswith('/files-ui') %} aria-current="page"{% endif %}>Files</a>
+                                {% if has_celonis_agent %}
                                 <a href="/celonis-token-admin-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-token-admin-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-token-admin-ui') %} aria-current="page"{% endif %}>Celonis Tokens</a>
+                                {% endif %}
                                 <a href="/tenant-ui" class="secondary-nav-link{% if current_path.startswith('/tenant-ui') %} is-active{% endif %}"{% if current_path.startswith('/tenant-ui') %} aria-current="page"{% endif %}>Tenant</a>
+                                {% if has_workspace_ide %}
                                 <a href="/workspace-ui" class="secondary-nav-link{% if current_path.startswith('/workspace-ui') %} is-active{% endif %}"{% if current_path.startswith('/workspace-ui') %} aria-current="page"{% endif %}>Workspace IDE</a>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="nav-dropdown" data-dropdown>

@@ -1,0 +1,30 @@
+{
+  "default_profile": "full",
+  "profiles": {
+    "full": {
+      "enabled_domains": [
+        "*"
+      ]
+    },
+    "pilot-core": {
+      "enabled_domains": [
+        "core-platform"
+      ]
+    },
+    "pilot-core-plus-knowledge": {
+      "enabled_domains": [
+        "core-platform",
+        "knowledge-hub"
+      ]
+    },
+    "integration-celonis": {
+      "enabled_domains": [
+        "core-platform",
+        "celonis-agent"
+      ]
+    }
+  },
+  "org_profile_overrides": {
+    "roboyo-main-org": "full"
+  }
+}

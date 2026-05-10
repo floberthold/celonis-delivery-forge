@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     local_knowledge_timeout_seconds: int = 30
     local_knowledge_repo_path: str = "./external resources/local-knowledge-model/local-llm-wiki-query"
     local_knowledge_vault_path: str = "./external resources/local-knowledge-model/my-obsidian-wiki"
+    ui_rollout_config_path: str = "./config/ui_rollout_profiles.json"
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="FORGE_", extra="ignore")
 

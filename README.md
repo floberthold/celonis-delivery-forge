@@ -49,6 +49,33 @@ The script will:
 
 **That's it!** Press `Ctrl+C` to stop.
 
+### Tool Hub Profiles (Domain-Scoped Rollout)
+
+For local-first staged rollouts you can run only a subset of domains:
+
+```powershell
+# Full workspace (default)
+.\START.ps1 -Profile full
+
+# Minimal pilot for user feedback
+.\START.ps1 -Profile pilot-core
+
+# Add local knowledge capabilities after pilot feedback
+.\START.ps1 -Profile pilot-core-plus-knowledge
+```
+
+Profile definitions: `agentic/tool-hub/tool_hub_profiles.json`  
+Tool domain mapping: `agentic/tool-hub/tool_hub_registry.json`
+
+For per-organization staged release in the UI, configure `config/ui_rollout_profiles.json`.
+Example override:
+
+```json
+"org_profile_overrides": {
+	"pilot-org-slug": "pilot-core"
+}
+```
+
 ### Option 2: Manual Startup
 
 If you prefer to run commands yourself:

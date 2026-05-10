@@ -196,6 +196,7 @@ Use these for detailed planning within each area:
 - `docs/celonis-forum-insights-roadmap.md` — forum insight roadmap
 - `docs/celonis-mcp-roadmap.md` — MCP-related roadmap
 - `docs/rts-orchestration-roadmap.md` — RTS interface, quest system, and orchestration rollout plan
+- `docs/domain-submodule-local-first-replatform.md` — domain-sliced local-first rollout model and activation profiles
 
 ## Update Rules
 - Update this file whenever the overall direction, phase ordering, or cross-cutting priorities change.

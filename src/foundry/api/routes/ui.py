@@ -19,6 +19,7 @@ from sqlmodel import Session, select
 from foundry.api.deps import (
     AUTH_COOKIE_NAME,
     CurrentActor,
+    get_current_actor,
     get_current_actor_with_org,
     get_current_person,
     get_current_person_optional,
@@ -143,6 +144,7 @@ from foundry.services.snapshot_coverage_service import (
     build_snapshot_coverage_filename,
     build_snapshot_coverage_report,
 )
+from foundry.services.feature_rollout import enabled_domains_for_org, resolve_rollout_profile
 from foundry.services.quest_service import (
     create_assignment as create_assignment_service,
     create_objective as create_objective_service,
@@ -182,7 +184,24 @@ def _template_auth_context(request: Request) -> dict:
     # Use the active runtime engine so auth context stays aligned after DB fallback.
     with Session(db_module.engine) as session:
         person = get_current_person_optional(request=request, token=None, session=session)
-    return {"current_person": person}
+        actor = None
+        try:
+            actor = get_current_actor_with_org(
+                current_actor=get_current_actor(request=request, token=None, session=session)
+            )
+        except Exception:
+            actor = None
+
+    settings = get_settings()
+    org_slug = actor.organization.slug if actor and actor.organization else None
+    rollout_profile = resolve_rollout_profile(settings.ui_rollout_config_path, org_slug)
+    rollout_domains = enabled_domains_for_org(settings.ui_rollout_config_path, org_slug)
+
+    return {
+        "current_person": person,
+        "feature_rollout_profile": rollout_profile,
+        "feature_domains": rollout_domains,
+    }
 
 
 def _enum_or_value(value: object, default: str = "") -> str:

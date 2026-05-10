@@ -26,6 +26,7 @@ Default mode starts the centralized Tool Hub:
 Implementation paths:
 - `agentic/tool-hub/start_tool_hub.ps1`
 - `agentic/tool-hub/tool_hub_registry.json`
+- `agentic/tool-hub/tool_hub_profiles.json`
 
 Compatibility wrapper:
 - `scripts/start_tool_hub.ps1` forwards to the new location.
@@ -36,6 +37,12 @@ Useful commands:
 # dry run (discovery + validation, no process start)
 .\START.ps1 -Mode dry-run
 
+# dry run for a reduced pilot surface (only core platform)
+.\START.ps1 -Mode dry-run -Profile pilot-core
+
+# start core platform + local knowledge hub (incremental rollout)
+.\START.ps1 -Profile pilot-core-plus-knowledge
+
 # include auto-discovered START scripts/manifests from submodules
 .\START.ps1 -Mode dry-run -IncludeAutoDiscovered
 
@@ -45,6 +52,19 @@ Useful commands:
 # stop all tool-hub started processes
 .\START.ps1 -Mode stop
 ```
+
+### Domain Profiles (Local-First Rollouts)
+
+The Tool Hub supports runtime profiles to reduce active complexity without deleting features.
+
+- `full` (default): all enabled tools from registry
+- `pilot-core`: only `core-platform`
+- `pilot-core-plus-knowledge`: `core-platform` + `knowledge-hub`
+- `integration-celonis`: `core-platform` + `celonis-agent`
+
+Profiles are defined in `agentic/tool-hub/tool_hub_profiles.json` and domain ownership per tool is defined in `agentic/tool-hub/tool_hub_registry.json`.
+
+For UI-level rollout inside the app (per org), edit `config/ui_rollout_profiles.json` and set `org_profile_overrides` by organization slug.
 
 Legacy behavior is still available:
 
