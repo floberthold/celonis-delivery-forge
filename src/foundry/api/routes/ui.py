@@ -74,6 +74,7 @@ from foundry.models import (
     SnapshotJob,
     SnapshotKnowledgeModel,
     SnapshotPackage,
+    SnapshotPackageDefinition,
     SnapshotSpace,
     SnapshotTask,
     SnapshotTaskDetail,
@@ -2283,15 +2284,26 @@ def register_verify(
         session.commit()
         session.refresh(person)
 
-        organization = Organization(name=f"{name} Workspace", slug=_build_unique_org_slug(session, f"{name}-workspace"))
-        session.add(organization)
-        session.commit()
-        session.refresh(organization)
+        settings = get_settings()
+        existing_organizations = session.exec(select(Organization)).all()
+        organization: Organization
+        membership_role = OrganizationRole.owner
+        if settings.registration_join_single_existing_org and len(existing_organizations) == 1:
+            organization = existing_organizations[0]
+            membership_role = OrganizationRole.member
+        else:
+            organization = Organization(
+                name=f"{name} Workspace",
+                slug=_build_unique_org_slug(session, f"{name}-workspace"),
+            )
+            session.add(organization)
+            session.commit()
+            session.refresh(organization)
 
         membership = OrganizationMembership(
             organization_id=organization.id,
             person_id=person.id,
-            role=OrganizationRole.owner,
+            role=membership_role,
         )
         session.add(membership)
         session.commit()
@@ -8434,6 +8446,9 @@ def snapshot_detail_ui(
     task_details = session.exec(
         select(SnapshotTaskDetail).where(SnapshotTaskDetail.snapshot_id == snapshot_id)
     ).all()
+    package_definitions = session.exec(
+        select(SnapshotPackageDefinition).where(SnapshotPackageDefinition.snapshot_id == snapshot_id)
+    ).all()
 
     baseline_snapshot: CelonisSnapshot | None = None
     baseline_packages: Sequence[SnapshotPackage] = []
@@ -8520,6 +8535,26 @@ def snapshot_detail_ui(
     package_tasks: dict[str, list[SnapshotTask]] = {}
     for task in tasks:
         package_tasks.setdefault(task.package_id or "", []).append(task)
+
+    package_definition_map: dict[str, list[SnapshotPackageDefinition]] = {}
+    for definition in package_definitions:
+        package_definition_map.setdefault(definition.package_id, []).append(definition)
+
+    package_rows: list[dict[str, object]] = []
+    for package in sorted(packages, key=lambda row: ((row.name or "").lower(), row.package_id)):
+        definition_rows = sorted(
+            package_definition_map.get(package.package_id, []),
+            key=lambda row: (row.source_endpoint or "", row.definition_id or ""),
+        )
+        package_rows.append(
+            {
+                "package": package,
+                "asset_count": len(package_tasks.get(package.package_id, [])),
+                "definition_count": len(definition_rows),
+                "component_rows": _snapshot_component_rows(package.raw_json or {}, limit=30),
+                "definition_rows": definition_rows,
+            }
+        )
 
     task_detail_by_task_id = {row.task_id: row for row in task_details}
     task_detail_rows: list[dict[str, object]] = []
@@ -8619,6 +8654,7 @@ def snapshot_detail_ui(
             "task_details": task_details,
             "task_detail_rows": task_detail_rows,
             "packages": packages,
+            "package_rows": package_rows,
             "data_models": data_models,
             "jobs": jobs,
             "knowledge_models": knowledge_models,

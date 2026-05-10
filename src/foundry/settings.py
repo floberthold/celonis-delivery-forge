@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     smtp_use_ssl: bool = False
     registration_token_expire_minutes: int = 60
     password_reset_token_expire_minutes: int = 30
+    registration_join_single_existing_org: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="FORGE_", extra="ignore")
 

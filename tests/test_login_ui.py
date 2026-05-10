@@ -14,7 +14,7 @@ import foundry.db as db_module
 db_module._set_engine(os.environ["FORGE_DATABASE_URL"])
 
 from foundry.api.main import app
-from foundry.models import OrganizationMembership, Person
+from foundry.models import Organization, OrganizationMembership, OrganizationRole, Person
 from foundry.security import hash_password
 
 engine = db_module.engine
@@ -109,6 +109,67 @@ def test_registration_flow_creates_person_and_org_membership(monkeypatch) -> Non
             select(OrganizationMembership).where(OrganizationMembership.person_id == person.id)
         ).first()
         assert membership is not None
+
+
+def test_registration_joins_single_existing_org(monkeypatch) -> None:
+    _reset_db()
+    sent_messages: list[dict[str, str]] = []
+
+    with Session(engine) as session:
+        org = Organization(name="Shared Workspace", slug="shared-workspace")
+        owner = Person(
+            email="owner@example.com",
+            name="Owner",
+            hashed_password=hash_password("owner-password-123"),
+        )
+        session.add(org)
+        session.add(owner)
+        session.commit()
+        session.refresh(org)
+        session.refresh(owner)
+        session.add(
+            OrganizationMembership(
+                organization_id=org.id,
+                person_id=owner.id,
+                role=OrganizationRole.owner,
+            )
+        )
+        session.commit()
+
+    def _fake_send_email(*, to_email: str, subject: str, body_text: str) -> None:
+        sent_messages.append({"to_email": to_email, "subject": subject, "body_text": body_text})
+
+    monkeypatch.setattr("foundry.api.routes.ui.send_email", _fake_send_email)
+
+    with TestClient(app) as api_client:
+        register_response = api_client.post(
+            "/register",
+            data={
+                "name": "Second User",
+                "email": "second@example.com",
+                "password": "register-password-01",
+                "confirm_password": "register-password-01",
+            },
+            follow_redirects=False,
+        )
+        assert register_response.status_code == 303
+        assert len(sent_messages) == 1
+
+        token = sent_messages[0]["body_text"].split("register/verify?token=", 1)[1].splitlines()[0].strip()
+        verify_response = api_client.get(f"/register/verify?token={token}", follow_redirects=False)
+        assert verify_response.status_code == 303
+
+    with Session(engine) as session:
+        person = session.exec(select(Person).where(Person.email == "second@example.com")).first()
+        assert person is not None
+        orgs = session.exec(select(Organization)).all()
+        assert len(orgs) == 1
+        membership = session.exec(
+            select(OrganizationMembership).where(OrganizationMembership.person_id == person.id)
+        ).first()
+        assert membership is not None
+        assert membership.organization_id == orgs[0].id
+        assert membership.role == OrganizationRole.member
 
 
 def test_forgot_password_flow_updates_password(monkeypatch) -> None:

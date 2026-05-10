@@ -258,18 +258,70 @@
 {% elif active_tab == 'packages' %}
 <table>
     <thead>
-        <tr><th>Name</th><th>Key</th><th>Space</th><th>Change</th></tr>
+        <tr><th>Name</th><th>Key</th><th>Space</th><th>Assets</th><th>Definitions</th><th>Change</th></tr>
     </thead>
     <tbody>
-        {% for pkg in packages %}
+        {% for row in package_rows %}
         <tr>
-            <td>{{ pkg.name }}</td>
-            <td class="monospace">{{ pkg.key or '—' }}</td>
-            <td>{{ pkg.space_name or '—' }}</td>
-            <td><span class="badge badge-{{ pkg.change_type.value }}">{{ pkg.change_type.value }}</span></td>
+            <td>{{ row.package.name }}</td>
+            <td class="monospace">{{ row.package.key or '—' }}</td>
+            <td>{{ row.package.space_name or '—' }}</td>
+            <td>{{ row.asset_count }}</td>
+            <td>{{ row.definition_count }}</td>
+            <td><span class="badge badge-{{ row.package.change_type.value }}">{{ row.package.change_type.value }}</span></td>
+        </tr>
+        <tr>
+            <td colspan="6" style="background: var(--surface-2);">
+                <details>
+                    <summary>Inspect package payload</summary>
+                    {% if row.component_rows %}
+                    <table>
+                        <thead>
+                            <tr><th>JSON Path</th><th>Type</th><th>Preview</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for component in row.component_rows %}
+                            <tr>
+                                <td class="monospace">{{ component.path }}</td>
+                                <td>{{ component.kind }}</td>
+                                <td class="monospace small">{{ component.preview }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="muted-note">No package payload fields captured.</p>
+                    {% endif %}
+
+                    {% if row.definition_rows %}
+                    <p class="muted-note">Captured package definitions</p>
+                    {% for definition in row.definition_rows %}
+                    <details style="margin-bottom:0.5rem;">
+                        <summary>
+                            {{ definition.definition_id or 'definition' }}
+                            {% if definition.source_endpoint %} · <span class="monospace">{{ definition.source_endpoint }}</span>{% endif %}
+                        </summary>
+                        {% if definition.parse_error %}
+                        <p class="muted-note">Parse error: {{ definition.parse_error }}</p>
+                        {% endif %}
+                        {% if definition.raw_yaml %}
+                        <pre class="monospace small">{{ definition.raw_yaml[:5000] }}</pre>
+                        {% else %}
+                        <p class="muted-note">No definition body captured.</p>
+                        {% endif %}
+                    </details>
+                    {% endfor %}
+                    {% endif %}
+
+                    <details style="margin-top:0.5rem;">
+                        <summary>Raw package JSON</summary>
+                        <pre class="monospace small">{{ row.package.raw_json | tojson(indent=2) }}</pre>
+                    </details>
+                </details>
+            </td>
         </tr>
         {% else %}
-        <tr><td colspan="4">No packages captured.</td></tr>
+        <tr><td colspan="6">No packages captured.</td></tr>
         {% endfor %}
     </tbody>
 </table>
