@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Celonis Tool Hub | Foundry{% endblock %}
+
+{% block content %}
+<h2>Celonis Tool Hub</h2>
+<p class="muted-note">Run the typed Celonis data-agent tools from Foundry. Read tools execute directly with your delegated user token. Studio write tools require an approved deployment request.</p>
+
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="cards">
+    <article class="card">
+        <h3>Clients</h3>
+        <p class="metric">{{ clients|length }}</p>
+    </article>
+    <article class="card">
+        <h3>Approved Deployments</h3>
+        <p class="metric">{{ approved_deployments|length }}</p>
+    </article>
+    <article class="card">
+        <h3>Open Quests</h3>
+        <p class="metric">{{ quests|length }}</p>
+    </article>
+    <article class="card">
+        <h3>Available Tools</h3>
+        <p class="metric">{{ tools|length }}</p>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <h3>Run Tool</h3>
+    </div>
+    <form id="celonis-tool-hub-form" class="form-card">
+        <label>Client
+            <select name="client_id" id="client_id" required>
+                <option value="">— select client —</option>
+                {% for c in clients %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Tool
+            <select name="tool_key" id="tool_key" required>
+                <option value="">— select tool —</option>
+                {% for tool in tools %}
+                <option
+                    value="{{ tool.key }}"
+                    data-description="{{ tool.description }}"
+                    data-required='{{ tool.required_inputs | tojson }}'
+                    data-optional='{{ tool.optional_inputs | tojson }}'
+                    data-read-only="{{ 'true' if tool.read_only else 'false' }}"
+                    data-requires-deployment="{{ 'true' if tool.requires_approved_deployment else 'false' }}"
+                    data-capability-group="{{ tool.capability_group }}"
+                >{{ tool.display_name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Quest (optional)
+            <select name="quest_id" id="quest_id">
+                <option value="">— none —</option>
+                {% for quest in quests %}
+                <option value="{{ quest.id }}">{{ quest.title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Approved Deployment Request (for Studio write tools)
+            <select name="deployment_request_id" id="deployment_request_id">
+                <option value="">— none —</option>
+                {% for req in approved_deployments %}
+                <option value="{{ req.id }}">{{ req.client_name }} · {{ req.target_package_key or req.target_package_name or req.id }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Inputs JSON
+            <textarea name="inputs_json" id="inputs_json" rows="14" spellcheck="false">{}</textarea>
+        </label>
+        <div class="mt-1">
+            <button type="submit">Run Tool</button>
+        </div>
+    </form>
+    <div class="mt-1">
+        <h4>Tool Details</h4>
+        <p id="tool_description" class="muted-note">Choose a tool to see required fields.</p>
+        <p id="tool_requirements" class="muted-note"></p>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <h3>Result</h3>
+    </div>
+    <p class="muted-note">The page calls the same typed API used elsewhere in Foundry and shows the raw JSON response for inspection.</p>
+    <pre id="tool_result" class="code-block">No tool run yet.</pre>
+</section>
+
+<script>
+    (function () {
+        const form = document.getElementById("celonis-tool-hub-form");
+        const toolSelect = document.getElementById("tool_key");
+        const deploymentSelect = document.getElementById("deployment_request_id");
+        const inputsField = document.getElementById("inputs_json");
+        const description = document.getElementById("tool_description");
+        const requirements = document.getElementById("tool_requirements");
+        const resultNode = document.getElementById("tool_result");
+
+        function updateToolDetails() {
+            const option = toolSelect.options[toolSelect.selectedIndex];
+            if (!option || !option.value) {
+                description.textContent = "Choose a tool to see required fields.";
+                requirements.textContent = "";
+                return;
+            }
+            const required = JSON.parse(option.dataset.required || "[]");
+            const optional = JSON.parse(option.dataset.optional || "[]");
+            const needsDeployment = option.dataset.requiresDeployment === "true";
+            description.textContent = option.dataset.description || "";
+            requirements.textContent = "Required: " + (required.join(", ") || "none") + " | Optional: " + (optional.join(", ") || "none") + (needsDeployment ? " | Approved deployment request required" : "");
+        }
+
+        toolSelect.addEventListener("change", updateToolDetails);
+        updateToolDetails();
+
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const clientId = document.getElementById("client_id").value;
+            const toolKey = toolSelect.value;
+            const questId = document.getElementById("quest_id").value;
+            const deploymentRequestId = deploymentSelect.value;
+
+            let inputs = {};
+            try {
+                inputs = JSON.parse(inputsField.value || "{}");
+            } catch (error) {
+                resultNode.textContent = "Invalid JSON in Inputs JSON: " + error;
+                return;
+            }
+
+            if (deploymentRequestId && !inputs.deployment_request_id) {
+                inputs.deployment_request_id = deploymentRequestId;
+            }
+
+            resultNode.textContent = "Running...";
+            const response = await fetch("/celonis/data-agent/tools/" + encodeURIComponent(toolKey) + "/invoke", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    client_id: clientId,
+                    quest_id: questId || null,
+                    inputs: inputs,
+                }),
+            });
+
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (_) {
+                payload = {detail: "Non-JSON response", status_code: response.status};
+            }
+            resultNode.textContent = JSON.stringify(payload, null, 2);
+        });
+    })();
+</script>
+{% endblock %}

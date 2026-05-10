@@ -25,6 +25,7 @@ def test_celonis_ui_endpoints_are_registered() -> None:
             "/celonis-token-admin-ui",
             "/celonis-discovery-ui",
             "/celonis-deployments-ui",
+            "/celonis-tool-hub-ui",
         ]:
             response = api_client.get(path, follow_redirects=False)
             assert response.status_code != 404, f"Endpoint unexpectedly missing: {path}"

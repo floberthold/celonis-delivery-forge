@@ -7,10 +7,20 @@ from sqlmodel import Session, select
 from foundry.api.deps import CurrentActor, get_current_actor_with_org
 from foundry.db import get_session
 from foundry.integrations.celonis_import import CelonisGateway
-from foundry.models import ActivityLog, CelonisConnection, CelonisUserToken, Client, EntityType
+from foundry.models import (
+    ActivityLog,
+    CelonisConnection,
+    CelonisDeploymentRequest,
+    CelonisDeploymentStatus,
+    CelonisUserToken,
+    Client,
+    EntityType,
+)
 from foundry.schemas import (
     CelonisActionResult,
     CelonisDataAgentCatalogOut,
+    CelonisDataAgentInvokeRequest,
+    CelonisDataAgentInvokeResult,
     CelonisDataAgentToolOut,
     CelonisPreflightBatchResult,
     CelonisConnectionOut,
@@ -24,7 +34,13 @@ from foundry.schemas import (
 )
 from foundry.settings import get_settings
 from foundry.services.activity_log import log_activity, log_created, log_updated
-from foundry.services.celonis_data_agent_service import list_data_agent_tools
+from foundry.services.celonis_data_agent_service import (
+    CelonisDataAgentError,
+    get_data_agent_tool_definition,
+    invoke_data_agent_tool,
+    list_data_agent_tools,
+)
+from foundry.services.quest_service import get_org_quest
 
 router = APIRouter(prefix="/celonis", tags=["celonis"])
 
@@ -44,6 +60,8 @@ def list_data_agent_tool_catalog(
             optional_inputs=list(tool.optional_inputs),
             read_only=tool.read_only,
             requires_user_token=tool.requires_user_token,
+            requires_approved_deployment=tool.requires_approved_deployment,
+            capability_group=tool.capability_group,
             source=tool.source,
         )
         for tool in list_data_agent_tools()
@@ -52,6 +70,122 @@ def list_data_agent_tool_catalog(
         tool_count=len(tools),
         token_configured=token_configured,
         tools=tools,
+    )
+
+
+@router.post("/data-agent/tools/{tool_key}/invoke", response_model=CelonisDataAgentInvokeResult)
+def invoke_data_agent_tool_route(
+    tool_key: str,
+    payload: CelonisDataAgentInvokeRequest,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    tool_definition = get_data_agent_tool_definition(tool_key)
+    if tool_definition is None:
+        raise HTTPException(status_code=404, detail="Celonis data-agent tool not found")
+
+    connection = _get_connection_or_404(session, payload.client_id, current_actor.organization.id)
+    token_override = _resolve_actor_token_override(session, current_actor)
+    if not token_override:
+        raise HTTPException(status_code=400, detail="Delegated Celonis user token required for data-agent tool invocation")
+
+    linked_quest = None
+    if payload.quest_id is not None:
+        linked_quest = get_org_quest(session, payload.quest_id, current_actor.organization.id)
+        if linked_quest is None:
+            raise HTTPException(status_code=404, detail="Quest not found")
+
+    deployment_request = None
+    if tool_definition.requires_approved_deployment:
+        raw_deployment_request_id = payload.inputs.get("deployment_request_id")
+        if not isinstance(raw_deployment_request_id, str) or not raw_deployment_request_id.strip():
+            raise HTTPException(status_code=400, detail="Approved deployment_request_id required for Studio write tools")
+        try:
+            deployment_request_id = UUID(raw_deployment_request_id.strip())
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="deployment_request_id must be a valid UUID") from exc
+        deployment_request = session.get(CelonisDeploymentRequest, deployment_request_id)
+        if deployment_request is None or deployment_request.organization_id != current_actor.organization.id:
+            raise HTTPException(status_code=404, detail="Deployment request not found")
+        if deployment_request.client_id != payload.client_id:
+            raise HTTPException(status_code=400, detail="Deployment request client does not match invocation client")
+        if deployment_request.status != CelonisDeploymentStatus.approved:
+            raise HTTPException(status_code=400, detail="Studio write tools require an approved deployment request")
+        package_key = payload.inputs.get("package_key")
+        if isinstance(package_key, str) and package_key.strip() and deployment_request.target_package_key:
+            if package_key.strip() != deployment_request.target_package_key:
+                raise HTTPException(status_code=400, detail="Invocation package_key does not match approved deployment request")
+
+    try:
+        result = invoke_data_agent_tool(
+            get_settings(),
+            tenant_base_url=connection.tenant_base_url,
+            token_override=token_override,
+            tool_key=tool_key,
+            inputs=payload.inputs,
+        )
+    except CelonisDataAgentError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Celonis data-agent invocation failed: {exc}") from exc
+
+    metadata = {
+        "client_id": str(payload.client_id),
+        "tool_key": tool_key,
+        "quest_id": str(payload.quest_id) if payload.quest_id else None,
+        "deployment_request_id": str(deployment_request.id) if deployment_request else None,
+        "input_keys": sorted(payload.inputs.keys()),
+        "requires_user_token": tool_definition.requires_user_token,
+        "requires_approved_deployment": tool_definition.requires_approved_deployment,
+        "capability_group": tool_definition.capability_group,
+        "read_only": tool_definition.read_only,
+        "ok": True,
+    }
+    if "data_model_id" in payload.inputs:
+        metadata["data_model_id"] = payload.inputs.get("data_model_id")
+    if "pool_id" in payload.inputs:
+        metadata["pool_id"] = payload.inputs.get("pool_id")
+    if "limit" in payload.inputs:
+        metadata["limit"] = payload.inputs.get("limit")
+
+    log_activity(
+        session,
+        entity_type=EntityType.celonis_connection,
+        entity_id=connection.id,
+        actor_id=current_actor.person.id,
+        organization_id=current_actor.organization.id,
+        action="celonis_data_agent.tool_invoked",
+        metadata=metadata,
+    )
+    if linked_quest is not None:
+        log_activity(
+            session,
+            entity_type=EntityType.quest,
+            entity_id=linked_quest.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            action="quest.celonis_data_agent_tool_invoked",
+            metadata=metadata,
+        )
+    if deployment_request is not None:
+        log_activity(
+            session,
+            entity_type=EntityType.celonis_deployment_request,
+            entity_id=deployment_request.id,
+            actor_id=current_actor.person.id,
+            organization_id=current_actor.organization.id,
+            action="celonis_deployment_request.studio_write_tool_invoked",
+            metadata=metadata,
+        )
+
+    return CelonisDataAgentInvokeResult(
+        client_id=payload.client_id,
+        tool_key=tool_key,
+        ok=True,
+        source=tool_definition.source,
+        token_configured=True,
+        quest_id=payload.quest_id,
+        data=result,
     )
 
 

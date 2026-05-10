@@ -19,7 +19,9 @@ from foundry.models import (
     SnapshotJob,
     SnapshotKnowledgeModel,
     SnapshotPackage,
+    SnapshotPackageDefinition,
     SnapshotTask,
+    SnapshotTaskDetail,
 )
 from foundry.services.snapshot_export_service import (
     build_snapshot_delta_report,
@@ -162,6 +164,12 @@ def _write_celonis_snapshot_tree(repo_dir: Path, snapshot: CelonisSnapshot, sess
     task_rows = session.exec(
         select(SnapshotTask).where(SnapshotTask.snapshot_id == snapshot.id)
     ).all()
+    task_detail_rows = session.exec(
+        select(SnapshotTaskDetail).where(SnapshotTaskDetail.snapshot_id == snapshot.id)
+    ).all()
+    package_definition_rows = session.exec(
+        select(SnapshotPackageDefinition).where(SnapshotPackageDefinition.snapshot_id == snapshot.id)
+    ).all()
     data_model_rows = session.exec(
         select(SnapshotDataModel).where(SnapshotDataModel.snapshot_id == snapshot.id)
     ).all()
@@ -226,8 +234,50 @@ def _write_celonis_snapshot_tree(repo_dir: Path, snapshot: CelonisSnapshot, sess
             task_dir = package_dir / "tasks"
             _json_dump(task_dir / f"{task.task_id}.json", task.raw_json)
 
+        package_definitions = [row for row in package_definition_rows if row.package_id == package.package_id]
+        for definition in sorted(package_definitions, key=lambda row: (row.definition_id, row.id)):
+            definition_name = definition.definition_id or "studio.config.yaml"
+            definition_dir = package_dir / "definitions"
+            definition_dir.mkdir(parents=True, exist_ok=True)
+            (definition_dir / definition_name).write_text(definition.raw_yaml or "", encoding="utf-8")
+            _json_dump(
+                definition_dir / f"{definition_name}.parsed.json",
+                {
+                    "package_id": definition.package_id,
+                    "package_key": definition.package_key,
+                    "definition_id": definition_name,
+                    "source_endpoint": definition.source_endpoint,
+                    "parse_error": definition.parse_error,
+                    "change_type": definition.change_type.value,
+                    "content_hash": definition.content_hash,
+                    "parsed_json": definition.parsed_json,
+                },
+            )
+
     for task in sorted(task_rows_by_package.get("unassigned", []), key=lambda row: row.task_id):
         _json_dump(repo_dir / "tasks" / f"{task.task_id}.json", task.raw_json)
+
+    detail_by_task: dict[str, SnapshotTaskDetail] = {}
+    for row in task_detail_rows:
+        detail_by_task[row.task_id] = row
+
+    for task in task_rows:
+        detail = detail_by_task.get(task.task_id)
+        if detail is None:
+            continue
+        _json_dump(
+            repo_dir / "task-details" / f"{task.task_id}.json",
+            {
+                "task_id": task.task_id,
+                "package_id": detail.package_id,
+                "task_type": detail.task_type,
+                "source_endpoint": detail.source_endpoint,
+                "error_message": detail.error_message,
+                "detail": detail.detail_json,
+                "references": detail.references_json,
+                "dependencies": detail.dependencies_json,
+            },
+        )
 
     for data_model in data_model_rows:
         _json_dump(repo_dir / "data-models" / f"{data_model.data_model_id}.json", data_model.raw_json)

@@ -55,6 +55,18 @@
         },
         "c:/coding/xOther/celonis-delivery-forge/.venv/Scripts/python.exe": true,
         ".\\scripts\\run_standalone.bat": true,
-        "uvicorn": true
+        "uvicorn": true,
+        "/^cd \"c:\\\\coding\\\\celonis-delivery-forge\\\\external resources\\\\Code by Florian\\\\celonis-data-agent\" ; python analyze_demand\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"c:\\\\coding\\\\celonis-delivery-forge\\\\external resources\\\\Code by Florian\\\\celonis-data-agent\" ; python analyze_demand_v2\\.py 2>&1 \\| head -100$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"c:\\\\coding\\\\celonis-delivery-forge\\\\external resources\\\\Code by Florian\\\\celonis-data-agent\" ; python analyze_demand_v2\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

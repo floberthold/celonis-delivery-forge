@@ -197,7 +197,9 @@ class CelonisGateway:
         sandbox_header_name = (self._settings.celonis_rtoken_header or "").strip()
 
         if not bearer_token and not (sandbox_token and sandbox_header_name):
-            raise ValueError("FORGE_CELONIS_API_TOKEN is not configured")
+            raise ValueError(
+                "Configure FORGE_CELONIS_API_TOKEN or FORGE_CELONIS_RTOKEN (+ FORGE_CELONIS_RTOKEN_HEADER)"
+            )
 
         headers = {
             "Accept": "application/json",

@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     celonis_rtoken: str = ""
     celonis_rtoken_header: str = ""
     celonis_timeout_seconds: int = 20
+    celonis_snapshot_deep_crawl_enabled: bool = False
+    celonis_snapshot_deep_crawl_max_depth: int = 2
+    celonis_snapshot_deep_crawl_max_nodes: int = 30
+    celonis_snapshot_deep_crawl_max_tasks: int = 300
+    celonis_sql_query_path_template: str = "/integration/api/v1/data-models/{data_model_id}/query"
     gitlab_base_url: str = ""
     gitlab_api_token: str = ""
     uploads_dir: str = "./uploads"

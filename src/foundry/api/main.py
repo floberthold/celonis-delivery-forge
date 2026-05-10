@@ -11,8 +11,10 @@ from foundry.api.routes import (
     assets,
     auth,
     celonis,
+    celonis_deployments,
     celonis_marketplace,
     clients,
+    files,
     forum_insights,
     gitlab,
     ingest,
@@ -26,10 +28,10 @@ from foundry.api.routes import (
     templates,
     timeline,
     todos,
+    tool_hub,
     ui,
     use_cases,
     users,
-    files,
 )
 from foundry.db import get_database_backend, get_database_startup_mode, init_db
 from foundry.settings import get_settings
@@ -70,6 +72,7 @@ _API_PATH_PREFIXES = (
     "/ingest",
     "/snapshots",
     "/kpi-book",
+    "/tool-hub",
     "/health",
     "/docs",
     "/openapi.json",
@@ -156,9 +159,11 @@ app.include_router(todos.router)
 app.include_router(forum_insights.router)
 app.include_router(kpis.router)
 app.include_router(celonis.router)
+app.include_router(celonis_deployments.router)
 app.include_router(celonis_marketplace.router)
 app.include_router(gitlab.router)
 app.include_router(use_cases.router)
 app.include_router(ingest.router)
 app.include_router(snapshots.router)
+app.include_router(tool_hub.router)
 app.include_router(kpi_book.router)

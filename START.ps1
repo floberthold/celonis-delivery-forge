@@ -1,42 +1,72 @@
-#Requires -Version 5.0
-<#
-.SYNOPSIS
-    Easy startup script for Celonis Delivery Forge
-.DESCRIPTION
-    Installs dependencies (if needed) and starts the API server with auto-reload.
-    The UI dashboard will be available at http://127.0.0.1:8000
-#>
+#Requires -Version 5.1
+param(
+    [ValidateSet("hub", "api-only", "status", "stop", "dry-run")]
+    [string]$Mode = "hub",
+    [switch]$IncludeAutoDiscovered,
+    [switch]$SkipDependencyInstall
+)
 
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host "Celonis Delivery Forge - Startup" -ForegroundColor Cyan
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Check if running from the correct directory
 if (-not (Test-Path ".\pyproject.toml")) {
     Write-Host "ERROR: Please run this script from the project root directory" -ForegroundColor Red
     exit 1
 }
 
-# Step 1: Install dependencies (if not already installed)
-Write-Host "Step 1: Checking dependencies..." -ForegroundColor Yellow
-$foundryInstalled = python -c "import foundry" 2>&1 | Select-String "ModuleNotFoundError"
+if ($Mode -eq "api-only") {
+    Write-Host "Mode: api-only" -ForegroundColor Yellow
+    Write-Host "Checking dependencies..." -ForegroundColor Yellow
+    $foundryInstalled = python -c "import foundry" 2>&1 | Select-String "ModuleNotFoundError"
 
-if ($foundryInstalled) {
-    Write-Host "  Installing packages (this may take a minute)..." -ForegroundColor Gray
-    python -m pip install -q --upgrade pip 2>&1 | Out-Null
-    python -m pip install -q -e . 2>&1 | Out-Null
-    Write-Host "  ✓ Dependencies installed" -ForegroundColor Green
+    if ($foundryInstalled) {
+        Write-Host "  Installing packages (this may take a minute)..." -ForegroundColor Gray
+        python -m pip install -q --upgrade pip 2>&1 | Out-Null
+        python -m pip install -q -e . 2>&1 | Out-Null
+        Write-Host "  Dependencies installed" -ForegroundColor Green
+    }
+    else {
+        Write-Host "  Dependencies already installed" -ForegroundColor Green
+    }
+
+    Write-Host "" 
+    Write-Host "Starting API server on http://127.0.0.1:8000" -ForegroundColor Yellow
+    $env:PYTHONPATH = "src"
+    python -m uvicorn foundry.api.main:app --reload --host 127.0.0.1 --port 8000
+    exit $LASTEXITCODE
 }
-else {
-    Write-Host "  ✓ Dependencies already installed" -ForegroundColor Green
+
+$hubScript = ".\agentic\tool-hub\start_tool_hub.ps1"
+if (-not (Test-Path $hubScript)) {
+    Write-Host "ERROR: Tool hub script not found at $hubScript" -ForegroundColor Red
+    exit 1
 }
 
-# Step 2: Start the server
-Write-Host ""
-Write-Host "Step 2: Starting API server..." -ForegroundColor Yellow
-Write-Host "  Server starting on http://127.0.0.1:8000" -ForegroundColor Gray
-Write-Host "  Press Ctrl+C to stop the server" -ForegroundColor Gray
-Write-Host ""
+$hubMode = switch ($Mode) {
+    "status" { "status" }
+    "stop" { "stop" }
+    "dry-run" { "dry-run" }
+    default { "start" }
+}
 
-uvicorn foundry.api.main:app --reload --host 127.0.0.1 --port 8000
+Write-Host "Mode: tool hub ($hubMode)" -ForegroundColor Yellow
+
+$hubArgs = @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-File", $hubScript,
+    "-Mode", $hubMode
+)
+
+if ($IncludeAutoDiscovered) {
+    $hubArgs += "-IncludeAutoDiscovered"
+}
+
+if ($SkipDependencyInstall) {
+    $hubArgs += "-SkipDependencyInstall"
+}
+
+& powershell.exe @hubArgs
+exit $LASTEXITCODE

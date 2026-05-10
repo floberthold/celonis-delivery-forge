@@ -16,6 +16,7 @@ from foundry.models import (
     SnapshotKnowledgeModel,
     SnapshotPackage,
     SnapshotTask,
+    SnapshotTaskDetail,
 )
 from foundry.schemas import (
     CelonisSnapshotOut,
@@ -27,6 +28,7 @@ from foundry.schemas import (
     SnapshotJobOut,
     SnapshotKnowledgeModelOut,
     SnapshotPackageOut,
+    SnapshotTaskDetailOut,
     SnapshotTaskOut,
 )
 from foundry.services.snapshot_export_service import (
@@ -168,6 +170,20 @@ def list_snapshot_tasks(
     ).all()
 
 
+@router.get("/{snapshot_id}/task-details", response_model=list[SnapshotTaskDetailOut])
+def list_snapshot_task_details(
+    snapshot_id: UUID,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
+    if snap is None:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    return session.exec(
+        select(SnapshotTaskDetail).where(SnapshotTaskDetail.snapshot_id == snapshot_id)
+    ).all()
+
+
 @router.get("/{snapshot_id}/data-models", response_model=list[SnapshotDataModelOut])
 def list_snapshot_data_models(
     snapshot_id: UUID,
@@ -219,7 +235,8 @@ def export_snapshot_bundle(
     snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
     if snap is None:
         raise HTTPException(status_code=404, detail="Snapshot not found")
-    output_dir = get_settings().generated_dir
+    settings = get_settings()
+    output_dir = getattr(settings, "generated_dir", settings.uploads_dir)
     result = build_snapshot_export(
         session,
         snapshot_id=snapshot_id,
@@ -293,7 +310,8 @@ def download_snapshot_bundle(
     snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
     if snap is None:
         raise HTTPException(status_code=404, detail="Snapshot not found")
-    output_dir = get_settings().generated_dir
+    settings = get_settings()
+    output_dir = getattr(settings, "generated_dir", settings.uploads_dir)
     result = build_snapshot_export(
         session,
         snapshot_id=snapshot_id,
@@ -315,10 +333,12 @@ def materialize_snapshot_git_history(
     snap = _get_org_snapshot(session, snapshot_id, current_actor.organization.id)
     if snap is None:
         raise HTTPException(status_code=404, detail="Snapshot not found")
+    settings = get_settings()
+    output_dir = getattr(settings, "generated_dir", settings.uploads_dir)
     result = materialize_celonis_snapshot_git_history(
         session,
         snapshot_id=snapshot_id,
-        base_output_dir=Path(get_settings().generated_dir) / "git_history",
+        base_output_dir=Path(output_dir) / "git_history",
     )
     snap.summary_json = {**snap.summary_json, "git_history": result}
     session.add(snap)

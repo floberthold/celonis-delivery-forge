@@ -128,6 +128,8 @@
 <div class="tab-bar">
     <a class="tab-link {% if active_tab == 'tasks' %}active{% endif %}"
          href="?tab=tasks{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Tasks ({{ tasks|length }})</a>
+    <a class="tab-link {% if active_tab == 'task_details' %}active{% endif %}"
+        href="?tab=task_details{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Task Details ({{ task_details|length }})</a>
     <a class="tab-link {% if active_tab == 'packages' %}active{% endif %}"
          href="?tab=packages{% if compare_to %}&compare_to={{ compare_to }}{% endif %}{% if selected_project_id %}&project_id={{ selected_project_id }}{% endif %}">Packages ({{ packages|length }})</a>
     <a class="tab-link {% if active_tab == 'data_models' %}active{% endif %}"
@@ -173,6 +175,85 @@
         {% endfor %}
     </tbody>
 </table>
+
+{% elif active_tab == 'task_details' %}
+<p class="muted-note">Deep-crawl task details captured during snapshot extraction, including source endpoint, extracted references, and bounded dependency traversal results.</p>
+<table>
+    <thead>
+        <tr>
+            <th>Task</th>
+            <th>Type</th>
+            <th>Detail</th>
+            <th>References</th>
+            <th>Dependencies</th>
+            <th>Endpoint / Error</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in task_detail_rows %}
+        <tr>
+            <td>{{ row.task.name }}</td>
+            <td>{{ row.task.task_type or '—' }}</td>
+            <td>
+                {% if row.detail %}
+                {{ row.detail.detail_json|length }} fields
+                {% else %}
+                —
+                {% endif %}
+            </td>
+            <td>
+                {{ row.reference_assets|length }} assets · {{ row.reference_tables|length }} tables · {{ row.reference_columns|length }} columns
+            </td>
+            <td>{{ row.dependency_count }}</td>
+            <td class="small">
+                {% if row.detail and row.detail.source_endpoint %}
+                <div class="monospace">{{ row.detail.source_endpoint }}</div>
+                {% endif %}
+                {% if row.detail and row.detail.error_message %}
+                <div>{{ row.detail.error_message }}</div>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No deep task details captured for this snapshot.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% for row in task_detail_rows if row.detail %}
+<details class="card" style="margin-top:0.8rem;">
+    <summary><strong>{{ row.task.name }}</strong> · {{ row.task.task_type or 'unknown' }} · {{ row.dependency_count }} dependencies</summary>
+    <div class="muted-note" style="margin-top:0.6rem;">Task ID: <span class="monospace">{{ row.task.task_id }}</span></div>
+    {% if row.reference_assets or row.reference_tables or row.reference_columns %}
+    <p class="muted-note">References</p>
+    <ul>
+        {% for ref in row.reference_assets[:10] %}<li>Asset: <span class="monospace">{{ ref }}</span></li>{% endfor %}
+        {% for ref in row.reference_tables[:10] %}<li>Table: <span class="monospace">{{ ref }}</span></li>{% endfor %}
+        {% for ref in row.reference_columns[:10] %}<li>Column: <span class="monospace">{{ ref }}</span></li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if row.detail.dependencies_json %}
+    <p class="muted-note">Dependency Crawl</p>
+    <ul>
+        {% for dependency in row.detail.dependencies_json[:12] %}
+        <li>
+            <span class="monospace">{{ dependency.id }}</span>
+            {% if dependency.type %} · {{ dependency.type }}{% endif %}
+            {% if dependency.depth is defined %} · depth {{ dependency.depth }}{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <details style="margin-top:0.6rem;">
+        <summary>Detail JSON</summary>
+        <pre class="monospace small">{{ row.detail.detail_json | tojson(indent=2) }}</pre>
+    </details>
+    <details style="margin-top:0.6rem;">
+        <summary>References JSON</summary>
+        <pre class="monospace small">{{ row.detail.references_json | tojson(indent=2) }}</pre>
+    </details>
+</details>
+{% endfor %}
 
 {% elif active_tab == 'packages' %}
 <table>

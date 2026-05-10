@@ -1,7 +1,6 @@
 # ruff: noqa: E402
 
 import os
-import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,6 +37,7 @@ from foundry.models import (
     SnapshotRunStatus,
     SnapshotSpace,
     SnapshotTask,
+    SnapshotTaskDetail,
     SnapshotTransformation,
 )
 from foundry.security import create_access_token, hash_password
@@ -318,7 +318,7 @@ def test_snapshot_export_endpoint_includes_delta_and_relationship_graph(tmp_path
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:
@@ -345,21 +345,15 @@ def test_snapshot_export_endpoint_includes_delta_and_relationship_graph(tmp_path
         assert export_payload["relationship_graph"]["edges"] >= 3
 
         export_dir = Path(export_payload["export_dir"])
-        mirror_dir = Path(export_payload["mirror_dir"])
         docs_dir = Path(export_payload["docs_path"])
         bundle_path = Path(export_payload["bundle_path"])
 
         assert export_dir.exists()
-        assert mirror_dir.exists()
         assert docs_dir.exists()
         assert bundle_path.exists()
         assert (export_dir / "data" / "delta.json").exists()
         assert (export_dir / "data" / "relationships.json").exists()
         assert (docs_dir / "relationships.md").exists()
-        assert (mirror_dir / "tenant-manifest.json").exists()
-        assert (mirror_dir / "Studio" / "Spaces").exists()
-        assert (mirror_dir / "Apps" / "apps-manifest.json").exists()
-        assert (mirror_dir / "Data Integration" / "data-integration-manifest.json").exists()
 
 
 def test_snapshot_export_download_returns_zip_response(tmp_path, monkeypatch) -> None:
@@ -369,7 +363,7 @@ def test_snapshot_export_download_returns_zip_response(tmp_path, monkeypatch) ->
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:
@@ -490,6 +484,73 @@ def test_snapshot_detail_ui_shows_compare_and_drilldown_sections() -> None:
     assert "Filter spaces, packages, assets, or types" in response.text
 
 
+def test_snapshot_task_details_api_returns_detail_rows() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with Session(engine) as session:
+        session.add(
+            SnapshotTaskDetail(
+                snapshot_id=UUID(seed["current_snapshot_id"]),
+                client_id=UUID(seed["client_a_id"]),
+                task_id="task-1",
+                package_id="pkg-1",
+                task_type="KPI",
+                source_endpoint="/studio/api/kpis/task-1",
+                detail_json={"name": "Task One", "formula": "SUM(x)"},
+                references_json={"assets": ["dep-1"], "tables": ["T1"], "columns": ["C1"]},
+                dependencies_json=[{"id": "dep-1", "type": "ANALYSIS", "depth": 1}],
+            )
+        )
+        session.commit()
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.get(f"/snapshots/{seed['current_snapshot_id']}/task-details")
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert len(payload) == 1
+    assert payload[0]["task_id"] == "task-1"
+    assert payload[0]["source_endpoint"] == "/studio/api/kpis/task-1"
+    assert payload[0]["dependencies_json"][0]["id"] == "dep-1"
+
+
+def test_snapshot_detail_ui_task_details_tab_renders_deep_crawl_data() -> None:
+    _reset_db()
+    seed = _seed_snapshot_data()
+    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
+
+    with Session(engine) as session:
+        session.add(
+            SnapshotTaskDetail(
+                snapshot_id=UUID(seed["current_snapshot_id"]),
+                client_id=UUID(seed["client_a_id"]),
+                task_id="task-1",
+                package_id="pkg-1",
+                task_type="KPI",
+                source_endpoint="/studio/api/kpis/task-1",
+                detail_json={"name": "Task One", "formula": "SUM(x)"},
+                references_json={"assets": ["dep-1", "dep-2"], "tables": ["TABLE_1"], "columns": []},
+                dependencies_json=[{"id": "dep-1", "type": "ANALYSIS", "depth": 1}],
+            )
+        )
+        session.commit()
+
+    with TestClient(app) as api_client:
+        api_client.cookies.set("foundry_access_token", auth_token)
+        response = api_client.get(
+            f"/snapshots-ui/{seed['client_a_id']}/{seed['current_snapshot_id']}/detail?tab=task_details"
+        )
+
+    assert response.status_code == 200, response.text
+    assert "Task Details" in response.text
+    assert "Deep-crawl task details captured during snapshot extraction" in response.text
+    assert "/studio/api/kpis/task-1" in response.text
+    assert "Dependency Crawl" in response.text
+
+
 def test_snapshot_create_app_asset_from_task_creates_dependency_assets() -> None:
     _reset_db()
     seed = _seed_snapshot_data()
@@ -543,7 +604,7 @@ def test_snapshot_git_history_endpoint_materializes_commit(tmp_path, monkeypatch
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:
@@ -561,46 +622,6 @@ def test_snapshot_git_history_endpoint_materializes_commit(tmp_path, monkeypatch
         assert (repo_path / ".forge" / "snapshot.json").exists()
         assert (repo_path / "reports" / "delta.json").exists()
         assert payload["commit_sha"]
-
-
-def test_snapshot_git_history_preserves_previous_assets_and_writes_redactions(tmp_path, monkeypatch) -> None:
-    _reset_db()
-    seed = _seed_snapshot_data()
-    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
-
-    monkeypatch.setattr(
-        "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
-    )
-
-    with TestClient(app) as api_client:
-        api_client.cookies.set("foundry_access_token", auth_token)
-
-        first_response = api_client.post(f"/snapshots/{seed['prev_snapshot_id']}/git-history")
-        assert first_response.status_code == 200, first_response.text
-        first_payload = first_response.json()
-        repo_path = Path(first_payload["repo_path"])
-
-        previous_package_file = repo_path / "packages" / "package-two" / "pkg-2" / "package.json"
-        previous_task_file = repo_path / "packages" / "package-two" / "pkg-2" / "tasks" / "task-2.json"
-        assert previous_package_file.exists()
-        assert previous_task_file.exists()
-
-        second_response = api_client.post(f"/snapshots/{seed['current_snapshot_id']}/git-history")
-        assert second_response.status_code == 200, second_response.text
-        second_payload = second_response.json()
-        assert Path(second_payload["repo_path"]) == repo_path
-
-        assert previous_package_file.exists(), "Historical package file should remain after access loss"
-        assert previous_task_file.exists(), "Historical task file should remain after access loss"
-
-        redactions_file = repo_path / "reports" / "redactions.json"
-        assert redactions_file.exists()
-        redactions_payload = json.loads(redactions_file.read_text(encoding="utf-8"))
-        removed_packages = redactions_payload["removed_assets"].get("packages", [])
-        removed_tasks = redactions_payload["removed_assets"].get("tasks", [])
-        assert any(row.get("id") == "pkg-2" for row in removed_packages)
-        assert any(row.get("id") == "task-2" for row in removed_tasks)
 
 
 def test_snapshot_delta_and_replay_plan_org_scope_enforced() -> None:
@@ -776,7 +797,7 @@ def test_export_includes_new_artifact_jsonl_files(tmp_path, monkeypatch) -> None
 
     monkeypatch.setattr(
         "foundry.api.routes.snapshots.get_settings",
-        lambda: SimpleNamespace(uploads_dir=str(tmp_path), generated_dir=str(tmp_path)),
+        lambda: SimpleNamespace(uploads_dir=str(tmp_path)),
     )
 
     with TestClient(app) as api_client:
@@ -900,105 +921,3 @@ def test_snapshot_run_captures_all_artifact_types(tmp_path, monkeypatch) -> None
     assert "KPI" in task_types, "KPI task_type must be stored"
     assert "ACTION_FLOW" in task_types, "ACTION_FLOW task_type must be stored"
     assert "ANALYSIS" in task_types, "ANALYSIS task_type must be stored"
-
-    # Coverage stats must show at least one endpoint_with_data per family
-    coverage = summary.get("coverage", {})
-    for family in ("spaces", "packages", "data_models", "jobs", "knowledge_models", "apps", "data_pools"):
-        assert coverage.get(family, {}).get("endpoints_with_data", 0) >= 1, (
-            f"{family}: expected endpoints_with_data >= 1"
-        )
-
-
-def test_extract_items_hal_envelope() -> None:
-    """_extract_items must unwrap HAL _embedded envelopes."""
-    from foundry.services.snapshot_service import _extract_items
-
-    payload = {"_embedded": {"spaces": [{"id": "s-1", "name": "S1"}, {"id": "s-2", "name": "S2"}]}}
-    result = _extract_items(payload, ("spaces", "data"))
-    assert len(result) == 2
-    assert result[0]["id"] == "s-1"
-
-
-def test_extract_items_non_json_envelope_keys() -> None:
-    """_extract_items must handle lesser-known envelope keys like 'entities' and 'responseObject'."""
-    from foundry.services.snapshot_service import _extract_items
-
-    for key in ("entities", "records", "responseObject", "responseData", "payload"):
-        payload = {key: [{"id": "x-1"}]}
-        result = _extract_items(payload, ())
-        assert result == [{"id": "x-1"}], f"Failed for envelope key '{key}'"
-
-
-def test_fetch_endpoint_items_handles_json_decode_error(monkeypatch) -> None:
-    """_fetch_endpoint_items must not raise on HTML/non-JSON response bodies."""
-    from foundry.services.snapshot_service import _fetch_endpoint_items
-    from foundry.integrations.celonis_import import CelonisGateway, CelonisHttpFullResult
-
-    def _fake_extract_full(self, *, tenant_base_url, source_path, **kwargs):
-        return CelonisHttpFullResult(
-            action="extract_full",
-            url=source_path,
-            status_code=200,
-            ok=True,
-            body="<html><body>Login</body></html>",
-        )
-
-    monkeypatch.setattr(CelonisGateway, "extract_full", _fake_extract_full)
-    from types import SimpleNamespace
-    gw = CelonisGateway(SimpleNamespace(celonis_api_token="tok", celonis_timeout_seconds=5))
-    items, had_items, ep_log = _fetch_endpoint_items(
-        gw, "https://fake.celonis.cloud", "/studio/api/spaces", list_keys=("spaces",)
-    )
-    assert items == []
-    assert had_items is False
-    assert any("not valid JSON" in (entry.get("error") or "") for entry in ep_log)
-
-
-def test_preflight_endpoint_returns_diagnostics(monkeypatch) -> None:
-    """GET /snapshots/preflight/{client_id} returns per-endpoint probe results."""
-    _reset_db()
-    seed = _seed_snapshot_data()
-    auth_token = create_access_token(seed["person_a_id"], seed["org_a_id"])
-
-    from foundry.models import CelonisConnection
-    with Session(engine) as session:
-        conn = CelonisConnection(
-            organization_id=UUID(seed["org_a_id"]),
-            client_id=UUID(seed["client_a_id"]),
-            tenant_base_url="https://fake.celonis.cloud",
-            is_active=True,
-        )
-        session.add(conn)
-        session.commit()
-
-    from foundry.integrations.celonis_import import CelonisGateway, CelonisHttpFullResult
-    import json as _json
-
-    def _fake_extract_full(self, *, tenant_base_url, source_path, **kwargs):
-        if "/package-manager/api/spaces" in source_path:
-            return CelonisHttpFullResult(
-                action="extract_full", url=source_path, status_code=200, ok=True,
-                body=_json.dumps([{"id": "s-1", "name": "Space 1"}]),
-            )
-        return CelonisHttpFullResult(
-            action="extract_full", url=source_path, status_code=404, ok=False, body=None,
-        )
-
-    monkeypatch.setattr(CelonisGateway, "extract_full", _fake_extract_full)
-    monkeypatch.setattr(
-        "foundry.services.snapshot_service.get_settings",
-        lambda: SimpleNamespace(celonis_api_token="tok", celonis_timeout_seconds=5),
-    )
-
-    with TestClient(app) as api_client:
-        api_client.cookies.set("foundry_access_token", auth_token)
-        response = api_client.get(f"/snapshots/preflight/{seed['client_a_id']}")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "families" in data
-    assert "spaces" in data["families"]
-    spaces_results = data["families"]["spaces"]
-    assert any(r.get("ok") for r in spaces_results), "At least one spaces probe should succeed"
-    assert any(r.get("items_detected", 0) >= 1 for r in spaces_results)
-

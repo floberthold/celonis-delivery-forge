@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -9,6 +9,7 @@ from foundry.models import (
     AssetSourceKind,
     AssetStatus,
     AssetType,
+    CelonisDeploymentStatus,
     DecisionType,
     FileSource,
     ForumInsightStatus,
@@ -310,6 +311,8 @@ class CelonisDataAgentToolOut(BaseModel):
     optional_inputs: list[str] = Field(default_factory=list)
     read_only: bool = True
     requires_user_token: bool = True
+    requires_approved_deployment: bool = False
+    capability_group: str = "data_integration"
     source: str = "external_mcp"
 
 
@@ -317,6 +320,101 @@ class CelonisDataAgentCatalogOut(BaseModel):
     tool_count: int
     token_configured: bool
     tools: list[CelonisDataAgentToolOut] = Field(default_factory=list)
+
+
+class CelonisDataAgentInvokeRequest(BaseModel):
+    client_id: UUID
+    inputs: dict = Field(default_factory=dict)
+    quest_id: Optional[UUID] = None
+
+
+class CelonisDataAgentInvokeResult(BaseModel):
+    client_id: UUID
+    tool_key: str
+    ok: bool
+    source: str = "external_mcp"
+    token_configured: bool
+    quest_id: Optional[UUID] = None
+    data: dict = Field(default_factory=dict)
+
+
+class CelonisDeploymentRequestCreate(BaseModel):
+    client_id: UUID
+    project_id: UUID
+    target_space_name: Optional[str] = None
+    target_package_key: Optional[str] = None
+    target_package_name: Optional[str] = None
+    preflight_run_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CelonisDeploymentDecisionCreate(BaseModel):
+    decision: Literal["approved", "rejected"]
+    reviewer_note: Optional[str] = None
+
+
+class CelonisDeploymentReviewerAssignCreate(BaseModel):
+    reviewer_id: UUID
+
+
+class CelonisDeploymentRequestOut(BaseModel):
+    id: UUID
+    organization_id: UUID
+    project_id: UUID
+    client_id: UUID
+    created_by: UUID
+    status: CelonisDeploymentStatus
+    target_space_name: Optional[str]
+    target_package_key: Optional[str]
+    target_package_name: Optional[str]
+    notes: Optional[str]
+    preflight_run_id: Optional[str]
+    preflight_passed: bool
+    permission_diff_acknowledged: bool
+    permission_diff_acknowledged_by: Optional[UUID]
+    reviewer_id: Optional[UUID]
+    reviewer_decision: Optional[str]
+    reviewer_note: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CelonisDeploymentHistoryEventOut(BaseModel):
+    id: UUID
+    deployment_request_id: UUID
+    action: str
+    actor_id: UUID
+    actor_name: Optional[str] = None
+    actor_email: Optional[str] = None
+    timestamp: datetime
+    metadata_json: dict = Field(default_factory=dict)
+
+
+class ToolHubCatalogToolOut(BaseModel):
+    id: str
+    display_name: str
+    repo_path: str
+    absolute_repo_path: str
+    shell: str
+    command: Optional[str] = None
+    enabled: bool = False
+    startable: bool = False
+    source: str = "registry"
+    notes: str = ""
+    health_probe: dict[str, Any] = Field(default_factory=dict)
+
+
+class ToolHubCatalogOut(BaseModel):
+    catalog_exists: bool = True
+    catalog_path: str
+    generated_at_utc: str = ""
+    mode: str = ""
+    include_auto_discovered: bool = False
+    tool_count: int
+    tools: list[ToolHubCatalogToolOut] = Field(default_factory=list)
 
 
 class AssetSourceCreate(BaseModel):
@@ -1025,6 +1123,24 @@ class SnapshotTaskOut(BaseModel):
     change_type: SnapshotChangeType
     content_hash: Optional[str]
     raw_json: dict
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SnapshotTaskDetailOut(BaseModel):
+    id: UUID
+    snapshot_id: UUID
+    client_id: UUID
+    task_id: str
+    package_id: Optional[str]
+    task_type: Optional[str]
+    source_endpoint: Optional[str]
+    detail_json: dict
+    references_json: dict
+    dependencies_json: list
+    error_message: Optional[str]
     created_at: datetime
 
     class Config:

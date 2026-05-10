@@ -7,13 +7,35 @@
 ```
 
 That's it. The script will:
-1. Install dependencies (if needed)
-2. Start the API server
-3. Open the dashboard in your browser
+1. Load the central tool registry
+2. Start all enabled tools in the Tool Hub
+3. Write runtime state/logs to `.orchestration/tool-hub/`
 
 **Server:** http://127.0.0.1:8000
 
-Press `Ctrl+C` to stop.
+Stop all started tool processes:
+
+```powershell
+.\START.ps1 -Mode stop
+```
+
+Discovery without starting processes:
+
+```powershell
+.\START.ps1 -Mode dry-run
+```
+
+Discovery with auto-discovered submodule startup entries:
+
+```powershell
+.\START.ps1 -Mode dry-run -IncludeAutoDiscovered
+```
+
+Legacy API-only mode:
+
+```powershell
+.\START.ps1 -Mode api-only
+```
 
 ---
 

@@ -9,23 +9,50 @@
 
 ## How to Start
 
-### 🟢 Recommended (Automatic)
+### 🟢 Recommended (Tool Hub, One-Click)
 
-Just run this once:
+Run this once:
 
 ```powershell
 .\START.ps1
 ```
 
-The script automatically:
-1. Installs dependencies (Python packages)
-2. Starts the development server
-3. Enables auto-reload (code changes restart the server automatically)
-4. Server runs at `http://127.0.0.1:8000`
+Default mode starts the centralized Tool Hub:
+1. Loads central registry from `agentic/tool-hub/tool_hub_registry.json`
+2. Starts all enabled tools across main repo/submodules
+3. Writes runtime state and logs under `.orchestration/tool-hub/`
+4. Keeps Foundry API available at `http://127.0.0.1:8000`
 
-Press `Ctrl+C` to stop.
+Implementation paths:
+- `agentic/tool-hub/start_tool_hub.ps1`
+- `agentic/tool-hub/tool_hub_registry.json`
 
-### 🔵 Alternative (Step by Step)
+Compatibility wrapper:
+- `scripts/start_tool_hub.ps1` forwards to the new location.
+
+Useful commands:
+
+```powershell
+# dry run (discovery + validation, no process start)
+.\START.ps1 -Mode dry-run
+
+# include auto-discovered START scripts/manifests from submodules
+.\START.ps1 -Mode dry-run -IncludeAutoDiscovered
+
+# show current process status
+.\START.ps1 -Mode status
+
+# stop all tool-hub started processes
+.\START.ps1 -Mode stop
+```
+
+Legacy behavior is still available:
+
+```powershell
+.\START.ps1 -Mode api-only
+```
+
+### 🔵 Alternative (Manual API Startup)
 
 If you prefer to run each step manually:
 
@@ -50,6 +77,7 @@ uvicorn foundry.api.main:app --reload
 | URL | What It Is |
 |-----|-----------|
 | `http://127.0.0.1:8000/` | **Main Dashboard** (Start here!) |
+| `http://127.0.0.1:8000/celonis-tool-hub-ui` | Celonis Tool Hub UI |
 | `http://127.0.0.1:8000/docs` | API Documentation (Swagger) |
 | `http://127.0.0.1:8000/health` | Health Status Check |
 

@@ -30,6 +30,13 @@ _FAMILY_SPECS = [
         "pycelonis_domain": "studio.content_node.(kpi|view|analysis|skill|action_flow|annotation_builder)",
     },
     {
+        "key": "package_definitions",
+        "label": "Package Definitions",
+        "count_key": "package_definitions",
+        "coverage_key": "package_definitions",
+        "pycelonis_domain": "studio.content_node.package.definition",
+    },
+    {
         "key": "data_models",
         "label": "Data Models",
         "count_key": "data_models",

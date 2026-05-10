@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "description": "Central tool registry for one-click local startup across main repo and submodules.",
+  "tools": [
+    {
+      "id": "foundry-api",
+      "display_name": "Foundry API",
+      "repo_path": ".",
+      "enabled": true,
+      "shell": "powershell",
+      "command": "$env:PYTHONPATH='src'; python -m uvicorn foundry.api.main:app --reload --host 127.0.0.1 --port 8000",
+      "install_editable": true,
+      "health_probe": {
+        "type": "http",
+        "url": "http://127.0.0.1:8000/health"
+      },
+      "notes": "Primary local API runtime."
+    },
+    {
+      "id": "celonis-data-agent-mcp",
+      "display_name": "Celonis Data Agent MCP",
+      "repo_path": "external resources/Code by Florian/celonis-data-agent",
+      "enabled": true,
+      "shell": "powershell",
+      "command": "python -m celonis_data_agent.server",
+      "install_editable": true,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Local MCP server with stdio transport."
+    },
+    {
+      "id": "pycelonis-tools",
+      "display_name": "pyCelonis tools",
+      "repo_path": "external resources/Projects at Work/pyCelonis-tools",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "python local_scripts.py",
+      "install_editable": false,
+      "activation_phase": 2,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Phase 2 candidate. Utility entrypoint from repo root."
+    },
+    {
+      "id": "pycelonis-fuchs",
+      "display_name": "pyCelonis for Fuchs",
+      "repo_path": "external resources/Projects at Work/pyCelonis%20-%20for%20Fuchs",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "Set-Location '.\\Unassigned Apps\\Test - Roboyo Workspace\\pricing-analysis'; python -m pip install -q -r requirements.txt; kedro run",
+      "install_editable": false,
+      "activation_phase": 3,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Phase 3 candidate. Kedro project in nested workspace path."
+    },
+    {
+      "id": "pycelonis-ocpm-migration",
+      "display_name": "pyCelonis OCPM migration tool",
+      "repo_path": "external resources/Projects at Work/pyCelonis%20-%20OCPM%20migration%20tool",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "poetry run python -m app.main",
+      "install_editable": false,
+      "activation_phase": 3,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Phase 3 candidate. Requires Poetry and private CodeArtifact dependencies."
+    },
+    {
+      "id": "celonis-app-backups",
+      "display_name": "Celonis app backups",
+      "repo_path": "external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-app-backups",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "python -c \"print('celonis-app-backups: no runnable application entrypoint found in repository root')\"",
+      "install_editable": false,
+      "activation_phase": 4,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Phase 4 blocked. Repository currently only exposes backup artifacts and README at root."
+    },
+    {
+      "id": "celonis-mlwb",
+      "display_name": "Celonis MLWB",
+      "repo_path": "external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-mlwb",
+      "enabled": false,
+      "shell": "powershell",
+      "command": "jupyter lab --no-browser",
+      "install_editable": false,
+      "activation_phase": 2,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Phase 2 candidate. Notebook-centric workspace."
+    },
+    {
+      "id": "dummy-data-creator-sap",
+      "display_name": "Dummy data creator SAP",
+      "repo_path": "external resources/Projects at Work/Celonis AI Demand Forecast App/dummy-data-creator-sap",
+      "enabled": true,
+      "shell": "powershell",
+      "command": "python main.py --no-profile",
+      "install_editable": false,
+      "activation_phase": 1,
+      "health_probe": {
+        "type": "process"
+      },
+      "notes": "Phase 1 active. Direct CLI entrypoint defined in main.py."
+    }
+  ]
+}

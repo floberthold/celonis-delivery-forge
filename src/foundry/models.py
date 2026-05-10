@@ -840,6 +840,22 @@ class SnapshotPackage(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class SnapshotPackageDefinition(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    snapshot_id: UUID = Field(index=True, foreign_key="celonissnapshot.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    package_id: str = Field(index=True)
+    package_key: Optional[str] = None
+    definition_id: str = Field(default="studio.config.yaml", index=True)
+    source_endpoint: Optional[str] = None
+    raw_yaml: str = Field(default="", sa_column=Column(Text))
+    parsed_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    parse_error: Optional[str] = Field(default=None, sa_column=Column(Text))
+    change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
+    content_hash: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class SnapshotTask(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     snapshot_id: UUID = Field(index=True, foreign_key="celonissnapshot.id")
@@ -853,6 +869,21 @@ class SnapshotTask(SQLModel, table=True):
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     content_hash: Optional[str] = None
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SnapshotTaskDetail(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    snapshot_id: UUID = Field(index=True, foreign_key="celonissnapshot.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    task_id: str = Field(index=True)
+    package_id: Optional[str] = Field(default=None, index=True)
+    task_type: Optional[str] = None
+    source_endpoint: Optional[str] = None
+    detail_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    references_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    dependencies_json: list = Field(default_factory=list, sa_column=Column(JSON))
+    error_message: Optional[str] = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

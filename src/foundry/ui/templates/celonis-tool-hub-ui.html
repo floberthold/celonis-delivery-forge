@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+
+{% block title %}Tool Hub | Foundry{% endblock %}
+
+{% block content %}
+<section class="tool-hub-hero">
+    <div>
+        <h2>Tool Hub Command Center</h2>
+        <p>Centralized management for all MCP servers and tools across the Delivery Forge ecosystem.</p>
+    </div>
+    {% if generated_at %}
+    <div class="tool-hub-metadata">
+        <span class="badge">Updated: {{ generated_at }}</span>
+    </div>
+    {% endif %}
+</section>
+
+{% if ok_message %}
+<div class="alert success">{{ ok_message }}</div>
+{% endif %}
+{% if error_message %}
+<div class="alert error">{{ error_message }}</div>
+{% endif %}
+
+<section class="tool-hub-stats">
+    <div class="card">
+        <h3>Total Tools</h3>
+        <p class="metric">{{ tool_count }}</p>
+    </div>
+    <div class="card">
+        <h3>Enabled</h3>
+        <p class="metric">{{ tools | selectattr('enabled', 'equalto', true) | list | length }}</p>
+    </div>
+    <div class="card">
+        <h3>Startable</h3>
+        <p class="metric">{{ tools | selectattr('startable', 'equalto', true) | list | length }}</p>
+    </div>
+    <div class="card">
+        <h3>Phases</h3>
+        <p class="metric">4</p>
+    </div>
+</section>
+
+{% if tools %}
+<section class="panel">
+    <div class="section-header">
+        <h3>Available Tools</h3>
+        <p class="tool-hub-hint">Tools are organized by activation phase. Green indicates enabled and ready to start.</p>
+    </div>
+    
+    <div class="tool-hub-grid">
+        {% for tool in tools | sort(attribute='activation_phase') %}
+        <article class="tool-card {% if tool.enabled %}is-enabled{% endif %} {% if tool.startable %}is-startable{% endif %}">
+            <div class="tool-card-header">
+                <div class="tool-card-info">
+                    <h4 class="tool-name">{{ tool.display_name }}</h4>
+                    <p class="tool-id">{{ tool.id }}</p>
+                </div>
+                <div class="tool-card-badges">
+                    {% if tool.enabled %}
+                    <span class="badge badge-enabled">●</span>
+                    {% else %}
+                    <span class="badge badge-disabled">○</span>
+                    {% endif %}
+                    <span class="badge badge-phase">Phase {{ tool.activation_phase }}</span>
+                </div>
+            </div>
+            
+            <div class="tool-card-details">
+                <div class="detail-row">
+                    <strong>Repository:</strong>
+                    <code>{{ tool.repo_path }}</code>
+                </div>
+                <div class="detail-row">
+                    <strong>Status:</strong>
+                    <span class="status-badge {% if tool.startable %}status-ok{% else %}status-warning{% endif %}">
+                        {% if tool.startable %}Startable{% else %}Not Startable{% endif %}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <strong>Shell:</strong>
+                    <span class="shell-badge">{{ tool.shell }}</span>
+                </div>
+                {% if tool.health_probe %}
+                <div class="detail-row">
+                    <strong>Health Check:</strong>
+                    <span class="health-type">{{ tool.health_probe.get('type', 'none') }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="tool-card-command">
+                <strong>Start Command:</strong>
+                <code class="command-text">{{ tool.command }}</code>
+            </div>
+            
+            <div class="tool-card-actions">
+                {% if tool.enabled and tool.startable %}
+                <button type="button" class="btn btn-primary" onclick="startTool('{{ tool.id }}')">
+                    ▶ Start Tool
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-disabled" disabled>
+                    {% if not tool.enabled %}Disabled{% else %}Not Available{% endif %}
+                </button>
+                {% endif %}
+                <button type="button" class="btn btn-secondary" onclick="copyCommand('{{ tool.id }}')">
+                    📋 Copy Command
+                </button>
+            </div>
+            
+            {% if tool.notes %}
+            <div class="tool-card-notes">
+                <em>{{ tool.notes }}</em>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="panel tool-hub-info">
+    <div class="section-header">
+        <h3>About Tool Hub</h3>
+    </div>
+    <div class="info-content">
+        <h4>How to Use</h4>
+        <ol>
+            <li><strong>View Tools:</strong> Browse all available MCP servers and tools above</li>
+            <li><strong>Start Tools:</strong> Click "Start Tool" to launch enabled tools, or copy the command to run manually</li>
+            <li><strong>Monitor Status:</strong> Green badges indicate enabled tools; Phase numbers show rollout stage</li>
+            <li><strong>Direct Start:</strong> Use PowerShell at repo root: <code>./START.ps1 -Mode start</code></li>
+        </ol>
+        
+        <h4>Activation Phases</h4>
+        <ul>
+            <li><strong>Phase 1:</strong> Core data generation tools (active)</li>
+            <li><strong>Phase 2:</strong> Analytics and ML tools</li>
+            <li><strong>Phase 3:</strong> Process mining and transformation tools</li>
+            <li><strong>Phase 4:</strong> Backup and utility tools</li>
+        </ul>
+        
+        <h4>Tool Status</h4>
+        <ul>
+            <li><span class="status-badge status-ok">Startable</span> - Tool has been discovered and can be launched</li>
+            <li><span class="status-badge status-warning">Not Startable</span> - Tool not found or prerequisites missing</li>
+            <li><span class="badge badge-enabled">●</span> - Tool is enabled in the registry</li>
+            <li><span class="badge badge-disabled">○</span> - Tool is disabled (awaiting phase activation)</li>
+        </ul>
+        
+        <h4>Command Reference</h4>
+        <table class="reference-table">
+            <tr>
+                <th>Command</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><code>./START.ps1</code></td>
+                <td>Start all enabled tools (default mode)</td>
+            </tr>
+            <tr>
+                <td><code>./START.ps1 -Mode dry-run</code></td>
+                <td>Discover and validate tools without starting</td>
+            </tr>
+            <tr>
+                <td><code>./START.ps1 -Mode status</code></td>
+                <td>Show currently running tool processes</td>
+            </tr>
+            <tr>
+                <td><code>./START.ps1 -Mode stop</code></td>
+                <td>Stop all running tools</td>
+            </tr>
+        </table>
+    </div>
+</section>
+
+<script>
+function startTool(toolId) {
+    alert(`To start "${toolId}", run the command shown in the tool card or use: ./START.ps1`);
+}
+
+function copyCommand(toolId) {
+    const card = event.target.closest('.tool-card');
+    const commandText = card.querySelector('.command-text').textContent;
+    navigator.clipboard.writeText(commandText).then(() => {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => {
+            btn.textContent = originalText;
+        }, 2000);
+    }).catch(err => {
+        alert('Failed to copy command: ' + err);
+    });
+}
+
+// Auto-refresh capability (optional)
+function setupAutoRefresh(intervalSeconds = 30) {
+    const refreshInterval = setInterval(() => {
+        location.reload();
+    }, intervalSeconds * 1000);
+}
+
+// Uncomment to enable auto-refresh every 30 seconds:
+// setupAutoRefresh(30);
+</script>
+
+<style>
+.tool-hub-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+}
+
+.tool-hub-hero h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+}
+
+.tool-hub-hero p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.tool-hub-metadata {
+    text-align: right;
+}
+
+.tool-hub-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.tool-hub-stats .card {
+    padding: 1.5rem;
+    text-align: center;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.tool-hub-stats .metric {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #667eea;
+    margin: 0.5rem 0 0 0;
+}
+
+.tool-hub-hint {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.tool-hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.tool-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.tool-card.is-enabled {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.tool-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.tool-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.tool-card-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+}
+
+.tool-card-info .tool-id {
+    margin: 0;
+    color: #666;
+    font-size: 0.85rem;
+    font-family: monospace;
+}
+
+.tool-card-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.badge-enabled {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-disabled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.badge-phase {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.tool-card-details {
+    margin-bottom: 1rem;
+    flex-grow: 1;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.detail-row strong {
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+}
+
+.detail-row code {
+    background: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #d63384;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-ok {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.shell-badge {
+    background: #e7f3ff;
+    color: #0066cc;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.health-type {
+    background: #f0f0f0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.85rem;
+    font-family: monospace;
+}
+
+.tool-card-command {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+}
+
+.tool-card-command strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.command-text {
+    display: block;
+    padding: 0.5rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    word-break: break-all;
+    overflow-x: auto;
+}
+
+.tool-card-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: #28a745;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #218838;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-disabled {
+    background: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.tool-card-notes {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.tool-hub-info {
+    margin-top: 2rem;
+}
+
+.info-content {
+    line-height: 1.6;
+}
+
+.info-content h4 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #333;
+}
+
+.info-content ol,
+.info-content ul {
+    margin-bottom: 1rem;
+}
+
+.info-content li {
+    margin-bottom: 0.5rem;
+}
+
+.reference-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.reference-table th {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.reference-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.reference-table code {
+    background: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .tool-hub-hero {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .tool-hub-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tool-card-header {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .tool-card-actions {
+        flex-direction: column;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+    }
+}
+</style>
+{% else %}
+<section class="panel">
+    <p>No tools found. Run <code>./START.ps1 -Mode dry-run</code> to discover and generate the tool catalog.</p>
+</section>
+{% endif %}
+
+{% endblock %}

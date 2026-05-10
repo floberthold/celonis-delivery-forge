@@ -9,7 +9,7 @@
 <body>
     <header class="site-header">
         {% set current_path = request.url.path if request and request.url else "" %}
-        {% set operations_active = current_path.startswith('/orchestration-ui') or current_path.startswith('/client-health-ui') or current_path.startswith('/timeline-ui') or current_path.startswith('/kpis-ui') or current_path.startswith('/celonis-credentials-ui') or current_path.startswith('/celonis-discovery-ui') or current_path.startswith('/celonis-deployments-ui') %}
+        {% set operations_active = current_path.startswith('/orchestration-ui') or current_path.startswith('/client-health-ui') or current_path.startswith('/timeline-ui') or current_path.startswith('/kpis-ui') or current_path.startswith('/celonis-credentials-ui') or current_path.startswith('/celonis-discovery-ui') or current_path.startswith('/celonis-deployments-ui') or current_path.startswith('/celonis-tool-hub-ui') %}
         {% set admin_active = current_path.startswith('/people-ui') or current_path.startswith('/clients-ui') or current_path.startswith('/templates-ui') or current_path.startswith('/files-ui') or current_path.startswith('/tenant-ui') or current_path.startswith('/workspace-ui') or current_path.startswith('/celonis-token-admin-ui') %}
         {% set utility_active = current_path.startswith('/account-ui') or current_path.startswith('/docs-site/user') or current_path.startswith('/docs-site/developer') %}
         <div class="container site-header-shell">
@@ -52,6 +52,7 @@
                                                             <a href="/celonis-credentials-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-credentials-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-credentials-ui') %} aria-current="page"{% endif %}>Celonis Credentials</a>
                                                             <a href="/celonis-discovery-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-discovery-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-discovery-ui') %} aria-current="page"{% endif %}>Tenant Discovery</a>
                                                             <a href="/celonis-deployments-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-deployments-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-deployments-ui') %} aria-current="page"{% endif %}>Deployments</a>
+                                                            <a href="/celonis-tool-hub-ui" class="secondary-nav-link{% if current_path.startswith('/celonis-tool-hub-ui') %} is-active{% endif %}"{% if current_path.startswith('/celonis-tool-hub-ui') %} aria-current="page"{% endif %}>Tool Hub</a>
                             </div>
                         </div>
                         <div class="nav-dropdown" data-dropdown>

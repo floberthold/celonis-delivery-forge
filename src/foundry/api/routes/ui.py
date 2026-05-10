@@ -76,6 +76,7 @@ from foundry.models import (
     SnapshotPackage,
     SnapshotSpace,
     SnapshotTask,
+    SnapshotTaskDetail,
     Template,
     TemplateInstantiation,
     TemplateLibrary,
@@ -108,6 +109,16 @@ from foundry.security import (
 from foundry.services.project_service import ProjectService
 from foundry.services.review_service import ReviewService
 from foundry.services.activity_log import log_activity, log_created, log_updated
+from foundry.services.celonis_data_agent_service import list_data_agent_tools
+from foundry.services.celonis_deployment_service import (
+    CelonisDeploymentServiceError,
+    acknowledge_deployment_diff,
+    cancel_deployment_request,
+    create_deployment_request,
+    decide_deployment_request,
+    list_deployment_requests,
+    submit_deployment_for_approval,
+)
 from foundry.services.email_service import send_email
 from foundry.services.template_seed import seed_default_templates
 from foundry.services.template_service import TemplateService
@@ -7773,6 +7784,53 @@ def _get_deploy_request(
     return req
 
 
+@router.get("/celonis-tool-hub-ui", include_in_schema=False)
+def celonis_tool_hub_ui(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    clients = sorted(
+        _org_clients(session, current_actor.organization.id),
+        key=lambda c: c.name.lower(),
+    )
+    approved_deployments = [
+        req
+        for req in list_deployment_requests(session, organization_id=current_actor.organization.id)
+        if req.status == CelonisDeploymentStatus.approved
+    ]
+    client_map = {str(c.id): c.name for c in clients}
+    approved_deployment_rows = [
+        {
+            "id": req.id,
+            "client_name": client_map.get(str(req.client_id), str(req.client_id)),
+            "target_package_key": req.target_package_key,
+            "target_package_name": req.target_package_name,
+        }
+        for req in approved_deployments
+    ]
+    quest_rows = list(
+        session.exec(
+            select(Quest)
+            .where(Quest.organization_id == current_actor.organization.id)
+            .order_by(Quest.created_at.desc())
+        ).all()
+    )[:20]
+    return templates.TemplateResponse(
+        "celonis_tool_hub.html",
+        {
+            "request": request,
+            "active_organization": current_actor.organization,
+            "current_person": current_actor.person,
+            "error_message": request.query_params.get("err"),
+            "clients": clients,
+            "approved_deployments": approved_deployment_rows,
+            "quests": quest_rows,
+            "tools": list_data_agent_tools(),
+        },
+    )
+
+
 @router.get("/celonis-deployments-ui", include_in_schema=False)
 def celonis_deployments_ui(
     request: Request,
@@ -7793,13 +7851,7 @@ def celonis_deployments_ui(
     client_map = {str(c.id): c.name for c in clients}
     project_map = {str(p.id): p.name for p in projects}
 
-    deploy_requests = list(
-        session.exec(
-            select(CelonisDeploymentRequest)
-            .where(CelonisDeploymentRequest.organization_id == current_actor.organization.id)
-            .order_by(CelonisDeploymentRequest.created_at.desc())
-        ).all()
-    )
+    deploy_requests = list_deployment_requests(session, organization_id=current_actor.organization.id)
 
     from collections import Counter
     status_counts = Counter(r.status.value for r in deploy_requests)
@@ -7863,50 +7915,22 @@ def celonis_deployments_create(
     try:
         parsed_client_id = _parse_uuid(client_id, "client_id")
         parsed_project_id = _parse_uuid(project_id, "project_id")
-        if _get_org_client(session, parsed_client_id, current_actor.organization.id) is None:
-            return _redirect_ui("/celonis-deployments-ui", err="Client not found")
-        if _get_org_project(session, parsed_project_id, current_actor.organization.id) is None:
-            return _redirect_ui("/celonis-deployments-ui", err="Project not found")
-        cleaned_run_id = preflight_run_id.strip()
-        preflight_passed = False
-        if cleaned_run_id:
-            matching_logs = [
-                row
-                for row in _org_activity_logs(session, current_actor.organization.id)
-                if row.action == "celonis_connection.preflight"
-                and str((row.metadata_json or {}).get("client_id", "")).strip() == str(parsed_client_id)
-                and str((row.metadata_json or {}).get("run_id", "")).strip() == cleaned_run_id
-            ]
-            preflight_passed = bool(matching_logs) and all(
-                str((row.metadata_json or {}).get("permission_status", "")) == "authorized"
-                for row in matching_logs
-            )
-
-        req = CelonisDeploymentRequest(
-            organization_id=current_actor.organization.id,
-            project_id=parsed_project_id,
-            client_id=parsed_client_id,
-            created_by=current_actor.person.id,
-            target_space_name=target_space_name.strip() or None,
-            target_package_key=target_package_key.strip() or None,
-            target_package_name=target_package_name.strip() or None,
-            preflight_run_id=cleaned_run_id or None,
-            preflight_passed=preflight_passed,
-            notes=notes.strip() or None,
-        )
-        session.add(req)
-        session.commit()
-        session.refresh(req)
-        log_activity(
+        create_deployment_request(
             session,
-            entity_type=EntityType.celonis_deployment_request,
-            entity_id=req.id,
-            actor_id=current_actor.person.id,
-            action="celonis_deployment_request.created",
             organization_id=current_actor.organization.id,
-            metadata={"client_id": str(parsed_client_id), "project_id": str(parsed_project_id)},
+            actor_id=current_actor.person.id,
+            client_id=parsed_client_id,
+            project_id=parsed_project_id,
+            target_space_name=target_space_name,
+            target_package_key=target_package_key,
+            target_package_name=target_package_name,
+            preflight_run_id=preflight_run_id,
+            notes=notes,
         )
         return _redirect_ui("/celonis-deployments-ui", ok="Deployment request created")
+    except CelonisDeploymentServiceError as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=str(exc))
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/celonis-deployments-ui", err=f"Create request failed: {exc}")
@@ -7920,26 +7944,16 @@ def celonis_deployments_acknowledge_diff(
 ):
     try:
         parsed_id = _parse_uuid(deploy_id, "deploy_id")
-        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
-        if not req:
-            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
-        if req.status != CelonisDeploymentStatus.draft:
-            return _redirect_ui("/celonis-deployments-ui", err="Can only acknowledge diff on draft requests")
-        req.permission_diff_acknowledged = True
-        req.permission_diff_acknowledged_by = current_actor.person.id
-        req.updated_at = datetime.utcnow()
-        session.add(req)
-        session.commit()
-        log_activity(
+        acknowledge_deployment_diff(
             session,
-            entity_type=EntityType.celonis_deployment_request,
-            entity_id=req.id,
-            actor_id=current_actor.person.id,
-            action="celonis_deployment_request.diff_acknowledged",
             organization_id=current_actor.organization.id,
-            metadata={},
+            actor_id=current_actor.person.id,
+            deployment_request_id=parsed_id,
         )
         return _redirect_ui("/celonis-deployments-ui", ok="Permission diff acknowledged")
+    except CelonisDeploymentServiceError as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=str(exc))
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/celonis-deployments-ui", err=f"Acknowledge diff failed: {exc}")
@@ -7953,35 +7967,16 @@ def celonis_deployments_submit_for_approval(
 ):
     try:
         parsed_id = _parse_uuid(deploy_id, "deploy_id")
-        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
-        if not req:
-            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
-        if req.status != CelonisDeploymentStatus.draft:
-            return _redirect_ui("/celonis-deployments-ui", err="Only draft requests can be submitted")
-        if not req.preflight_passed:
-            return _redirect_ui(
-                "/celonis-deployments-ui",
-                err="Preflight must pass before submitting for approval — run preflight in Tenant Discovery first",
-            )
-        if not req.permission_diff_acknowledged:
-            return _redirect_ui(
-                "/celonis-deployments-ui",
-                err="Permission diff must be acknowledged before submitting for approval",
-            )
-        req.status = CelonisDeploymentStatus.awaiting_approval
-        req.updated_at = datetime.utcnow()
-        session.add(req)
-        session.commit()
-        log_activity(
+        submit_deployment_for_approval(
             session,
-            entity_type=EntityType.celonis_deployment_request,
-            entity_id=req.id,
-            actor_id=current_actor.person.id,
-            action="celonis_deployment_request.submitted_for_approval",
             organization_id=current_actor.organization.id,
-            metadata={},
+            actor_id=current_actor.person.id,
+            deployment_request_id=parsed_id,
         )
         return _redirect_ui("/celonis-deployments-ui", ok="Request submitted for approval")
+    except CelonisDeploymentServiceError as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=str(exc))
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/celonis-deployments-ui", err=f"Submit for approval failed: {exc}")
@@ -7997,42 +7992,21 @@ def celonis_deployments_approve(
 ):
     try:
         parsed_id = _parse_uuid(deploy_id, "deploy_id")
-        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
-        if not req:
-            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
-        if req.status != CelonisDeploymentStatus.awaiting_approval:
-            return _redirect_ui("/celonis-deployments-ui", err="Request is not awaiting approval")
-        if str(req.created_by) == str(current_actor.person.id):
-            return _redirect_ui(
-                "/celonis-deployments-ui",
-                err="The request creator cannot be the reviewer — a different team member must approve",
-            )
-        if decision not in ("approved", "rejected"):
-            return _redirect_ui("/celonis-deployments-ui", err="Invalid decision value")
-        req.reviewer_id = current_actor.person.id
-        req.reviewer_decision = decision
-        req.reviewer_note = reviewer_note.strip() or None
-        req.status = (
-            CelonisDeploymentStatus.approved
-            if decision == "approved"
-            else CelonisDeploymentStatus.draft
-        )
-        req.updated_at = datetime.utcnow()
-        session.add(req)
-        session.commit()
-        log_activity(
+        decide_deployment_request(
             session,
-            entity_type=EntityType.celonis_deployment_request,
-            entity_id=req.id,
-            actor_id=current_actor.person.id,
-            action=f"celonis_deployment_request.{decision}",
             organization_id=current_actor.organization.id,
-            metadata={"decision": decision},
+            actor_id=current_actor.person.id,
+            deployment_request_id=parsed_id,
+            decision=decision,
+            reviewer_note=reviewer_note,
         )
         return _redirect_ui(
             "/celonis-deployments-ui",
             ok=f"Request {decision}",
         )
+    except CelonisDeploymentServiceError as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=str(exc))
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/celonis-deployments-ui", err=f"Review action failed: {exc}")
@@ -8046,25 +8020,16 @@ def celonis_deployments_cancel(
 ):
     try:
         parsed_id = _parse_uuid(deploy_id, "deploy_id")
-        req = _get_deploy_request(session, parsed_id, current_actor.organization.id)
-        if not req:
-            return _redirect_ui("/celonis-deployments-ui", err="Deployment request not found")
-        if req.status == CelonisDeploymentStatus.cancelled:
-            return _redirect_ui("/celonis-deployments-ui", err="Request is already cancelled")
-        req.status = CelonisDeploymentStatus.cancelled
-        req.updated_at = datetime.utcnow()
-        session.add(req)
-        session.commit()
-        log_activity(
+        cancel_deployment_request(
             session,
-            entity_type=EntityType.celonis_deployment_request,
-            entity_id=req.id,
-            actor_id=current_actor.person.id,
-            action="celonis_deployment_request.cancelled",
             organization_id=current_actor.organization.id,
-            metadata={},
+            actor_id=current_actor.person.id,
+            deployment_request_id=parsed_id,
         )
         return _redirect_ui("/celonis-deployments-ui", ok="Request cancelled")
+    except CelonisDeploymentServiceError as exc:
+        session.rollback()
+        return _redirect_ui("/celonis-deployments-ui", err=str(exc))
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/celonis-deployments-ui", err=f"Cancel request failed: {exc}")
@@ -8466,6 +8431,9 @@ def snapshot_detail_ui(
     knowledge_models = session.exec(
         select(SnapshotKnowledgeModel).where(SnapshotKnowledgeModel.snapshot_id == snapshot_id)
     ).all()
+    task_details = session.exec(
+        select(SnapshotTaskDetail).where(SnapshotTaskDetail.snapshot_id == snapshot_id)
+    ).all()
 
     baseline_snapshot: CelonisSnapshot | None = None
     baseline_packages: Sequence[SnapshotPackage] = []
@@ -8553,6 +8521,25 @@ def snapshot_detail_ui(
     for task in tasks:
         package_tasks.setdefault(task.package_id or "", []).append(task)
 
+    task_detail_by_task_id = {row.task_id: row for row in task_details}
+    task_detail_rows: list[dict[str, object]] = []
+    for task in sorted(tasks, key=lambda row: ((row.name or "").lower(), row.task_id)):
+        detail = task_detail_by_task_id.get(task.task_id)
+        references_json = detail.references_json if detail else {}
+        reference_assets = references_json.get("assets") if isinstance(references_json, dict) else []
+        reference_tables = references_json.get("tables") if isinstance(references_json, dict) else []
+        reference_columns = references_json.get("columns") if isinstance(references_json, dict) else []
+        task_detail_rows.append(
+            {
+                "task": task,
+                "detail": detail,
+                "reference_assets": reference_assets if isinstance(reference_assets, list) else [],
+                "reference_tables": reference_tables if isinstance(reference_tables, list) else [],
+                "reference_columns": reference_columns if isinstance(reference_columns, list) else [],
+                "dependency_count": len(detail.dependencies_json) if detail else 0,
+            }
+        )
+
     hierarchy_spaces, hierarchy_asset_types = _snapshot_hierarchy_spaces(
         spaces=spaces,
         packages=packages,
@@ -8629,6 +8616,8 @@ def snapshot_detail_ui(
             "snap": snap,
             "spaces": spaces,
             "tasks": tasks,
+            "task_details": task_details,
+            "task_detail_rows": task_detail_rows,
             "packages": packages,
             "data_models": data_models,
             "jobs": jobs,
@@ -8860,10 +8849,12 @@ def snapshot_export_ui(
             if wants_json:
                 return JSONResponse({"ok": False, "error": "Snapshot not found"}, status_code=404)
             return _redirect_ui(f"/snapshots-ui/{client_id}", err="Snapshot not found")
+        settings = get_settings()
+        output_dir = getattr(settings, "generated_dir", settings.uploads_dir)
         result = build_snapshot_export(
             session,
             snapshot_id=snapshot_id,
-            base_output_dir=Path(get_settings().generated_dir) / "snapshot_exports",
+            base_output_dir=Path(output_dir) / "snapshot_exports",
         )
         if wants_json:
             return {
@@ -8907,10 +8898,12 @@ def snapshot_download_ui(
         return _redirect_ui(f"/snapshots-ui/{client_id}", err="Snapshot not found")
 
     try:
+        settings = get_settings()
+        output_dir = getattr(settings, "generated_dir", settings.uploads_dir)
         result = build_snapshot_export(
             session,
             snapshot_id=snapshot_id,
-            base_output_dir=Path(get_settings().generated_dir) / "snapshot_exports",
+            base_output_dir=Path(output_dir) / "snapshot_exports",
         )
         return FileResponse(
             path=result["bundle_path"],
@@ -8992,6 +8985,60 @@ def snapshot_coverage_download_ui(
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Tool Hub UI
+# ---------------------------------------------------------------------------
+
+@router.get("/celonis-tool-hub-ui")
+def tool_hub_ui(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_actor: CurrentActor = Depends(get_current_actor_with_org),
+):
+    """Display tool hub catalog with status and controls."""
+    import json
+    
+    try:
+        catalog_path = Path(get_settings().uploads_dir).parent / ".orchestration/tool-hub/catalog.json"
+        tools = []
+        generated_at = None
+        tool_count = 0
+        
+        if catalog_path.exists():
+            catalog_data = json.loads(catalog_path.read_text())
+            tools = catalog_data.get("tools", [])
+            generated_at = catalog_data.get("generated_at_utc", "Unknown")
+            tool_count = len(tools)
+        
+        ok_message = request.query_params.get("ok")
+        error_message = request.query_params.get("err")
+        
+        return templates.TemplateResponse(
+            "celonis-tool-hub-ui.html",
+            {
+                "request": request,
+                "tools": tools,
+                "tool_count": tool_count,
+                "generated_at": generated_at,
+                "ok_message": ok_message,
+                "error_message": error_message,
+            },
+        )
+    except Exception as exc:
+        error_message = f"Error loading tool hub catalog: {str(exc)}"
+        return templates.TemplateResponse(
+            "celonis-tool-hub-ui.html",
+            {
+                "request": request,
+                "tools": [],
+                "tool_count": 0,
+                "generated_at": None,
+                "ok_message": None,
+                "error_message": error_message,
+            },
+        )
 
 
 # ---------------------------------------------------------------------------
