@@ -26,6 +26,8 @@ if (-not (Test-Path $VaultPath)) {
 
 $env:LWQ_VAULT_PATH = (Resolve-Path $VaultPath).Path
 $env:LWQ_API_PORT = [string]$Port
+$env:LWQ_REQUIRE_LOCAL_MODELS = "true"
+$env:PYTHONPATH = $querySrcPath
 
 if (-not [string]::IsNullOrWhiteSpace($FastModel)) {
     $env:LWQ_FAST_MODEL = $FastModel
@@ -38,4 +40,4 @@ Write-Host "Starting local knowledge gateway..."
 Write-Host "  LWQ_VAULT_PATH=$env:LWQ_VAULT_PATH"
 Write-Host "  Host=$BindHost Port=$Port"
 
-python -m uvicorn local_wiki_query.api:create_app --factory --host $BindHost --port $Port --app-dir "$querySrcPath"
+python -m uvicorn local_wiki_query.api:create_app --factory --host $BindHost --port $Port

@@ -10,6 +10,19 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $repoRoot
 
+$parsedApiBaseUrl = $null
+if (-not [System.Uri]::TryCreate($ApiBaseUrl, [System.UriKind]::Absolute, [ref]$parsedApiBaseUrl)) {
+    throw "ApiBaseUrl must be an absolute URL. Received: $ApiBaseUrl"
+}
+$apiHost = ""
+if ($parsedApiBaseUrl -and $parsedApiBaseUrl.Host) {
+    $apiHost = $parsedApiBaseUrl.Host.ToLowerInvariant()
+}
+$isLocalApiHost = @("localhost", "127.0.0.1", "::1") -contains $apiHost
+if (-not $isLocalApiHost) {
+    throw "ApiBaseUrl must target a local endpoint for sensitive local wiki usage. Received host: $apiHost"
+}
+
 $openWebUiDataDir = Join-Path $repoRoot ".orchestration\open-webui\data"
 New-Item -ItemType Directory -Path $openWebUiDataDir -Force | Out-Null
 
@@ -17,6 +30,12 @@ $env:OPENAI_API_BASE_URL = $ApiBaseUrl
 $env:OPENAI_API_KEY = $ApiKey
 $env:DATA_DIR = $openWebUiDataDir
 $env:FROM_INIT_PY = "true"
+$env:ENABLE_PERSISTENT_CONFIG = "false"
+$env:ENABLE_OPENAI_API = "true"
+$env:ENABLE_OLLAMA_API = "false"
+$env:DEFAULT_MODELS = "local-wiki-query/smollm2:135m"
+$env:OLLAMA_BASE_URL = ""
+$env:OLLAMA_BASE_URLS = ""
 
 $openWebUiLaunch = ""
 $openWebUiExecutable = ""
