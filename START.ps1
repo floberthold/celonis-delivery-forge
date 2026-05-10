@@ -2,6 +2,7 @@
 param(
     [ValidateSet("hub", "api-only", "api-fast", "status", "stop", "dry-run")]
     [string]$Mode = "hub",
+    [string]$Profile = "full",
     [switch]$IncludeAutoDiscovered,
     [switch]$SkipDependencyInstall
 )
@@ -69,7 +70,8 @@ $hubArgs = @(
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",
     "-File", $hubScript,
-    "-Mode", $hubMode
+    "-Mode", $hubMode,
+    "-Profile", $Profile
 )
 
 if ($IncludeAutoDiscovered) {

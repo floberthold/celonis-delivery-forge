@@ -5,6 +5,7 @@
     {
       "id": "foundry-api",
       "display_name": "Foundry API",
+      "domain": "core-platform",
       "repo_path": ".",
       "enabled": true,
       "shell": "powershell",
@@ -19,6 +20,7 @@
     {
       "id": "celonis-data-agent-mcp",
       "display_name": "Celonis Data Agent MCP",
+      "domain": "celonis-agent",
       "repo_path": "external resources/Code by Florian/celonis-data-agent",
       "enabled": true,
       "shell": "powershell",
@@ -32,6 +34,7 @@
     {
       "id": "local-wiki-query-api",
       "display_name": "Local Wiki Query API",
+      "domain": "knowledge-hub",
       "repo_path": ".",
       "enabled": true,
       "shell": "powershell",
@@ -47,6 +50,7 @@
     {
       "id": "local-wiki-open-webui",
       "display_name": "Open WebUI (Local Wiki)",
+      "domain": "knowledge-hub",
       "repo_path": ".",
       "enabled": true,
       "shell": "powershell",
@@ -62,6 +66,7 @@
     {
       "id": "pycelonis-tools",
       "display_name": "pyCelonis tools",
+      "domain": "external-experiments",
       "repo_path": "external resources/Projects at Work/pyCelonis-tools",
       "enabled": false,
       "shell": "powershell",
@@ -76,6 +81,7 @@
     {
       "id": "pycelonis-fuchs",
       "display_name": "pyCelonis for Fuchs",
+      "domain": "external-experiments",
       "repo_path": "external resources/Projects at Work/pyCelonis%20-%20for%20Fuchs",
       "enabled": false,
       "shell": "powershell",
@@ -90,6 +96,7 @@
     {
       "id": "pycelonis-ocpm-migration",
       "display_name": "pyCelonis OCPM migration tool",
+      "domain": "external-experiments",
       "repo_path": "external resources/Projects at Work/pyCelonis%20-%20OCPM%20migration%20tool",
       "enabled": false,
       "shell": "powershell",
@@ -104,6 +111,7 @@
     {
       "id": "celonis-app-backups",
       "display_name": "Celonis app backups",
+      "domain": "external-experiments",
       "repo_path": "external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-app-backups",
       "enabled": false,
       "shell": "powershell",
@@ -118,6 +126,7 @@
     {
       "id": "celonis-mlwb",
       "display_name": "Celonis MLWB",
+      "domain": "external-experiments",
       "repo_path": "external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-mlwb",
       "enabled": false,
       "shell": "powershell",
@@ -132,6 +141,7 @@
     {
       "id": "dummy-data-creator-sap",
       "display_name": "Dummy data creator SAP",
+      "domain": "data-utils",
       "repo_path": "external resources/Projects at Work/Celonis AI Demand Forecast App/dummy-data-creator-sap",
       "enabled": true,
       "shell": "powershell",

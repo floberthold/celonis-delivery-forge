@@ -3,6 +3,8 @@ param(
     [ValidateSet("start", "dry-run", "status", "stop")]
     [string]$Mode = "start",
     [string]$RegistryPath = ".\agentic\tool-hub\tool_hub_registry.json",
+    [string]$ProfilesPath = ".\agentic\tool-hub\tool_hub_profiles.json",
+    [string]$Profile = "full",
     [switch]$IncludeAutoDiscovered,
     [switch]$SkipDependencyInstall
 )
@@ -11,6 +13,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $registryAbsolutePath = Join-Path $repoRoot $RegistryPath
+$profilesAbsolutePath = Join-Path $repoRoot $ProfilesPath
 $runtimeRoot = Join-Path $repoRoot ".orchestration\tool-hub"
 $statePath = Join-Path $runtimeRoot "state.json"
 $catalogPath = Join-Path $runtimeRoot "catalog.json"
@@ -142,6 +145,15 @@ function Get-ToolCatalog {
         throw "Registry file not found: $registryAbsolutePath"
     }
 
+    $profilesConfig = Read-Json -Path $profilesAbsolutePath
+    $selectedProfile = $null
+    if ($null -ne $profilesConfig -and $profilesConfig.PSObject.Properties.Name -contains "profiles") {
+        $selectedProfile = @($profilesConfig.profiles) | Where-Object { $_.id -eq $Profile } | Select-Object -First 1
+        if ($null -eq $selectedProfile) {
+            throw "Profile '$Profile' not found in $profilesAbsolutePath"
+        }
+    }
+
     $manualTools = @($registry.tools)
     $autoTools = @()
     if ($IncludeAutoDiscovered) {
@@ -152,15 +164,43 @@ function Get-ToolCatalog {
     foreach ($tool in $manualTools + $autoTools) {
         $toolPath = Resolve-ToolPath -Tool $tool
         $startable = ($null -ne $toolPath) -and (-not [string]::IsNullOrWhiteSpace($tool.command))
+        $domain = if ($tool.PSObject.Properties.Name -contains "domain") { $tool.domain } else { "unassigned" }
+
+        $profileAllowsTool = $true
+        if ($null -ne $selectedProfile) {
+            $includeDomains = @()
+            $includeToolIds = @()
+            $excludeToolIds = @()
+
+            if ($selectedProfile.PSObject.Properties.Name -contains "include_domains") {
+                $includeDomains = @($selectedProfile.include_domains)
+            }
+            if ($selectedProfile.PSObject.Properties.Name -contains "include_tool_ids") {
+                $includeToolIds = @($selectedProfile.include_tool_ids)
+            }
+            if ($selectedProfile.PSObject.Properties.Name -contains "exclude_tool_ids") {
+                $excludeToolIds = @($selectedProfile.exclude_tool_ids)
+            }
+
+            $allowsAllDomains = $includeDomains -contains "*"
+            $domainAllowed = $allowsAllDomains -or ($includeDomains.Count -eq 0) -or ($includeDomains -contains $domain)
+            $explicitToolIncluded = ($includeToolIds -contains $tool.id)
+            $toolExcluded = ($excludeToolIds -contains $tool.id)
+
+            $profileAllowsTool = ($domainAllowed -or $explicitToolIncluded) -and (-not $toolExcluded)
+        }
+
+        $enabled = [bool]$tool.enabled -and $profileAllowsTool
 
         $catalog += [pscustomobject]@{
             id = $tool.id
             display_name = $tool.display_name
             repo_path = $tool.repo_path
             absolute_repo_path = $toolPath
+            domain = $domain
             shell = $tool.shell
             command = $tool.command
-            enabled = [bool]$tool.enabled
+            enabled = $enabled
             install_editable = [bool]$tool.install_editable
             startable = $startable
             source = if ($tool.PSObject.Properties.Name -contains "source") { $tool.source } else { "registry" }
@@ -289,6 +329,7 @@ $catalog = Get-ToolCatalog
 Write-Json -InputObject ([pscustomobject]@{
     generated_at_utc = (Get-Date).ToUniversalTime().ToString("o")
     mode = $Mode
+    profile = $Profile
     include_auto_discovered = [bool]$IncludeAutoDiscovered
     tools = $catalog
 }) -Path $catalogPath
@@ -296,8 +337,9 @@ Write-Json -InputObject ([pscustomobject]@{
 if ($Mode -eq "dry-run") {
     Write-Host "Tool Hub dry-run complete." -ForegroundColor Cyan
     Write-Host "Catalog written to: $catalogPath" -ForegroundColor Gray
+    Write-Host "Profile: $Profile" -ForegroundColor Gray
     $catalog |
-        Select-Object id, enabled, startable, source, repo_path |
+        Select-Object id, domain, enabled, startable, source, repo_path |
         Format-Table -AutoSize
     exit 0
 }

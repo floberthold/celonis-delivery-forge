@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "description": "Runtime activation profiles for domain-oriented local-first startup.",
+  "profiles": [
+    {
+      "id": "full",
+      "display_name": "Full Workspace",
+      "include_domains": ["*"],
+      "exclude_tool_ids": []
+    },
+    {
+      "id": "pilot-core",
+      "display_name": "Pilot Core (Small User Test)",
+      "include_domains": ["core-platform"],
+      "include_tool_ids": [],
+      "exclude_tool_ids": []
+    },
+    {
+      "id": "pilot-core-plus-knowledge",
+      "display_name": "Pilot Core + Knowledge Hub",
+      "include_domains": ["core-platform", "knowledge-hub"],
+      "include_tool_ids": [],
+      "exclude_tool_ids": []
+    },
+    {
+      "id": "integration-celonis",
+      "display_name": "Core + Celonis Agent",
+      "include_domains": ["core-platform", "celonis-agent"],
+      "include_tool_ids": [],
+      "exclude_tool_ids": []
+    }
+  ]
+}
