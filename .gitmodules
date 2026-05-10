@@ -13,3 +13,12 @@
 [submodule "external resources/Code by Florian/celonis-data-agent"]
 	path = external resources/Code by Florian/celonis-data-agent
 	url = https://github.com/floberthold/celonis-data-agent.git
+[submodule "external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-app-backups"]
+	path = external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-app-backups
+	url = https://roboyo@dev.azure.com/roboyo/Celonis%20Apps/_git/celonis-app-backups
+[submodule "external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-mlwb"]
+	path = external resources/Projects at Work/Celonis AI Demand Forecast App/celonis-mlwb
+	url = https://roboyo@dev.azure.com/roboyo/Celonis%20Apps/_git/celonis-mlwb
+[submodule "external resources/Projects at Work/Celonis AI Demand Forecast App/dummy-data-creator-sap"]
+	path = external resources/Projects at Work/Celonis AI Demand Forecast App/dummy-data-creator-sap
+	url = https://roboyo@dev.azure.com/roboyo/Celonis%20Apps/_git/dummy-data-creator-sap
