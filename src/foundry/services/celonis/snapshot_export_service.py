@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 from urllib.parse import urlparse
@@ -175,7 +175,7 @@ def _build_snapshot_mirror(
             "client_id": str(snapshot.client_id),
             "client_name": client_label,
             "tenant_url": tenant_source,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             "counts": counts,
             "delta_counts": {
                 asset_name: payload["counts"]
@@ -744,7 +744,7 @@ def _build_delta(
     return {
         "snapshot_id": str(current_snapshot.id),
         "previous_snapshot_id": str(previous_snapshot.id) if previous_snapshot else None,
-        "computed_at": datetime.utcnow().isoformat(),
+        "computed_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
         "assets": {
             "spaces": space_diff,
             "packages": package_diff,
@@ -994,7 +994,7 @@ def build_snapshot_replay_plan(
     return {
         "snapshot_id": snapshot_id,
         "previous_snapshot_id": previous_snapshot.id if previous_snapshot else None,
-        "generated_at": datetime.utcnow(),
+        "generated_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "dry_run": True,
         "summary": {
             "steps_total": len(steps),
@@ -1041,7 +1041,7 @@ def _generate_docs(
         f"- Status: {snapshot.status.value}",
         f"- Started: {snapshot.started_at}",
         f"- Finished: {snapshot.finished_at}",
-        f"- Generated At: {datetime.utcnow().isoformat()}",
+        f"- Generated At: {datetime.now(timezone.utc).replace(tzinfo=None).isoformat()}",
         "",
         "## Asset Counts",
         "",
@@ -1218,7 +1218,7 @@ def build_snapshot_export(
         transformation_rows=transformation_rows,
     )
 
-    ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(timezone.utc).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     export_dir = base_output_dir / f"snapshot_{snapshot_id}_{ts}"
     data_dir = export_dir / "data"
     docs_dir = export_dir / "docs"
@@ -1243,7 +1243,7 @@ def build_snapshot_export(
         {
             "snapshot_id": str(snapshot_id),
             "client_id": str(snapshot.client_id),
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             "status": snapshot.status.value,
             "previous_snapshot_id": str(previous_snapshot.id) if previous_snapshot else None,
             "counts": asset_counts,
@@ -1409,7 +1409,7 @@ def build_snapshot_export(
         "mirror_dir": str(mirror_dir.resolve()),
         "bundle_path": str(bundle_path.resolve()),
         "docs_path": str(docs_dir.resolve()),
-        "generated_at": datetime.utcnow(),
+        "generated_at": datetime.now(timezone.utc).replace(tzinfo=None),
         "asset_counts": asset_counts,
         "delta_counts": {
             asset_name: payload["counts"]
@@ -1420,3 +1420,6 @@ def build_snapshot_export(
             "edges": len(relationship_graph["edges"]),
         },
     }
+
+
+

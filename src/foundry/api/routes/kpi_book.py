@@ -70,8 +70,8 @@ def update_entry(
         raise HTTPException(status_code=404, detail="Entry not found")
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(entry, field, value)
-    from datetime import datetime
-    entry.updated_at = datetime.utcnow()
+    from datetime import datetime, timezone
+    entry.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(entry)
     session.commit()
     session.refresh(entry)
@@ -89,3 +89,4 @@ def delete_entry(
         raise HTTPException(status_code=404, detail="Entry not found")
     session.delete(entry)
     session.commit()
+

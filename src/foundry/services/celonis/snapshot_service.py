@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -666,7 +666,7 @@ def preflight_snapshot_endpoints(
     return {
         "client_id": str(client_id),
         "tenant_base_url": base_url,
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
         "summary": summary,
         "diagnostics": diagnostics,
     }
@@ -693,7 +693,7 @@ def run_snapshot(
         client_id=client_id,
         triggered_by=triggered_by,
         status=SnapshotRunStatus.running,
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
     session.add(snap)
     session.commit()
@@ -1036,7 +1036,7 @@ def run_snapshot(
 
         # ---- finalize ----
         snap.status = SnapshotRunStatus.completed
-        snap.finished_at = datetime.utcnow()
+        snap.finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
         updated_summary = {
             "spaces": len(raw_spaces),
             "packages": len(raw_packages),
@@ -1120,7 +1120,7 @@ def run_snapshot(
 
     except Exception as exc:
         snap.status = SnapshotRunStatus.failed
-        snap.finished_at = datetime.utcnow()
+        snap.finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
         snap.error_message = str(exc)
         session.add(snap)
         session.commit()
@@ -1128,3 +1128,6 @@ def run_snapshot(
         raise
 
     return snap
+
+
+

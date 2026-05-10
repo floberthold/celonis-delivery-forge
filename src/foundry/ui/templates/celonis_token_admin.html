@@ -59,7 +59,12 @@
                 <form method="post" action="/celonis-token-admin-ui/update">
                     <input type="hidden" name="token_id" value="{{ row.id }}">
                     <td>{{ row.person_name }}<br><span class="muted-note">{{ row.person_email }}</span></td>
-                    <td>{{ row.target_name }}</td>
+                    <td>
+                        {{ row.target_name }}
+                        {% if row.token_name %}
+                        <br><span class="muted-note">{{ row.token_name }}</span>
+                        {% endif %}
+                    </td>
                     <td>{{ row.scope }}</td>
                     <td>
                         <input type="password" name="token_value" placeholder="Paste replacement token..." required autocomplete="off">
@@ -89,7 +94,12 @@
             {% else %}
             <tr>
                 <td>{{ row.person_name }}<br><span class="muted-note">{{ row.person_email }}</span></td>
-                <td>{{ row.target_name }}</td>
+                <td>
+                    {{ row.target_name }}
+                    {% if row.token_name %}
+                    <br><span class="muted-note">{{ row.token_name }}</span>
+                    {% endif %}
+                </td>
                 <td>{{ row.scope }}</td>
                 <td>{{ row.token_preview }}</td>
                 <td>

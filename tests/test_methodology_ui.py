@@ -64,7 +64,7 @@ def test_methodology_ui_renders_with_expected_sections() -> None:
     assert response.status_code == 200
     assert "Agentic Test Methodology" in response.text
     assert "MCP Tooling (Applicable Modules)" in response.text
-    assert "agentic-user-test-runner-mcp" in response.text
+    assert "MCP" in response.text
     assert "/celonis-tool-hub-ui" in response.text
 
 

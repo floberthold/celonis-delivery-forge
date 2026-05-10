@@ -25,8 +25,7 @@ def client_health_ui(
 ):
     from . import _client_health_context, templates
 
-    return templates.TemplateResponse(
-        "client_health.html",
+    return templates.TemplateResponse(request, "client_health.html",
         _client_health_context(request, session, current_actor),
     )
 
@@ -281,3 +280,4 @@ def client_health_download_metrics(
         )
     except Exception as exc:
         return _redirect_ui("/client-health-ui", err=f"Metrics download failed: {exc}")
+

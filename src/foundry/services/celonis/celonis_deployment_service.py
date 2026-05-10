@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlmodel import Session, select
@@ -219,7 +219,7 @@ def acknowledge_deployment_diff(
 
     req.permission_diff_acknowledged = True
     req.permission_diff_acknowledged_by = actor_id
-    req.updated_at = datetime.utcnow()
+    req.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(req)
     session.commit()
     session.refresh(req)
@@ -261,7 +261,7 @@ def submit_deployment_for_approval(
         )
 
     req.status = CelonisDeploymentStatus.awaiting_approval
-    req.updated_at = datetime.utcnow()
+    req.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(req)
     session.commit()
     session.refresh(req)
@@ -296,7 +296,7 @@ def assign_deployment_reviewer(
         raise CelonisDeploymentServiceError("Reviewer not found in organization")
 
     req.reviewer_id = reviewer_id
-    req.updated_at = datetime.utcnow()
+    req.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(req)
     session.commit()
     session.refresh(req)
@@ -342,7 +342,7 @@ def decide_deployment_request(
     req.status = (
         CelonisDeploymentStatus.approved if decision == "approved" else CelonisDeploymentStatus.draft
     )
-    req.updated_at = datetime.utcnow()
+    req.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(req)
     session.commit()
     session.refresh(req)
@@ -372,7 +372,7 @@ def cancel_deployment_request(
         raise CelonisDeploymentServiceError("Request is already cancelled")
 
     req.status = CelonisDeploymentStatus.cancelled
-    req.updated_at = datetime.utcnow()
+    req.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(req)
     session.commit()
     session.refresh(req)
@@ -386,3 +386,5 @@ def cancel_deployment_request(
         metadata={},
     )
     return req
+
+

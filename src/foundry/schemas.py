@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from foundry.models import (
     ArtifactType,
@@ -54,9 +54,7 @@ class OrganizationOut(BaseModel):
     slug: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class OrganizationMembershipOut(BaseModel):
     id: UUID
@@ -65,9 +63,7 @@ class OrganizationMembershipOut(BaseModel):
     role: OrganizationRole
     joined_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class ClientCreate(BaseModel):
     name: str
@@ -134,9 +130,7 @@ class TemplateOut(BaseModel):
     created_by: Optional[UUID]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class TemplateInstantiationOut(BaseModel):
     id: UUID
@@ -151,9 +145,7 @@ class TemplateInstantiationOut(BaseModel):
     review_request_id: Optional[UUID]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class DeliveryFileLinkCreate(BaseModel):
     name: str
@@ -188,9 +180,7 @@ class DeliveryFileOut(BaseModel):
     uploaded_by: Optional[UUID]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class FileViewerUrlResponse(BaseModel):
     viewer_url: Optional[str] = None
@@ -252,9 +242,7 @@ class ReviewRequestOut(BaseModel):
     submitted_at: Optional[datetime]
     decision_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class CelonisConnectionUpsert(BaseModel):
     client_id: UUID
@@ -270,9 +258,7 @@ class CelonisConnectionOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class CelonisUserTokenUpdate(BaseModel):
     token_value: str = Field(min_length=1, max_length=8192)
@@ -383,9 +369,7 @@ class CelonisDeploymentRequestOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class CelonisDeploymentHistoryEventOut(BaseModel):
     id: UUID
@@ -458,9 +442,7 @@ class AssetSourceOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class AssetSnapshotCreate(BaseModel):
     version_label: str
@@ -478,9 +460,7 @@ class AssetSnapshotOut(BaseModel):
     summary_json: dict
     received_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotGitHistoryOut(BaseModel):
     snapshot_id: UUID
@@ -539,9 +519,7 @@ class IngestRunOut(BaseModel):
     metrics_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class IngestFindingCreate(BaseModel):
     severity: IngestFindingSeverity = IngestFindingSeverity.warning
@@ -565,9 +543,7 @@ class IngestFindingOut(BaseModel):
     metadata_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class CodeDropIngestRequest(BaseModel):
     asset_source_id: UUID
@@ -680,9 +656,7 @@ class GitLabPipelineRunOut(BaseModel):
     web_url: Optional[str]
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class UseCaseCreate(BaseModel):
     title: str
@@ -737,9 +711,7 @@ class UseCaseOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class UseCaseViewOut(BaseModel):
     id: UUID
@@ -809,9 +781,7 @@ class UseCaseRoadmapItemOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class TodoCreate(BaseModel):
     title: str
@@ -853,9 +823,7 @@ class TodoOut(BaseModel):
     updated_at: datetime
     completed_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class QuestCreate(BaseModel):
     title: str
@@ -912,9 +880,7 @@ class QuestOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class QuestFeedbackCreate(BaseModel):
     feedback_type: QuestFeedbackType
@@ -945,9 +911,7 @@ class QuestObjectiveOut(BaseModel):
     completed_at: Optional[datetime]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class QuestAssignmentCreate(BaseModel):
     agent_id: Optional[UUID] = None
@@ -971,9 +935,7 @@ class QuestAssignmentOut(BaseModel):
     assigned_by: Optional[UUID]
     assigned_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class ForumInsightCreate(BaseModel):
     topic: str
@@ -1023,9 +985,7 @@ class ForumInsightOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class KpiCreate(BaseModel):
     project_id: UUID
@@ -1073,9 +1033,7 @@ class KpiOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 # ---------------------------------------------------------------------------
 # Celonis Snapshot Engine schemas
@@ -1096,9 +1054,7 @@ class CelonisSnapshotOut(BaseModel):
     summary_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotPackageOut(BaseModel):
     id: UUID
@@ -1113,9 +1069,7 @@ class SnapshotPackageOut(BaseModel):
     raw_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotTaskOut(BaseModel):
     id: UUID
@@ -1132,9 +1086,7 @@ class SnapshotTaskOut(BaseModel):
     raw_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotTaskDetailOut(BaseModel):
     id: UUID
@@ -1150,9 +1102,7 @@ class SnapshotTaskDetailOut(BaseModel):
     error_message: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotDataModelOut(BaseModel):
     id: UUID
@@ -1166,9 +1116,7 @@ class SnapshotDataModelOut(BaseModel):
     raw_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotJobOut(BaseModel):
     id: UUID
@@ -1182,9 +1130,7 @@ class SnapshotJobOut(BaseModel):
     raw_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotKnowledgeModelOut(BaseModel):
     id: UUID
@@ -1198,9 +1144,7 @@ class SnapshotKnowledgeModelOut(BaseModel):
     raw_json: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class KpiBookEntryCreate(BaseModel):
     client_id: UUID
@@ -1241,9 +1185,7 @@ class KpiBookEntryOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class SnapshotExportOut(BaseModel):
     snapshot_id: UUID
@@ -1273,3 +1215,5 @@ class SnapshotReplayPlanOut(BaseModel):
     dry_run: bool
     summary: dict
     steps: list[SnapshotReplayPlanStepOut]
+
+

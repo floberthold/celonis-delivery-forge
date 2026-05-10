@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID
@@ -103,7 +103,7 @@ def _seed_snapshot_data() -> dict[str, str]:
         session.commit()
         session.refresh(client_a)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         prev_snapshot = CelonisSnapshot(
             client_id=client_a.id,
             triggered_by=person_a.id,
@@ -884,7 +884,7 @@ def test_snapshot_run_captures_all_artifact_types(tmp_path, monkeypatch) -> None
     monkeypatch.setattr(
         "foundry.services.celonis.snapshot_export_service.build_snapshot_export",
         lambda *a, **kw: {
-            "bundle_path": "", "docs_path": "", "generated_at": datetime.utcnow(),
+            "bundle_path": "", "docs_path": "", "generated_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "delta_counts": {}, "relationship_graph": {},
         },
     )
@@ -921,3 +921,4 @@ def test_snapshot_run_captures_all_artifact_types(tmp_path, monkeypatch) -> None
     assert "KPI" in task_types, "KPI task_type must be stored"
     assert "ACTION_FLOW" in task_types, "ACTION_FLOW task_type must be stored"
     assert "ANALYSIS" in task_types, "ANALYSIS task_type must be stored"
+

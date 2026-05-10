@@ -4,7 +4,7 @@ import json
 import os
 import shutil
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -137,7 +137,7 @@ def _repo_result(
         "commit_sha": commit_sha,
         "created_commit": created_commit,
         "commit_message": commit_message,
-        "committed_at": datetime.utcnow().isoformat(),
+        "committed_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
     }
 
 
@@ -211,7 +211,7 @@ def _write_celonis_snapshot_tree(repo_dir: Path, snapshot: CelonisSnapshot, sess
         repo_dir / "reports" / "redactions.json",
         {
             "snapshot_id": str(snapshot.id),
-            "recorded_at": datetime.utcnow().isoformat(),
+            "recorded_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             "removed_assets": removed_by_family,
         },
     )
@@ -408,3 +408,5 @@ def materialize_asset_snapshot_git_history(
         target_type="asset_source",
         target_id=snapshot.asset_source_id,
     )
+
+

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -102,11 +102,11 @@ def update_todo(
 
     if payload.status is not None:
         if payload.status == TodoStatus.done:
-            todo.completed_at = datetime.utcnow()
+            todo.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         else:
             todo.completed_at = None
 
-    todo.updated_at = datetime.utcnow()
+    todo.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(todo)
     session.commit()
     session.refresh(todo)
@@ -149,3 +149,4 @@ def delete_todo(
         metadata={"deleted_file_count": len(deleted_files)},
     )
     return {"deleted": True, "id": str(todo_id)}
+

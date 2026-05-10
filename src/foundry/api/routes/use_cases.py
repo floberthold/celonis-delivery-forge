@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -445,7 +445,7 @@ def update_use_case(
     for field_name, field_value in updates.items():
         setattr(use_case, field_name, field_value)
 
-    use_case.updated_at = datetime.utcnow()
+    use_case.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(use_case)
     session.commit()
     session.refresh(use_case)
@@ -574,7 +574,7 @@ def update_roadmap_item(
     for field_name, field_value in updates.items():
         setattr(item, field_name, field_value)
 
-    item.updated_at = datetime.utcnow()
+    item.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(item)
     session.commit()
     session.refresh(item)
@@ -589,3 +589,4 @@ def update_roadmap_item(
     )
 
     return item
+

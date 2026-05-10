@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
 
@@ -97,7 +97,7 @@ class TemplateService:
         if not reviewer:
             raise HTTPException(status_code=404, detail="Reviewer not found")
 
-        instantiated_at = datetime.utcnow().isoformat()
+        instantiated_at = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
         prefill_data_json = {
             "client_name": client.name,
             "tenant_url": client.tenant_url,
@@ -172,3 +172,4 @@ class TemplateService:
         )
 
         return instantiation
+

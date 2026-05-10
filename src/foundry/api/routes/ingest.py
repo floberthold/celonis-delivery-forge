@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -126,7 +126,7 @@ def update_source(
     for field_name, field_value in updates.items():
         setattr(source, field_name, field_value)
 
-    source.updated_at = datetime.utcnow()
+    source.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(source)
     session.commit()
     session.refresh(source)
@@ -264,7 +264,7 @@ def update_run(
         setattr(run, field_name, field_value)
 
     if run.status in {IngestRunStatus.completed, IngestRunStatus.failed, IngestRunStatus.canceled} and not run.finished_at:
-        run.finished_at = datetime.utcnow()
+        run.finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     session.add(run)
     session.commit()
@@ -461,3 +461,4 @@ def materialize_ingest_snapshot_git_history(
     session.commit()
     session.refresh(snapshot)
     return result
+

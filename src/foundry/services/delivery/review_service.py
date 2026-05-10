@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -34,7 +34,7 @@ class ReviewService:
         active_assignments = [
             assignment
             for assignment in assignments
-            if assignment.end_date is None or assignment.end_date >= datetime.utcnow()
+            if assignment.end_date is None or assignment.end_date >= datetime.now(timezone.utc).replace(tzinfo=None)
         ]
         if len(active_assignments) < 2:
             raise HTTPException(
@@ -53,7 +53,7 @@ class ReviewService:
         active_assignments = [
             assignment
             for assignment in assignments
-            if assignment.end_date is None or assignment.end_date >= datetime.utcnow()
+            if assignment.end_date is None or assignment.end_date >= datetime.now(timezone.utc).replace(tzinfo=None)
         ]
         if not active_assignments:
             raise HTTPException(status_code=400, detail=error_text)
@@ -79,7 +79,7 @@ class ReviewService:
             reviewer_id=payload.reviewer_id,
             change_summary=payload.change_summary,
             status=ReviewStatus.in_review,
-            submitted_at=datetime.utcnow(),
+            submitted_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         ReviewService._ensure_dual_control(session, review)
         ReviewService._ensure_membership(
@@ -187,7 +187,7 @@ class ReviewService:
         if payload.snippet_worthy and payload.decision != DecisionType.approve:
             raise HTTPException(status_code=400, detail="Snippet-worthy flag only possible if approved")
 
-        review.decision_at = datetime.utcnow()
+        review.decision_at = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(review)
         session.add(asset)
         session.commit()
@@ -204,3 +204,4 @@ class ReviewService:
         )
 
         return review
+

@@ -2,7 +2,7 @@
 
 import os
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timezone
 from pathlib import Path
 
 import pytest
@@ -64,7 +64,7 @@ def _seed_people_with_mixed_datetime_kinds() -> tuple[str, str]:
             email="datetime-primary@example.com",
             name="Datetime Primary",
             hashed_password=hash_password("secret"),
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         secondary_person = Person(
             email="datetime-secondary@example.com",
@@ -117,3 +117,4 @@ if __name__ == "__main__":
         except PermissionError:
             pass
     test_ui_pages_handle_mixed_datetime_kinds_without_500()
+

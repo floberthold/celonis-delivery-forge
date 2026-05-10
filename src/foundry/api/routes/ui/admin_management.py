@@ -62,8 +62,7 @@ def foundry_admin_ui(
 
     context = _build_foundry_admin_context(session)
     user_context = _build_foundry_admin_user_context(session)
-    return templates.TemplateResponse(
-        "foundry_admin.html",
+    return templates.TemplateResponse(request, "foundry_admin.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -332,3 +331,4 @@ def foundry_admin_delete_membership(
     except Exception as exc:
         session.rollback()
         return _redirect_ui("/foundry-admin-ui", err=f"Delete membership failed: {exc}")
+

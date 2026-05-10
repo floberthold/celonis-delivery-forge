@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from uuid import UUID
 
@@ -126,7 +126,7 @@ def _seed_admin_and_member_with_token() -> tuple[str, str, str, str]:
         )
         session.add(token)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(
             ActivityLog(
                 entity_type=EntityType.project,
@@ -252,3 +252,4 @@ if __name__ == "__main__":
                 pass
     test_celonis_token_admin_ui_shows_tokens_and_system_access()
     test_celonis_token_admin_ui_create_update_delete_flow()
+

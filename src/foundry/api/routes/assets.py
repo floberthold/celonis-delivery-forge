@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -73,7 +73,7 @@ def add_asset_member(
         asset_id=asset_id,
         person_id=person_id,
         member_role=member_role,
-        from_ts=datetime.utcnow(),
+        from_ts=datetime.now(timezone.utc).replace(tzinfo=None),
     )
     session.add(membership)
     session.commit()
@@ -112,3 +112,4 @@ def asset_matrix(
         }
         for membership, asset in rows
     ]
+

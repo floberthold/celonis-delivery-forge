@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -138,7 +138,7 @@ def build_snapshot_coverage_report(snapshot: CelonisSnapshot) -> dict[str, Any]:
     return {
         "snapshot_id": str(snapshot.id),
         "client_id": str(snapshot.client_id),
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
         "statuses": {
             "covered": covered,
             "permission_limited": permission_limited,
@@ -152,3 +152,6 @@ def build_snapshot_coverage_report(snapshot: CelonisSnapshot) -> dict[str, Any]:
 
 def build_snapshot_coverage_filename(snapshot_id: UUID) -> str:
     return f"snapshot_{snapshot_id}_coverage.json"
+
+
+

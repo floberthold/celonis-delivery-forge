@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -388,7 +388,7 @@ def upsert_connection(
     if existing:
         existing.tenant_base_url = payload.tenant_base_url.strip()
         existing.is_active = payload.is_active
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(existing)
         session.commit()
         session.refresh(existing)
@@ -454,7 +454,7 @@ def put_user_token(
         organization_id=current_actor.organization.id,
         person_id=current_actor.person.id,
     )
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     if row is None:
         row = CelonisUserToken(
             organization_id=current_actor.organization.id,
@@ -657,7 +657,7 @@ def preflight_connection_batch(
     gateway = CelonisGateway(settings)
     token_override = _resolve_actor_token_override(session, current_actor)
     run_id = str(uuid4())
-    run_ts = datetime.utcnow()
+    run_ts = datetime.now(timezone.utc).replace(tzinfo=None)
 
     results: list[CelonisPreflightResult] = []
     authorized_count = 0
@@ -761,3 +761,4 @@ def preflight_connection_history(
         )
         for row in sorted_rows
     ]
+

@@ -37,6 +37,8 @@ from foundry.models import (
     AssetType,
     Agent,
     CelonisConnection,
+    CelonisClientToken,
+    CelonisProjectToken,
     CelonisUserToken,
     CelonisSnapshot,
     CelonisDeploymentRequest,
@@ -1177,7 +1179,7 @@ def _upsert_org_person_celonis_token(
     token_value: str,
 ) -> CelonisUserToken:
     row = _get_org_person_celonis_token(session, organization_id, person_id)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     if row is None:
         row = CelonisUserToken(
             organization_id=organization_id,
@@ -1191,6 +1193,124 @@ def _upsert_org_person_celonis_token(
         row.updated_at = now
     session.add(row)
     return row
+
+
+def _get_org_client_celonis_token(
+    session: Session,
+    organization_id: UUID,
+    client_id: UUID,
+) -> CelonisClientToken | None:
+    return session.exec(
+        select(CelonisClientToken).where(
+            CelonisClientToken.organization_id == organization_id,
+            CelonisClientToken.client_id == client_id,
+        )
+    ).first()
+
+
+def _upsert_org_client_celonis_token(
+    session: Session,
+    organization_id: UUID,
+    client_id: UUID,
+    token_value: str,
+    token_name: str | None,
+) -> CelonisClientToken:
+    row = _get_org_client_celonis_token(session, organization_id, client_id)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if row is None:
+        row = CelonisClientToken(
+            organization_id=organization_id,
+            client_id=client_id,
+            token_value=token_value,
+            token_name=token_name,
+            created_at=now,
+            updated_at=now,
+        )
+    else:
+        row.token_value = token_value
+        row.token_name = token_name
+        row.updated_at = now
+    session.add(row)
+    return row
+
+
+def _get_org_project_celonis_token(
+    session: Session,
+    organization_id: UUID,
+    project_id: UUID,
+) -> CelonisProjectToken | None:
+    return session.exec(
+        select(CelonisProjectToken).where(
+            CelonisProjectToken.organization_id == organization_id,
+            CelonisProjectToken.project_id == project_id,
+        )
+    ).first()
+
+
+def _upsert_org_project_celonis_token(
+    session: Session,
+    organization_id: UUID,
+    project_id: UUID,
+    token_value: str,
+    token_name: str | None,
+) -> CelonisProjectToken:
+    row = _get_org_project_celonis_token(session, organization_id, project_id)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if row is None:
+        row = CelonisProjectToken(
+            organization_id=organization_id,
+            project_id=project_id,
+            token_value=token_value,
+            token_name=token_name,
+            created_at=now,
+            updated_at=now,
+        )
+    else:
+        row.token_value = token_value
+        row.token_name = token_name
+        row.updated_at = now
+    session.add(row)
+    return row
+
+
+def _resolve_celonis_token_value(
+    session: Session,
+    organization_id: UUID,
+    person_id: UUID,
+    client_id: UUID | None = None,
+    project_id: UUID | None = None,
+) -> str | None:
+    if project_id is not None:
+        project_row = _get_org_project_celonis_token(session, organization_id, project_id)
+        if project_row is not None and (project_row.token_value or "").strip():
+            return project_row.token_value.strip()
+
+    if client_id is not None:
+        client_row = _get_org_client_celonis_token(session, organization_id, client_id)
+        if client_row is not None and (client_row.token_value or "").strip():
+            return client_row.token_value.strip()
+
+    person_row = _get_org_person_celonis_token(session, organization_id, person_id)
+    if person_row is not None and (person_row.token_value or "").strip():
+        return person_row.token_value.strip()
+    return None
+
+
+def _get_org_celonis_token_row_by_id(
+    session: Session,
+    organization_id: UUID,
+    token_id: UUID,
+) -> tuple[str, Any] | tuple[None, None]:
+    row = session.get(CelonisUserToken, token_id)
+    if row is not None and row.organization_id == organization_id:
+        return "person", row
+    row = session.get(CelonisClientToken, token_id)
+    if row is not None and row.organization_id == organization_id:
+        return "client", row
+    row = session.get(CelonisProjectToken, token_id)
+    if row is not None and row.organization_id == organization_id:
+        return "project", row
+    return None, None
 
 
 def _mask_token_value(token_value: str) -> str:
@@ -2070,7 +2190,7 @@ def orchestration_project_board(
 
 
 def _client_health_context(request: Request, session: Session, current_actor: CurrentActor) -> dict:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     stale_review_cutoff = now - timedelta(days=7)
     workflow_window_cutoff = now - timedelta(days=7)
 
@@ -2415,8 +2535,7 @@ def root_redirect() -> RedirectResponse:
 
 @router.get("/login")
 def login_page(request: Request):
-    return templates.TemplateResponse(
-        "login.html",
+    return templates.TemplateResponse(request, "login.html",
         {
             "request": request,
             "error_message": request.query_params.get("err"),
@@ -2428,8 +2547,7 @@ def login_page(request: Request):
 
 @router.get("/register")
 def register_page(request: Request):
-    return templates.TemplateResponse(
-        "register.html",
+    return templates.TemplateResponse(request, "register.html",
         {
             "request": request,
             "error_message": request.query_params.get("err"),
@@ -2539,8 +2657,7 @@ def register_verify(
 
 @router.get("/forgot-password")
 def forgot_password_page(request: Request):
-    return templates.TemplateResponse(
-        "forgot_password.html",
+    return templates.TemplateResponse(request, "forgot_password.html",
         {
             "request": request,
             "error_message": request.query_params.get("err"),
@@ -2586,8 +2703,7 @@ def reset_password_page(request: Request, token: str = ""):
     except ValueError as exc:
         error_message = str(exc)
 
-    return templates.TemplateResponse(
-        "reset_password.html",
+    return templates.TemplateResponse(request, "reset_password.html",
         {
             "request": request,
             "token": token,
@@ -2714,8 +2830,7 @@ def account_ui(
         for membership in sorted(memberships, key=lambda row: _sort_datetime_key(row.joined_at))
     ]
 
-    return templates.TemplateResponse(
-        "account.html",
+    return templates.TemplateResponse(request, "account.html",
         {
             "request": request,
             "person": person,
@@ -2787,8 +2902,7 @@ def dashboard(
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
-    return templates.TemplateResponse(
-        "dashboard.html",
+    return templates.TemplateResponse(request, "dashboard.html",
         _dashboard_context(request, session, current_actor),
     )
 
@@ -2805,8 +2919,7 @@ def sales_ui(
         reverse=True,
     )
     settings = get_settings()
-    return templates.TemplateResponse(
-        "sales.html",
+    return templates.TemplateResponse(request, "sales.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -3011,8 +3124,7 @@ def orchestration_ui(
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
-    return templates.TemplateResponse(
-        "orchestration.html",
+    return templates.TemplateResponse(request, "orchestration.html",
         _orchestration_context(request, session, current_actor),
     )
 
@@ -3693,7 +3805,7 @@ def dashboard_celonis_connection(
         if existing:
             existing.tenant_base_url = tenant_base_url.strip()
             existing.is_active = True
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             session.add(existing)
             session.commit()
             session.refresh(existing)
@@ -3971,8 +4083,7 @@ def projects_ui(
         for project in projects
     ]
 
-    return templates.TemplateResponse(
-        "projects.html",
+    return templates.TemplateResponse(request, "projects.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -4144,8 +4255,7 @@ def assets_ui(
         for asset in assets
     ]
 
-    return templates.TemplateResponse(
-        "assets.html",
+    return templates.TemplateResponse(request, "assets.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -4349,8 +4459,7 @@ def reviews_ui(
         for review in reviews
     ]
 
-    return templates.TemplateResponse(
-        "reviews.html",
+    return templates.TemplateResponse(request, "reviews.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -4551,8 +4660,7 @@ def people_ui(
         }
         for person in people
     ]
-    return templates.TemplateResponse(
-        "people.html",
+    return templates.TemplateResponse(request, "people.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -4785,8 +4893,7 @@ def clients_ui(
         }
         for client in clients
     ]
-    return templates.TemplateResponse(
-        "clients.html",
+    return templates.TemplateResponse(request, "clients.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -5163,8 +5270,7 @@ def todos_ui(
         },
     ]
 
-    return templates.TemplateResponse(
-        "todos.html",
+    return templates.TemplateResponse(request, "todos.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -5312,9 +5418,9 @@ def todos_ui_update(
         if todo.assignee_id != parsed_assignee_id:
             changed_fields.append("assignee_id")
         todo.assignee_id = parsed_assignee_id
-        todo.updated_at = datetime.utcnow()
+        todo.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         if todo.status == TodoStatus.done:
-            todo.completed_at = datetime.utcnow()
+            todo.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         else:
             todo.completed_at = None
 
@@ -5787,8 +5893,7 @@ def person_overview_ui(
         for membership in memberships
     ]
 
-    return templates.TemplateResponse(
-        "person_overview.html",
+    return templates.TemplateResponse(request, "person_overview.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -5935,8 +6040,7 @@ def client_overview_ui(
         for row in todos
     ]
 
-    return templates.TemplateResponse(
-        "client_overview.html",
+    return templates.TemplateResponse(request, "client_overview.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -6073,8 +6177,7 @@ def project_overview_ui(
         for row in todos
     ]
 
-    return templates.TemplateResponse(
-        "project_overview.html",
+    return templates.TemplateResponse(request, "project_overview.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -6278,8 +6381,7 @@ def gitlab_repo_overview_ui(
         for row in runs
     ]
 
-    return templates.TemplateResponse(
-        "gitlab_repo_overview.html",
+    return templates.TemplateResponse(request, "gitlab_repo_overview.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -6501,8 +6603,7 @@ def files_ui(
         for row in files
     ]
 
-    return templates.TemplateResponse(
-        "files.html",
+    return templates.TemplateResponse(request, "files.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -6757,8 +6858,7 @@ def timeline_ui(
         reverse=True,
     )
 
-    return templates.TemplateResponse(
-        "timeline.html",
+    return templates.TemplateResponse(request, "timeline.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -6921,6 +7021,30 @@ def celonis_token_admin_ui(
         key=lambda row: _sort_datetime_key(getattr(row, "updated_at", None)),
         reverse=True,
     )
+    client_rows = sorted(
+        list(
+            session.exec(
+                select(CelonisClientToken).where(
+                    CelonisClientToken.organization_id == current_actor.organization.id
+                )
+            ).all()
+        ),
+        key=lambda row: _sort_datetime_key(getattr(row, "updated_at", None)),
+        reverse=True,
+    )
+    project_rows = sorted(
+        list(
+            session.exec(
+                select(CelonisProjectToken).where(
+                    CelonisProjectToken.organization_id == current_actor.organization.id
+                )
+            ).all()
+        ),
+        key=lambda row: _sort_datetime_key(getattr(row, "updated_at", None)),
+        reverse=True,
+    )
+    clients_by_id = {row.id: row for row in _org_clients(session, current_actor.organization.id)}
+    projects_by_id = {row.id: row for row in _org_projects(session, current_actor.organization.id)}
     access_by_person = _latest_celonis_system_access_by_person(
         session,
         current_actor.organization.id,
@@ -6953,6 +7077,7 @@ def celonis_token_admin_ui(
                 "target_name": person.name if person else "Unknown",
                 "scope": "person+organization",
                 "token_preview": _mask_token_value(token_row.token_value),
+                "token_name": token_row.token_name,
                 "updated_at": token_row.updated_at,
                 "authorized_services": authorized_services,
                 "restricted_services": restricted_services,
@@ -6974,6 +7099,7 @@ def celonis_token_admin_ui(
                     "target_name": str(project_scope.get("project_name") or "Unknown project"),
                     "scope": "project",
                     "token_preview": _mask_token_value(token_row.token_value),
+                    "token_name": token_row.token_name,
                     "updated_at": project_scope.get("updated_at") or token_row.updated_at,
                     "authorized_services": authorized_services,
                     "restricted_services": restricted_services,
@@ -6981,8 +7107,47 @@ def celonis_token_admin_ui(
                 }
             )
 
-    return templates.TemplateResponse(
-        "celonis_token_admin.html",
+    for token_row in client_rows:
+        client = clients_by_id.get(token_row.client_id)
+        rows.append(
+            {
+                "row_kind": "client",
+                "id": token_row.id,
+                "person_id": None,
+                "person_name": "-",
+                "person_email": "-",
+                "target_name": client.name if client else "Unknown client",
+                "scope": "client",
+                "token_preview": _mask_token_value(token_row.token_value),
+                "token_name": token_row.token_name,
+                "updated_at": token_row.updated_at,
+                "authorized_services": [],
+                "restricted_services": [],
+                "last_preflight_at": None,
+            }
+        )
+
+    for token_row in project_rows:
+        project = projects_by_id.get(token_row.project_id)
+        rows.append(
+            {
+                "row_kind": "project-token",
+                "id": token_row.id,
+                "person_id": None,
+                "person_name": "-",
+                "person_email": "-",
+                "target_name": project.name if project else "Unknown project",
+                "scope": "project",
+                "token_preview": _mask_token_value(token_row.token_value),
+                "token_name": token_row.token_name,
+                "updated_at": token_row.updated_at,
+                "authorized_services": [],
+                "restricted_services": [],
+                "last_preflight_at": None,
+            }
+        )
+
+    return templates.TemplateResponse(request, "celonis_token_admin.html",
         {
             "request": request,
             "active_organization": current_actor.organization,
@@ -7003,38 +7168,74 @@ def celonis_token_admin_ui(
 
 @router.post("/celonis-token-admin-ui/create", include_in_schema=False)
 def celonis_token_admin_create(
+    token_type: str = Form("person"),
     person_id: str = Form(...),
     token_value: str = Form(...),
+    token_name: str = Form(""),
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
     try:
-        parsed_person_id = _parse_uuid(person_id, "person_id")
-        membership = _get_org_membership(session, parsed_person_id, current_actor.organization.id)
-        if membership is None:
-            return _redirect_ui("/celonis-token-admin-ui", err="Selected user is not in the organization")
-
         cleaned = token_value.strip()
         if not cleaned:
             return _redirect_ui("/celonis-token-admin-ui", err="Token value cannot be blank")
 
-        _upsert_org_person_celonis_token(
-            session,
-            current_actor.organization.id,
-            parsed_person_id,
-            cleaned,
-        )
+        cleaned_name = token_name.strip() or None
+        token_type_cleaned = (token_type or "person").strip().lower()
+        parsed_target_id = _parse_uuid(person_id, "person_id")
+        entity_type = EntityType.person
+        entity_id = parsed_target_id
+        scope = "person+organization"
+
+        if token_type_cleaned == "client":
+            client_row = _get_org_client(session, parsed_target_id, current_actor.organization.id)
+            if client_row is None:
+                return _redirect_ui("/celonis-token-admin-ui", err="Selected client not found")
+            _upsert_org_client_celonis_token(
+                session,
+                current_actor.organization.id,
+                parsed_target_id,
+                cleaned,
+                cleaned_name,
+            )
+            entity_type = EntityType.client
+            scope = "client"
+        elif token_type_cleaned == "project":
+            project_row = _get_org_project(session, parsed_target_id, current_actor.organization.id)
+            if project_row is None:
+                return _redirect_ui("/celonis-token-admin-ui", err="Selected project not found")
+            _upsert_org_project_celonis_token(
+                session,
+                current_actor.organization.id,
+                parsed_target_id,
+                cleaned,
+                cleaned_name,
+            )
+            entity_type = EntityType.project
+            scope = "project"
+        else:
+            membership = _get_org_membership(session, parsed_target_id, current_actor.organization.id)
+            if membership is None:
+                return _redirect_ui("/celonis-token-admin-ui", err="Selected user is not in the organization")
+            row = _upsert_org_person_celonis_token(
+                session,
+                current_actor.organization.id,
+                parsed_target_id,
+                cleaned,
+            )
+            row.token_name = cleaned_name
+
         session.commit()
         log_activity(
             session,
-            entity_type=EntityType.person,
-            entity_id=parsed_person_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
             actor_id=current_actor.person.id,
             action="celonis_user_token.admin_saved",
             organization_id=current_actor.organization.id,
             metadata={
-                "person_id": str(parsed_person_id),
-                "scope": "person+organization",
+                "target_id": str(entity_id),
+                "scope": scope,
                 "token_present": True,
             },
         )
@@ -7053,8 +7254,12 @@ def celonis_token_admin_update(
 ):
     try:
         parsed_token_id = _parse_uuid(token_id, "token_id")
-        row = session.get(CelonisUserToken, parsed_token_id)
-        if row is None or row.organization_id != current_actor.organization.id:
+        row_kind, row = _get_org_celonis_token_row_by_id(
+            session,
+            current_actor.organization.id,
+            parsed_token_id,
+        )
+        if row is None:
             return _redirect_ui("/celonis-token-admin-ui", err="Token entry not found")
 
         cleaned = token_value.strip()
@@ -7065,19 +7270,33 @@ def celonis_token_admin_update(
             )
 
         row.token_value = cleaned
-        row.updated_at = datetime.utcnow()
+        row.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(row)
         session.commit()
+
+        if row_kind == "client":
+            entity_type = EntityType.client
+            entity_id = row.client_id
+            scope = "client"
+        elif row_kind == "project":
+            entity_type = EntityType.project
+            entity_id = row.project_id
+            scope = "project"
+        else:
+            entity_type = EntityType.person
+            entity_id = row.person_id
+            scope = "person+organization"
+
         log_activity(
             session,
-            entity_type=EntityType.person,
-            entity_id=row.person_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
             actor_id=current_actor.person.id,
             action="celonis_user_token.admin_saved",
             organization_id=current_actor.organization.id,
             metadata={
-                "person_id": str(row.person_id),
-                "scope": "person+organization",
+                "target_id": str(entity_id),
+                "scope": scope,
                 "token_present": True,
             },
         )
@@ -7095,23 +7314,39 @@ def celonis_token_admin_delete(
 ):
     try:
         parsed_token_id = _parse_uuid(token_id, "token_id")
-        row = session.get(CelonisUserToken, parsed_token_id)
-        if row is None or row.organization_id != current_actor.organization.id:
+        row_kind, row = _get_org_celonis_token_row_by_id(
+            session,
+            current_actor.organization.id,
+            parsed_token_id,
+        )
+        if row is None:
             return _redirect_ui("/celonis-token-admin-ui", err="Token entry not found")
 
-        person_id = row.person_id
+        if row_kind == "client":
+            entity_type = EntityType.client
+            entity_id = row.client_id
+            scope = "client"
+        elif row_kind == "project":
+            entity_type = EntityType.project
+            entity_id = row.project_id
+            scope = "project"
+        else:
+            entity_type = EntityType.person
+            entity_id = row.person_id
+            scope = "person+organization"
+
         session.delete(row)
         session.commit()
         log_activity(
             session,
-            entity_type=EntityType.person,
-            entity_id=person_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
             actor_id=current_actor.person.id,
             action="celonis_user_token.admin_cleared",
             organization_id=current_actor.organization.id,
             metadata={
-                "person_id": str(person_id),
-                "scope": "person+organization",
+                "target_id": str(entity_id),
+                "scope": scope,
                 "token_present": False,
             },
         )
@@ -7153,8 +7388,7 @@ def celonis_credentials_ui(
         key=lambda r: _sort_datetime_key(r.timestamp),
         reverse=True,
     )[:10]
-    return templates.TemplateResponse(
-        "celonis_credentials.html",
+    return templates.TemplateResponse(request, "celonis_credentials.html",
         {
             "request": request,
             "active_organization": current_actor.organization,
@@ -7328,8 +7562,7 @@ def celonis_discovery_ui(
         }
         for r in preflight_rows
     ]
-    return templates.TemplateResponse(
-        "celonis_discovery.html",
+    return templates.TemplateResponse(request, "celonis_discovery.html",
         {
             "request": request,
             "active_organization": current_actor.organization,
@@ -7497,8 +7730,7 @@ def celonis_deployments_ui(
             ),
         })
 
-    return templates.TemplateResponse(
-        "celonis_deployments.html",
+    return templates.TemplateResponse(request, "celonis_deployments.html",
         {
             "request": request,
             "active_organization": current_actor.organization,
@@ -7683,8 +7915,7 @@ def kpis_ui(
     session: Session = Depends(get_session),
     current_actor: CurrentActor = Depends(get_current_actor_with_org),
 ):
-    return templates.TemplateResponse(
-        "kpis.html",
+    return templates.TemplateResponse(request, "kpis.html",
         _kpis_list_context(request, session, current_actor),
     )
 
@@ -7714,7 +7945,7 @@ def kpis_editor(
             "author_names": author_names,
         }
     )
-    return templates.TemplateResponse("kpis.html", context)
+    return templates.TemplateResponse(request, "kpis.html", context)
 
 
 @router.post("/kpis-ui/create", include_in_schema=False)
@@ -7793,7 +8024,7 @@ def kpis_save_metadata(
         kpi.celonis_url = _normalize_http_url(celonis_url) or None
         kpi.asset_identifier = asset_identifier.strip() or None
         kpi.owner_id = parsed_owner_id
-        kpi.updated_at = datetime.utcnow()
+        kpi.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(kpi)
         session.commit()
         session.refresh(kpi)
@@ -7834,7 +8065,7 @@ def kpis_save_formula(
         )
         session.add(version)
         kpi.pql_formula = pql_formula.strip()
-        kpi.updated_at = datetime.utcnow()
+        kpi.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(kpi)
         session.commit()
         session.refresh(version)
@@ -7864,7 +8095,7 @@ def kpis_update_status(
         if not kpi:
             return _redirect_ui("/kpis-ui", err="KPI not found")
         kpi.status = KpiStatus(status)
-        kpi.updated_at = datetime.utcnow()
+        kpi.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(kpi)
         session.commit()
         log_updated(
@@ -7937,8 +8168,7 @@ def snapshots_client_ui(
     )
     ok_message = request.query_params.get("ok")
     error_message = request.query_params.get("err")
-    return templates.TemplateResponse(
-        "snapshots.html",
+    return templates.TemplateResponse(request, "snapshots.html",
         {
             "request": request,
             "client": client,
@@ -8224,8 +8454,7 @@ def snapshot_detail_ui(
 
     ok_message = request.query_params.get("ok") if request else None
     error_message = request.query_params.get("err") if request else None
-    return templates.TemplateResponse(
-        "snapshot_detail.html",
+    return templates.TemplateResponse(request, "snapshot_detail.html",
         {
             "request": request,
             "client": client,
@@ -8640,8 +8869,7 @@ def tool_hub_ui(
         ok_message = request.query_params.get("ok")
         error_message = request.query_params.get("err")
         
-        return templates.TemplateResponse(
-            "celonis-tool-hub-ui.html",
+        return templates.TemplateResponse(request, "celonis-tool-hub-ui.html",
             {
                 "request": request,
                 "tools": tools,
@@ -8653,8 +8881,7 @@ def tool_hub_ui(
         )
     except Exception as exc:
         error_message = f"Error loading tool hub catalog: {str(exc)}"
-        return templates.TemplateResponse(
-            "celonis-tool-hub-ui.html",
+        return templates.TemplateResponse(request, "celonis-tool-hub-ui.html",
             {
                 "request": request,
                 "tools": [],
@@ -8712,8 +8939,7 @@ def local_knowledge_ui(
     except httpx.HTTPError:
         open_webui_running = False
 
-    return templates.TemplateResponse(
-        "local-knowledge-ui.html",
+    return templates.TemplateResponse(request, "local-knowledge-ui.html",
         {
             "request": request,
             "active_organization": current_actor.organization,
@@ -8789,8 +9015,7 @@ def kpi_book_ui(
     ).all()
     ok_message = request.query_params.get("ok")
     error_message = request.query_params.get("err")
-    return templates.TemplateResponse(
-        "kpi_book.html",
+    return templates.TemplateResponse(request, "kpi_book.html",
         {
             "request": request,
             "client": client,
@@ -8886,3 +9111,7 @@ def kpi_book_delete_ui(
     except Exception as exc:
         session.rollback()
         return _redirect_ui(f"/kpi-book-ui/{client_id}", err=str(exc))
+
+
+
+

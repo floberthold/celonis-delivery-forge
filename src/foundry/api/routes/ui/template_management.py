@@ -140,8 +140,7 @@ def templates_ui(
         for row in templates_rows
     ]
 
-    return _templates.TemplateResponse(
-        "templates.html",
+    return _templates.TemplateResponse(request, "templates.html",
         {
             "request": request,
             "ok_message": request.query_params.get("ok"),
@@ -156,3 +155,4 @@ def templates_ui(
             "template_storage_options": [row.value for row in TemplateStorageType],
         },
     )
+

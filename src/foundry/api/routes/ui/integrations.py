@@ -67,8 +67,7 @@ def methodology_ui(
         }
         for tool in list_data_agent_tools()
     ]
-    return _templates.TemplateResponse(
-        "agentic-methodology.html",
+    return _templates.TemplateResponse(request, "agentic-methodology.html",
         {
             "request": request,
             "current_person": current_actor.person,
@@ -120,8 +119,7 @@ def celonis_tool_hub_ui(
             .order_by(Quest.created_at.desc())
         ).all()
     )[:20]
-    return _templates.TemplateResponse(
-        "celonis_tool_hub.html",
+    return _templates.TemplateResponse(request, "celonis_tool_hub.html",
         {
             "request": request,
             "active_organization": current_actor.organization,
@@ -133,3 +131,4 @@ def celonis_tool_hub_ui(
             "tools": list_data_agent_tools(),
         },
     )
+

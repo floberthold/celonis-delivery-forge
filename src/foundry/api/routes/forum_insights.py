@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -82,7 +82,7 @@ def update_forum_insight(insight_id: UUID, payload: ForumInsightUpdate, session:
     for field_name, field_value in updates.items():
         setattr(insight, field_name, field_value)
 
-    insight.updated_at = datetime.utcnow()
+    insight.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(insight)
     session.commit()
     session.refresh(insight)
@@ -99,3 +99,4 @@ def update_forum_insight(insight_id: UUID, payload: ForumInsightUpdate, session:
         },
     )
     return insight
+

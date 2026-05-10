@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import JSON, Column, Text
 from sqlmodel import Field, SQLModel
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class ProjectStatus(str, Enum):
@@ -252,7 +256,7 @@ class Client(SQLModel, table=True):
     tenant_url: str
     sensitivity_level: SensitivityLevel = Field(default=SensitivityLevel.medium)
     salesforce_url: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Person(SQLModel, table=True):
@@ -261,14 +265,14 @@ class Person(SQLModel, table=True):
     name: str
     hashed_password: str
     role_global: GlobalRole = Field(default=GlobalRole.member)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Organization(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     name: str
     slug: str = Field(index=True, unique=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class OrganizationMembership(SQLModel, table=True):
@@ -276,19 +280,19 @@ class OrganizationMembership(SQLModel, table=True):
     organization_id: UUID = Field(index=True, foreign_key="organization.id")
     person_id: UUID = Field(index=True, foreign_key="person.id")
     role: OrganizationRole = Field(default=OrganizationRole.member)
-    joined_at: datetime = Field(default_factory=datetime.utcnow)
+    joined_at: datetime = Field(default_factory=_utcnow)
 
 
 class Project(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     organization_id: Optional[UUID] = Field(default=None, index=True, foreign_key="organization.id")
     name: str
-    client_id: UUID = Field(index=True, foreign_key="client.id")
+    client_id: Optional[UUID] = Field(default=None, index=True, foreign_key="client.id")
     status: ProjectStatus = Field(default=ProjectStatus.planned)
     salesforce_url: Optional[str] = None
     celonis_package_url: Optional[str] = None
     celonis_app_url: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class ProjectMembership(SQLModel, table=True):
@@ -296,7 +300,7 @@ class ProjectMembership(SQLModel, table=True):
     project_id: UUID = Field(index=True, foreign_key="project.id")
     person_id: UUID = Field(index=True, foreign_key="person.id")
     role: MembershipRole = Field(default=MembershipRole.contributor)
-    start_date: datetime = Field(default_factory=datetime.utcnow)
+    start_date: datetime = Field(default_factory=_utcnow)
     end_date: Optional[datetime] = None
 
 
@@ -310,7 +314,7 @@ class Asset(SQLModel, table=True):
     asset_identifier: Optional[str] = None
     celonis_url: Optional[str] = None
     status: AssetStatus = Field(default=AssetStatus.draft)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class AssetMembership(SQLModel, table=True):
@@ -318,7 +322,7 @@ class AssetMembership(SQLModel, table=True):
     asset_id: UUID = Field(index=True, foreign_key="asset.id")
     person_id: UUID = Field(index=True, foreign_key="person.id")
     member_role: MembershipRole = Field(default=MembershipRole.contributor)
-    from_ts: datetime = Field(default_factory=datetime.utcnow)
+    from_ts: datetime = Field(default_factory=_utcnow)
     to_ts: Optional[datetime] = None
 
 
@@ -331,7 +335,7 @@ class ReviewRequest(SQLModel, table=True):
     change_summary: str
     status: ReviewStatus = Field(default=ReviewStatus.draft)
     snippet_worthy: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
     submitted_at: Optional[datetime] = None
     decision_at: Optional[datetime] = None
 
@@ -342,7 +346,7 @@ class ReviewArtifact(SQLModel, table=True):
     type: ArtifactType = Field(default=ArtifactType.other)
     content: str
     version: int = 1
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class ReviewComment(SQLModel, table=True):
@@ -350,7 +354,7 @@ class ReviewComment(SQLModel, table=True):
     review_request_id: UUID = Field(index=True, foreign_key="reviewrequest.id")
     author_id: UUID = Field(index=True, foreign_key="person.id")
     content: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class ReviewDecision(SQLModel, table=True):
@@ -359,7 +363,7 @@ class ReviewDecision(SQLModel, table=True):
     reviewer_id: UUID = Field(index=True, foreign_key="person.id")
     decision: DecisionType
     note: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class ActivityLog(SQLModel, table=True):
@@ -369,7 +373,7 @@ class ActivityLog(SQLModel, table=True):
     entity_id: UUID
     action: str
     actor_id: UUID = Field(index=True, foreign_key="person.id")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utcnow)
     metadata_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
 
 
@@ -387,8 +391,8 @@ class Todo(SQLModel, table=True):
     person_id: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
     client_id: Optional[UUID] = Field(default=None, index=True, foreign_key="client.id")
     project_id: Optional[UUID] = Field(default=None, index=True, foreign_key="project.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
     completed_at: Optional[datetime] = None
 
 
@@ -402,8 +406,8 @@ class Agent(SQLModel, table=True):
     capability_summary_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
     created_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
     is_system_agent: bool = Field(default=False, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class AgentCapability(SQLModel, table=True):
@@ -413,7 +417,7 @@ class AgentCapability(SQLModel, table=True):
     confidence_score: int = 50
     notes: Optional[str] = Field(default=None, sa_column=Column(Text))
     last_used_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Quest(SQLModel, table=True):
@@ -433,8 +437,8 @@ class Quest(SQLModel, table=True):
     accepted_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class QuestObjective(SQLModel, table=True):
@@ -445,7 +449,7 @@ class QuestObjective(SQLModel, table=True):
     sort_order: int = 0
     is_done: bool = Field(default=False, index=True)
     completed_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class QuestAssignment(SQLModel, table=True):
@@ -456,7 +460,7 @@ class QuestAssignment(SQLModel, table=True):
     role: Optional[str] = None
     state: str = Field(default="assigned", index=True)
     assigned_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
-    assigned_at: datetime = Field(default_factory=datetime.utcnow)
+    assigned_at: datetime = Field(default_factory=_utcnow)
 
 
 class QuestFeedback(SQLModel, table=True):
@@ -466,7 +470,7 @@ class QuestFeedback(SQLModel, table=True):
     feedback_type: QuestFeedbackType = Field(index=True)
     note: Optional[str] = Field(default=None, sa_column=Column(Text))
     metadata_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
 
 
 class TaskDependency(SQLModel, table=True):
@@ -477,7 +481,7 @@ class TaskDependency(SQLModel, table=True):
     dependency_type: TaskDependencyType = Field(default=TaskDependencyType.blocks, index=True)
     note: Optional[str] = Field(default=None, sa_column=Column(Text))
     created_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
 
 
 class TodoComment(SQLModel, table=True):
@@ -485,14 +489,14 @@ class TodoComment(SQLModel, table=True):
     todo_id: UUID = Field(index=True, foreign_key="todo.id")
     author_id: UUID = Field(index=True, foreign_key="person.id")
     content: str = Field(sa_column=Column(Text, nullable=False))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class TodoTag(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     todo_id: UUID = Field(index=True, foreign_key="todo.id")
     name: str = Field(index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class TodoLink(SQLModel, table=True):
@@ -500,7 +504,7 @@ class TodoLink(SQLModel, table=True):
     todo_id: UUID = Field(index=True, foreign_key="todo.id")
     label: Optional[str] = None
     url: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class TodoDocument(SQLModel, table=True):
@@ -512,7 +516,7 @@ class TodoDocument(SQLModel, table=True):
     storage_path: Optional[str] = None
     original_filename: Optional[str] = None
     uploaded_by: UUID = Field(index=True, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class CelonisConnection(SQLModel, table=True):
@@ -521,17 +525,38 @@ class CelonisConnection(SQLModel, table=True):
     client_id: UUID = Field(index=True, foreign_key="client.id", unique=True)
     tenant_base_url: str
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class CelonisUserToken(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     organization_id: UUID = Field(index=True, foreign_key="organization.id")
     person_id: UUID = Field(index=True, foreign_key="person.id")
+    token_name: Optional[str] = None
     token_value: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class CelonisClientToken(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    organization_id: UUID = Field(index=True, foreign_key="organization.id")
+    client_id: UUID = Field(index=True, foreign_key="client.id")
+    token_name: Optional[str] = None
+    token_value: str
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class CelonisProjectToken(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    organization_id: UUID = Field(index=True, foreign_key="organization.id")
+    project_id: UUID = Field(index=True, foreign_key="project.id")
+    token_name: Optional[str] = None
+    token_value: str
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class CelonisDeploymentStatus(str, Enum):
@@ -559,8 +584,8 @@ class CelonisDeploymentRequest(SQLModel, table=True):
     reviewer_id: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
     reviewer_decision: Optional[str] = None
     reviewer_note: Optional[str] = Field(default=None, sa_column=Column(Text))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class GitLabRepo(SQLModel, table=True):
@@ -573,7 +598,7 @@ class GitLabRepo(SQLModel, table=True):
     webhook_secret: Optional[str] = None
     is_active: bool = True
     created_by: UUID = Field(index=True, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class GitLabPipelineRun(SQLModel, table=True):
@@ -583,9 +608,9 @@ class GitLabPipelineRun(SQLModel, table=True):
     ref: str
     status: str = Field(default="pending", index=True)
     triggered_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
-    triggered_at: datetime = Field(default_factory=datetime.utcnow)
+    triggered_at: datetime = Field(default_factory=_utcnow)
     web_url: Optional[str] = None
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class UseCase(SQLModel, table=True):
@@ -604,8 +629,8 @@ class UseCase(SQLModel, table=True):
     is_anonymized_ready: bool = False
     is_client_view_enabled: bool = False
     is_industry_benchmark_eligible: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class UseCaseRoadmapItem(SQLModel, table=True):
@@ -618,8 +643,8 @@ class UseCaseRoadmapItem(SQLModel, table=True):
     percent_complete: int = Field(default=0)
     blockers: Optional[str] = Field(default=None, sa_column=Column(Text))
     last_update_note: Optional[str] = Field(default=None, sa_column=Column(Text))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class ForumInsight(SQLModel, table=True):
@@ -635,11 +660,11 @@ class ForumInsight(SQLModel, table=True):
     owner_id: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
     reviewer_id: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
     target_week: Optional[str] = Field(default=None, index=True)
-    first_seen_at: datetime = Field(default_factory=datetime.utcnow)
+    first_seen_at: datetime = Field(default_factory=_utcnow)
     last_reviewed_at: Optional[datetime] = None
     created_by: UUID = Field(index=True, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class TemplateLibrary(SQLModel, table=True):
@@ -650,7 +675,7 @@ class TemplateLibrary(SQLModel, table=True):
     library_type: LibraryType = Field(default=LibraryType.template)
     client_id: Optional[UUID] = Field(default=None, index=True, foreign_key="client.id")
     base_url: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Template(SQLModel, table=True):
@@ -666,7 +691,7 @@ class Template(SQLModel, table=True):
     requires_review: bool = Field(default=True)
     is_active: bool = Field(default=True)
     created_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class TemplateInstantiation(SQLModel, table=True):
@@ -681,7 +706,7 @@ class TemplateInstantiation(SQLModel, table=True):
     prefill_data_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
     asset_id: Optional[UUID] = Field(default=None, index=True, foreign_key="asset.id")
     review_request_id: Optional[UUID] = Field(default=None, index=True, foreign_key="reviewrequest.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class DeliveryFile(SQLModel, table=True):
@@ -697,7 +722,7 @@ class DeliveryFile(SQLModel, table=True):
     client_id: Optional[UUID] = Field(default=None, index=True, foreign_key="client.id")
     project_id: Optional[UUID] = Field(default=None, index=True, foreign_key="project.id")
     uploaded_by: Optional[UUID] = Field(default=None, index=True, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class AssetSource(SQLModel, table=True):
@@ -710,8 +735,8 @@ class AssetSource(SQLModel, table=True):
     default_branch: Optional[str] = None
     notes: Optional[str] = Field(default=None, sa_column=Column(Text))
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class TryCelonisDemo(SQLModel, table=True):
@@ -729,9 +754,9 @@ class TryCelonisDemo(SQLModel, table=True):
     evidence_json: list[dict] = Field(default_factory=list, sa_column=Column(JSON))
     confidence_score: float = 0.0
     is_visible: bool = Field(default=True, index=True)
-    last_synced_at: datetime = Field(default_factory=datetime.utcnow, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    last_synced_at: datetime = Field(default_factory=_utcnow, index=True)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class AssetSnapshot(SQLModel, table=True):
@@ -741,7 +766,7 @@ class AssetSnapshot(SQLModel, table=True):
     source_ref: Optional[str] = None
     manifest_path: Optional[str] = None
     summary_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    received_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    received_at: datetime = Field(default_factory=_utcnow, index=True)
 
 
 class IngestRun(SQLModel, table=True):
@@ -754,7 +779,7 @@ class IngestRun(SQLModel, table=True):
     triggered_by: UUID = Field(index=True, foreign_key="person.id")
     notes: Optional[str] = Field(default=None, sa_column=Column(Text))
     metrics_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
 
 
 class IngestFinding(SQLModel, table=True):
@@ -767,7 +792,7 @@ class IngestFinding(SQLModel, table=True):
     line_number: Optional[int] = None
     is_blocking: bool = Field(default=False, index=True)
     metadata_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
 
 
 class KpiDefinition(SQLModel, table=True):
@@ -782,8 +807,8 @@ class KpiDefinition(SQLModel, table=True):
     asset_identifier: Optional[str] = None
     status: KpiStatus = Field(default=KpiStatus.draft)
     owner_id: Optional[UUID] = Field(default=None, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
 
 
 class KpiVersion(SQLModel, table=True):
@@ -793,7 +818,7 @@ class KpiVersion(SQLModel, table=True):
     pql_formula: Optional[str] = None
     change_note: Optional[str] = None
     author_id: Optional[UUID] = Field(default=None, foreign_key="person.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 # ---------------------------------------------------------------------------
@@ -823,7 +848,7 @@ class CelonisSnapshot(SQLModel, table=True):
     finished_at: Optional[datetime] = None
     error_message: Optional[str] = Field(default=None, sa_column=Column(Text))
     summary_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
 
 
 class SnapshotPackage(SQLModel, table=True):
@@ -837,7 +862,7 @@ class SnapshotPackage(SQLModel, table=True):
     space_name: Optional[str] = None
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotPackageDefinition(SQLModel, table=True):
@@ -853,7 +878,7 @@ class SnapshotPackageDefinition(SQLModel, table=True):
     parse_error: Optional[str] = Field(default=None, sa_column=Column(Text))
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     content_hash: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotTask(SQLModel, table=True):
@@ -869,7 +894,7 @@ class SnapshotTask(SQLModel, table=True):
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     content_hash: Optional[str] = None
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotTaskDetail(SQLModel, table=True):
@@ -884,7 +909,7 @@ class SnapshotTaskDetail(SQLModel, table=True):
     references_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
     dependencies_json: list = Field(default_factory=list, sa_column=Column(JSON))
     error_message: Optional[str] = Field(default=None, sa_column=Column(Text))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotDataModel(SQLModel, table=True):
@@ -897,7 +922,7 @@ class SnapshotDataModel(SQLModel, table=True):
     space_name: Optional[str] = None
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotJob(SQLModel, table=True):
@@ -910,7 +935,7 @@ class SnapshotJob(SQLModel, table=True):
     pool_name: Optional[str] = None
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotKnowledgeModel(SQLModel, table=True):
@@ -923,7 +948,7 @@ class SnapshotKnowledgeModel(SQLModel, table=True):
     space_name: Optional[str] = None
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotSpace(SQLModel, table=True):
@@ -935,7 +960,7 @@ class SnapshotSpace(SQLModel, table=True):
     name: str
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotApp(SQLModel, table=True):
@@ -950,7 +975,7 @@ class SnapshotApp(SQLModel, table=True):
     package_key: Optional[str] = None
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotDataPool(SQLModel, table=True):
@@ -962,7 +987,7 @@ class SnapshotDataPool(SQLModel, table=True):
     name: str
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class SnapshotTransformation(SQLModel, table=True):
@@ -976,7 +1001,7 @@ class SnapshotTransformation(SQLModel, table=True):
     pool_name: Optional[str] = None
     change_type: SnapshotChangeType = Field(default=SnapshotChangeType.unchanged)
     raw_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class KpiBookEntry(SQLModel, table=True):
@@ -992,5 +1017,6 @@ class KpiBookEntry(SQLModel, table=True):
     task_type: Optional[str] = None
     is_shared: bool = Field(default=False, index=True)
     tags_json: list[str] = Field(default_factory=list, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+

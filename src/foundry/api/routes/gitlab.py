@@ -1,5 +1,5 @@
 import hmac
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -228,7 +228,7 @@ def trigger_repo_pipeline(
         status=result.status,
         triggered_by=current_actor.person.id,
         web_url=result.web_url,
-        updated_at=datetime.utcnow(),
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
     session.add(run)
     session.commit()
@@ -300,7 +300,7 @@ def refresh_pipeline_status(
     run.status = result.status
     run.ref = result.ref or run.ref
     run.web_url = result.web_url or run.web_url
-    run.updated_at = datetime.utcnow()
+    run.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(run)
     session.commit()
     session.refresh(run)
@@ -351,7 +351,7 @@ def gitlab_webhook(
             status=str(gitlab_status or "pending"),
             triggered_by=None,
             web_url=gitlab_web_url,
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
     else:
         run.status = str(gitlab_status or run.status)
@@ -359,8 +359,9 @@ def gitlab_webhook(
             run.ref = str(gitlab_ref)
         if gitlab_web_url:
             run.web_url = str(gitlab_web_url)
-        run.updated_at = datetime.utcnow()
+        run.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     session.add(run)
     session.commit()
     return {"ok": True}
+

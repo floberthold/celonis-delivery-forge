@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import desc
@@ -132,7 +132,7 @@ def update_quest(
 
     for field_name, field_value in updates.items():
         setattr(quest, field_name, field_value)
-    quest.updated_at = datetime.utcnow()
+    quest.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(quest)
 
     session.add(
@@ -167,7 +167,7 @@ def pause_quest(
 ) -> Quest:
     _validate_status_transition(quest.status, QuestStatus.blocked)
     quest.status = QuestStatus.blocked
-    quest.updated_at = datetime.utcnow()
+    quest.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(quest)
     session.add(
         QuestFeedback(
@@ -200,7 +200,7 @@ def reprioritize_quest(
     priority: QuestPriority,
 ) -> Quest:
     quest.priority = priority
-    quest.updated_at = datetime.utcnow()
+    quest.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(quest)
     session.add(
         QuestFeedback(
@@ -237,7 +237,7 @@ def replace_quest(
 ) -> Quest:
     _validate_status_transition(quest.status, QuestStatus.archived)
     quest.status = QuestStatus.archived
-    quest.updated_at = datetime.utcnow()
+    quest.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(quest)
 
     replacement = Quest(
@@ -421,7 +421,7 @@ def update_objective(
 
     if "is_done" in updates:
         is_done = bool(updates["is_done"])
-        updates["completed_at"] = datetime.utcnow() if is_done else None
+        updates["completed_at"] = datetime.now(timezone.utc).replace(tzinfo=None) if is_done else None
 
     for field_name, field_value in updates.items():
         setattr(objective, field_name, field_value)
@@ -605,3 +605,4 @@ def delete_assignment(
 
     session.commit()
     return deleted_id
+

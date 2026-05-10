@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -44,8 +44,7 @@ def celonis_setup_wizard(
     if selected_client is None and org_clients:
         selected_client = sorted(org_clients, key=lambda row: row.name.lower())[0]
 
-    return templates.TemplateResponse(
-        "celonis_setup_wizard.html",
+    return templates.TemplateResponse(request, "celonis_setup_wizard.html",
         _celonis_setup_context(
             request,
             session,
@@ -120,7 +119,7 @@ def celonis_setup_save_connection(
         else:
             existing.tenant_base_url = tenant_base_url.strip()
             existing.is_active = True
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
         session.add(existing)
         session.commit()
@@ -269,3 +268,5 @@ def celonis_setup_run_preflight(
             f"/onboarding/celonis-setup?client_id={client_id}",
             err=f"Preflight failed: {exc}",
         )
+
+

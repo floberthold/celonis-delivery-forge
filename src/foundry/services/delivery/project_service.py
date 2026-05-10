@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -15,7 +15,7 @@ class ProjectService:
         memberships = session.exec(
             select(ProjectMembership).where(ProjectMembership.project_id == project_id)
         ).all()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         return [
             membership
             for membership in memberships
@@ -76,3 +76,4 @@ class ProjectService:
         )
 
         return project
+

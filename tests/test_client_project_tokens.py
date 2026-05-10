@@ -19,19 +19,16 @@ from foundry.models import (
     Person,
     Project,
 )
-from foundry.security import create_access_token, hash_password
-
-engine = db_module.engine
-
+from foundry.security import create_access_token
 
 def _reset_db():
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.drop_all(db_module.engine)
+    SQLModel.metadata.create_all(db_module.engine)
 
 
 def _seed_test_data():
     """Seed organization, people, clients, and projects."""
-    with Session(engine) as session:
+    with Session(db_module.engine) as session:
         # Create org
         org = Organization(name="Test Org", slug="test-org")
         session.add(org)
@@ -83,11 +80,13 @@ def _seed_test_data():
         proj1 = Project(
             organization_id=org.id,
             name="Roboyo Project 1",
+            client_id=roboyo.id,
             status="active",
         )
         proj2 = Project(
             organization_id=org.id,
             name="Carlo Project 1",
+            client_id=carlo.id,
             status="active",
         )
         session.add_all([proj1, proj2])
@@ -95,13 +94,13 @@ def _seed_test_data():
 
         session.commit()
         return {
-            "org_id": org.id,
-            "admin_id": admin.id,
-            "member_id": member.id,
-            "roboyo_id": roboyo.id,
-            "carlo_id": carlo.id,
-            "proj1_id": proj1.id,
-            "proj2_id": proj2.id,
+            "org_id": str(org.id),
+            "admin_id": str(admin.id),
+            "member_id": str(member.id),
+            "roboyo_id": str(roboyo.id),
+            "carlo_id": str(carlo.id),
+            "proj1_id": str(proj1.id),
+            "proj2_id": str(proj2.id),
         }
 
 
@@ -241,7 +240,7 @@ def test_create_client_token():
     assert "ok" in response.headers["location"]
 
     # Verify token was created
-    with Session(engine) as session:
+    with Session(db_module.engine) as session:
         org_id = UUID(data["org_id"])
         client_id = UUID(data["roboyo_id"])
         token = session.exec(
@@ -279,7 +278,7 @@ def test_create_project_token():
     assert "ok" in response.headers["location"]
 
     # Verify token was created
-    with Session(engine) as session:
+    with Session(db_module.engine) as session:
         org_id = UUID(data["org_id"])
         project_id = UUID(data["proj1_id"])
         token = session.exec(
@@ -326,7 +325,7 @@ def test_delete_token():
     assert "ok" in response.headers["location"]
 
     # Verify token was deleted
-    with Session(engine) as session:
+    with Session(db_module.engine) as session:
         token = session.get(CelonisClientToken, token_id)
         assert token is None
 

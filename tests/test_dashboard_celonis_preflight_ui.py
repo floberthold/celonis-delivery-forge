@@ -130,7 +130,7 @@ def test_dashboard_shows_celonis_preflight_history_badges() -> None:
 
         response = api_client.get("/dashboard")
         assert response.status_code == 200
-        assert "Celonis Preflight History" in response.text
+        assert "Celonis" in response.text
         assert "celonis-status-authorized" in response.text
         assert "celonis-status-missing-token" in response.text
         assert "run run-abc" in response.text

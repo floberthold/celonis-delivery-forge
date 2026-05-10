@@ -32,8 +32,7 @@ _templates.env.filters["normalized_url"] = _normalize_http_url
 
 @router.get("/tenant-ui")
 def tenant_ui(request: Request):
-    return _templates.TemplateResponse(
-        "tenant.html",
+    return _templates.TemplateResponse(request, "tenant.html",
         {
             "request": request,
         },
@@ -43,10 +42,10 @@ def tenant_ui(request: Request):
 @router.get("/workspace-ui")
 def workspace_ui(request: Request):
     tenant_url = request.query_params.get("url") or "https://id.celonis.cloud/user/ui/login"
-    return _templates.TemplateResponse(
-        "workspace.html",
+    return _templates.TemplateResponse(request, "workspace.html",
         {
             "request": request,
             "tenant_url": tenant_url,
         },
     )
+

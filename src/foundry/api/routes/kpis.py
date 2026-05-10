@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -122,7 +122,7 @@ def update_kpi(
 
     for key, value in update_data.items():
         setattr(kpi, key, value)
-    kpi.updated_at = datetime.utcnow()
+    kpi.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(kpi)
     session.commit()
     session.refresh(kpi)
@@ -148,7 +148,7 @@ def update_kpi_status(
     if not kpi:
         raise HTTPException(status_code=404, detail="KPI not found")
     kpi.status = payload.status
-    kpi.updated_at = datetime.utcnow()
+    kpi.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(kpi)
     session.commit()
     session.refresh(kpi)
@@ -184,7 +184,7 @@ def save_kpi_version(
     )
     session.add(version)
     kpi.pql_formula = payload.pql_formula
-    kpi.updated_at = datetime.utcnow()
+    kpi.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     session.add(kpi)
     session.commit()
     session.refresh(version)
@@ -225,3 +225,4 @@ def delete_kpi(
         session.delete(v)
     session.delete(kpi)
     session.commit()
+
